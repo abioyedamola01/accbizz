@@ -1,0 +1,27 @@
+{
+  "name": "accbizz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/output.css --watch",
+    "build": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/output.css --minify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abioyedamola01/accbizz.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/abioyedamola01/accbizz/issues"
+  },
+  "homepage": "https://github.com/abioyedamola01/accbizz#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.2",
+    "flowbite": "^4.0.2",
+    "tailwindcss": "^4.3.2"
+  }
+}

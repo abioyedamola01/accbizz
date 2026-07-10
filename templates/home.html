@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}My App{% endblock title %}</title>
+
+  <!-- Tailwind compiled CSS -->
+  <link rel="stylesheet" href="{% static 'css/output.css' %}" />
+  <!-- Your global design tokens -->
+  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+
+  {% block extra_css %}{% endblock extra_css %}
+</head>
+<body class="h-full min-h-screen antialiased bg-gradient-to-br from-blue-300 via-blue-200 to-blue-400 text-slate-900">
+  {% block content %}{% endblock content %}
+
+  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+  {% block extra_js %}{% endblock extra_js %}
+</body>
+</html>
