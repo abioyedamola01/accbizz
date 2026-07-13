@@ -2,3 +2,4 @@ django > 4.2
 psycopg2
 dj_database_url
 dotenv
+django-widget-tweaks

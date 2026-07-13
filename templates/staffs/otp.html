@@ -1,0 +1,294 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Verification Code{% endblock title %}
+
+{% block content %}
+<main class="min-h-screen p-4 md:p-8 flex items-center justify-center">
+  <section class="w-full max-w-6xl rounded-[2.4rem] border border-white/60 bg-white/95 shadow-2xl overflow-hidden">
+    <div class="grid lg:grid-cols-2 min-h-[640px]">
+
+      <!-- Left Visual Panel -->
+      <aside class="p-3 lg:p-4">
+        <div class="h-full rounded-[2rem] overflow-hidden relative bg-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1560264418-c4445382edbc?q=80&w=1400&auto=format&fit=crop"
+            alt="Staff member working at a computer"
+            class="h-full w-full object-cover object-center"
+            loading="lazy"
+          />
+          <div class="absolute inset-0 bg-gradient-to-tr from-blue-900/30 via-transparent to-blue-500/10"></div>
+        </div>
+      </aside>
+
+      <!-- Right Form Panel -->
+      <div class="px-6 py-8 sm:px-10 lg:px-12 lg:py-10 flex flex-col">
+        <div class="flex items-center justify-between mb-10">
+          <a href="{% url "staff_login" %}" class="inline-flex items-center justify-center w-10 h-10 rounded-full text-slate-600 hover:text-blue-700 hover:bg-slate-100 transition-colors" aria-label="Go back">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M15 19l-7-7 7-7" />
+            </svg>
+          </a>
+          <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-blue-900 hover:text-blue-700 transition-colors">
+            ACCBIZZ
+          </a>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-slate-950">Verification Code</h1>
+        <p class="mt-2 text-sm text-slate-600 max-w-[520px]">
+          We sent you a verification code on <span class="font-semibold text-slate-900">{{ user_email }}</span>
+        </p>
+
+        {% if messages %}
+          <div class="mt-6 max-w-[430px] space-y-2">
+            {% for message in messages %}
+              <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if otp_form.non_field_errors %}
+          <div class="mt-6 max-w-[430px] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {% for error in otp_form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <form id="otpForm" class="mt-8 max-w-[430px]" method="post" action="{% url 'verify_otp_staff' %}" novalidate data-otp-uuid="{{ otp_uuid }}">
+          {% csrf_token %}
+
+          <div class="flex items-center gap-2 sm:gap-3">
+            {% for i in "123456" %}
+              <input
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="1"
+                autocomplete="one-time-code"
+                data-otp-index="{{ forloop.counter0 }}"
+                class="otp-input w-full h-14 sm:h-16 rounded-2xl border border-slate-300 bg-white text-center text-xl font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+              />
+            {% endfor %}
+          </div>
+          <input type="hidden" name="otp_code" id="otpCode" />
+
+          {% if otp_form.otp_code.errors %}
+            <p class="mt-3 text-sm text-red-600">{{ otp_form.otp_code.errors.0 }}</p>
+          {% endif %}
+
+          <p class="mt-4 text-sm text-slate-600 text-right">
+            Resend Code in
+            <span id="resendTimer" class="font-semibold text-slate-900">00:60</span>
+          </p>
+          <p class="mt-1 text-sm text-right hidden" id="resendWrapper">
+            <a href="{% url 'resend_staff_otp' %}" id="resendLink" class="font-semibold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors">
+              <span id="resendLinkText">Resend Code</span>
+            </a>
+          </p>
+
+          <button
+            id="verifyButton"
+            type="submit"
+            disabled
+            class="mt-6 w-full h-12 rounded-full bg-slate-400 text-white text-sm font-medium cursor-not-allowed transition disabled:opacity-90 enabled:bg-slate-950 enabled:hover:bg-blue-700 enabled:cursor-pointer inline-flex items-center justify-center gap-2"
+          >
+            <svg
+              id="verifySpinner"
+              class="hidden w-4 h-4 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="verifyBtnText">Verify Code</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  const otpForm = document.getElementById('otpForm');
+  const otpInputs = Array.from(document.querySelectorAll('.otp-input'));
+  const otpCodeField = document.getElementById('otpCode');
+  const verifyButton = document.getElementById('verifyButton');
+  const verifySpinner = document.getElementById('verifySpinner');
+  const verifyBtnText = document.getElementById('verifyBtnText');
+
+  const resendTimerEl = document.getElementById('resendTimer');
+  const resendWrapper = document.getElementById('resendWrapper');
+  const resendTimerWrapper = resendTimerEl.parentElement;
+  const resendLink = document.getElementById('resendLink');
+
+  const RESEND_SECONDS = 60;
+  const RESEND_EXPIRY_KEY = 'otpResendExpiresAt';
+  const RESEND_UUID_KEY = 'otpResendUuid';
+  const currentOtpUuid = otpForm.dataset.otpUuid || '';
+  let resendIntervalId = null;
+
+  function formatTime(totalSeconds) {
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const s = String(totalSeconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function getStoredExpiry() {
+    const stored = sessionStorage.getItem(RESEND_EXPIRY_KEY);
+    return stored ? parseInt(stored, 10) : null;
+  }
+
+  function clearStoredTimer() {
+    sessionStorage.removeItem(RESEND_EXPIRY_KEY);
+    sessionStorage.removeItem(RESEND_UUID_KEY);
+  }
+
+  function renderResendState() {
+    const expiry = getStoredExpiry();
+    const now = Date.now();
+
+    if (!expiry || expiry <= now) {
+      if (resendIntervalId) clearInterval(resendIntervalId);
+      resendTimerWrapper.classList.add('hidden');
+      resendWrapper.classList.remove('hidden');
+      return;
+    }
+
+    resendTimerWrapper.classList.remove('hidden');
+    resendWrapper.classList.add('hidden');
+    const secondsLeft = Math.ceil((expiry - now) / 1000);
+    resendTimerEl.textContent = formatTime(secondsLeft);
+  }
+
+  // Restart the countdown only when the OTP instance UUID we're looking at
+  // differs from the one we last saw (i.e. a genuinely new code was issued).
+  // Same UUID on reload (e.g. after a failed verify attempt) just resumes
+  // whatever time is left.
+  function startResendTimer() {
+    const now = Date.now();
+    const storedUuid = sessionStorage.getItem(RESEND_UUID_KEY);
+    const isNewOtpInstance = !currentOtpUuid || storedUuid !== currentOtpUuid;
+
+    if (isNewOtpInstance) {
+      const expiry = now + RESEND_SECONDS * 1000;
+      sessionStorage.setItem(RESEND_EXPIRY_KEY, String(expiry));
+      sessionStorage.setItem(RESEND_UUID_KEY, currentOtpUuid);
+    }
+
+    renderResendState();
+    if (resendIntervalId) clearInterval(resendIntervalId);
+    resendIntervalId = setInterval(renderResendState, 1000);
+  }
+
+  startResendTimer();
+
+  const resendLinkText = document.getElementById('resendLinkText');
+  let resendClicked = false;
+  let resendDotsIntervalId = null;
+
+  if (resendLink) {
+    // Plain link to {% url 'resend_staff_otp' %} — clicking it performs a
+    // normal full-page navigation/reload, exactly like the login page does
+    // on submit. We don't intercept or fetch() here; we only wipe the
+    // stale timer state and lock the link before the browser navigates
+    // away, so that (a) a slow network can't let a second click fire a
+    // duplicate resend, and (b) when the resend view responds with a
+    // freshly rendered OTP page (new otp_uuid), startResendTimer() on load
+    // sees no matching UUID in storage and correctly restarts the 60s
+    // countdown right away.
+    resendLink.addEventListener('click', function (event) {
+      if (resendClicked) {
+        event.preventDefault();
+        return;
+      }
+      resendClicked = true;
+      clearStoredTimer();
+
+      resendLink.classList.add('pointer-events-none', 'opacity-60', 'cursor-not-allowed');
+      resendLink.setAttribute('aria-disabled', 'true');
+      resendLink.setAttribute('tabindex', '-1');
+
+      const dotsCycle = ['.', '..', '...'];
+      let dotIndex = 0;
+      if (resendLinkText) resendLinkText.textContent = `Resending ${dotsCycle[dotIndex]}`;
+
+      if (resendDotsIntervalId) clearInterval(resendDotsIntervalId);
+      resendDotsIntervalId = setInterval(() => {
+        dotIndex = (dotIndex + 1) % dotsCycle.length;
+        if (resendLinkText) resendLinkText.textContent = `Resending ${dotsCycle[dotIndex]}`;
+      }, 400);
+    });
+  }
+
+  function checkComplete() {
+    const code = otpInputs.map((input) => input.value).join('');
+    otpCodeField.value = code;
+    const isComplete = otpInputs.every((input) => /^[0-9]$/.test(input.value));
+    if (otpForm.dataset.submitting === 'true') return;
+    verifyButton.disabled = !isComplete;
+  }
+
+  otpInputs.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9]/g, '').slice(0, 1);
+      if (input.value && index < otpInputs.length - 1) {
+        otpInputs[index + 1].focus();
+      }
+      checkComplete();
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Backspace' && !input.value && index > 0) {
+        otpInputs[index - 1].focus();
+      }
+    });
+
+    input.addEventListener('paste', (event) => {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+      if (!pasted) return;
+      otpInputs.forEach((otpInput, i) => {
+        otpInput.value = pasted[i] || '';
+      });
+      const nextEmpty = otpInputs.findIndex((otpInput) => !otpInput.value);
+      otpInputs[nextEmpty === -1 ? otpInputs.length - 1 : nextEmpty].focus();
+      checkComplete();
+    });
+  });
+
+  if (otpForm) {
+    otpForm.addEventListener('submit', function (event) {
+      const code = otpInputs.map((input) => input.value).join('');
+      const isComplete = otpInputs.every((input) => /^[0-9]$/.test(input.value));
+
+      if (!isComplete) {
+        event.preventDefault();
+        return;
+      }
+
+      if (otpForm.dataset.submitting === 'true') {
+        event.preventDefault();
+        return;
+      }
+
+      otpCodeField.value = code;
+      otpForm.dataset.submitting = 'true';
+      verifyButton.disabled = true;
+      verifyButton.classList.remove('enabled:bg-slate-950', 'enabled:hover:bg-blue-700', 'enabled:cursor-pointer');
+      verifyButton.classList.add('bg-slate-800', 'cursor-not-allowed');
+
+      if (verifySpinner) verifySpinner.classList.remove('hidden');
+      if (verifyBtnText) verifyBtnText.textContent = 'Verifying';
+    });
+  }
+</script>
+{% endblock extra_js %}
