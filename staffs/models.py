@@ -86,3 +86,113 @@ class OTPVerifyModel(models.Model):
         if self.attempts == 0:
             self.expires_at = timezone.now() + timedelta(minutes=5)
         return super().save(*args, **kwargs)
+
+
+
+super_admin_permissions = [
+    ("manage_roles", "Can manage roles"),
+    ("manage_permissions", "Can manage permissions"),
+    ("manage_super_admins", "Can manage super administrators"),
+    ("view_users", "Can view users"),
+    ("add_users", "Can add users"),
+    ("change_users", "Can change users"),
+    ("deactivate_users", "Can deactivate users"),
+    ("reset_user_password", "Can reset user passwords"),
+    ("view_audit_logs", "Can view audit logs"),
+    ("manage_security_settings", "Can manage security settings"),
+    ("manage_system_settings", "Can manage system settings"),
+    ("manage_backups", "Can manage backups"),
+    ("restore_backups", "Can restore backups"),
+    ("view_system_logs", "Can view system logs"),
+]
+
+
+admin_permissions = [
+    # Dashboard
+    ("view_dashboard", "Can view dashboard"),
+    ("view_analytics", "Can view analytics"),
+
+    # Website
+    ("manage_site", "Can manage website"),
+    ("manage_homepage", "Can manage homepage"),
+    ("manage_navigation", "Can manage navigation"),
+    ("manage_site_settings", "Can manage site settings"),
+    ("manage_seo", "Can manage SEO settings"),
+
+    # Pages
+    ("view_pages", "Can view pages"),
+    ("add_pages", "Can add pages"),
+    ("change_pages", "Can change pages"),
+    ("delete_pages", "Can delete pages"),
+    ("publish_pages", "Can publish pages"),
+
+    # Services
+    ("view_services", "Can view services"),
+    ("add_services", "Can add services"),
+    ("change_services", "Can change services"),
+    ("delete_services", "Can delete services"),
+    ("publish_services", "Can publish services"),
+
+    # Projects
+    ("view_projects", "Can view projects"),
+    ("add_projects", "Can add projects"),
+    ("change_projects", "Can change projects"),
+    ("delete_projects", "Can delete projects"),
+    ("publish_projects", "Can publish projects"),
+
+    # Blog
+    ("view_blog", "Can view blog"),
+    ("add_blog", "Can add blog posts"),
+    ("change_blog", "Can change blog posts"),
+    ("delete_blog", "Can delete blog posts"),
+    ("publish_blog", "Can publish blog posts"),
+
+    # Testimonials
+    ("view_testimonials", "Can view testimonials"),
+    ("add_testimonials", "Can add testimonials"),
+    ("change_testimonials", "Can change testimonials"),
+    ("delete_testimonials", "Can delete testimonials"),
+
+    # Team
+    ("view_team", "Can view team members"),
+    ("add_team", "Can add team members"),
+    ("change_team", "Can change team members"),
+    ("delete_team", "Can delete team members"),
+
+    # FAQ
+    ("view_faq", "Can view FAQs"),
+    ("add_faq", "Can add FAQs"),
+    ("change_faq", "Can change FAQs"),
+    ("delete_faq", "Can delete FAQs"),
+
+    # Media Library
+    ("view_media", "Can view media library"),
+    ("upload_media", "Can upload media"),
+    ("change_media", "Can edit media"),
+    ("delete_media", "Can delete media"),
+
+    # Messages
+    ("view_messages", "Can view contact messages"),
+    ("reply_messages", "Can reply to contact messages"),
+    ("delete_messages", "Can delete contact messages"),
+
+    # Quote Requests
+    ("view_quotes", "Can view quote requests"),
+    ("reply_quotes", "Can reply to quote requests"),
+    ("delete_quotes", "Can delete quote requests"),
+
+    # Newsletter
+    ("view_subscribers", "Can view newsletter subscribers"),
+    ("export_subscribers", "Can export newsletter subscribers"),
+]
+
+
+perms = super_admin_permissions + admin_permissions
+
+
+class StaffPermissions(models.Model):
+    class Meta:
+        managed = False
+        default_permissions = ()
+
+        permissions = perms

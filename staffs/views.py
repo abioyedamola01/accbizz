@@ -24,7 +24,7 @@ from .otp_utils import (
 
 def StaffLoginView(request):
     if request.user.is_authenticated:
-        return redirect("staff_dashboard")
+        return redirect("dashboard_home")
 
 
     form = StaffLoginForm(request.POST or None)
@@ -62,7 +62,7 @@ def StaffLoginView(request):
 
 def VerifyStaffLoginOTP(request):
     if request.user.is_authenticated:
-        return redirect("staff_dashboard")
+        return redirect("dashboard_home")
 
     otp_verify_info =  request.session.get("otp_verify_info", None)
     if not otp_verify_info:
@@ -84,7 +84,7 @@ def VerifyStaffLoginOTP(request):
         if verify_status:
             request.session.flush()
             login(request, user)
-            return redirect("staff_dashboard")
+            return redirect("dashboard_home")
 
         form.add_error(None, verify_comment)
     return render(request, "staffs/otp.html", {
@@ -99,7 +99,7 @@ def VerifyStaffLoginOTP(request):
 
 def ResendStaffOTPView(request):
     if request.user.is_authenticated:
-        return redirect("staff_dashboard")
+        return redirect("dashboard_home")
 
     otp_verify_info = request.session.get("otp_verify_info", None)
     if not otp_verify_info:
