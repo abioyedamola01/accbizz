@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.conf import settings
-from django.utils import timezone
+from django.utils import timezone, timesince
 from datetime import timedelta, datetime
 
 from django.shortcuts import redirect
@@ -71,7 +71,7 @@ class UserProfileModel(models.Model):
     gender = models.CharField(max_length=10, choices=gender_choices, default="")
     nationality =  models.CharField(max_length=64, default="")
     phone = models.CharField(max_length=20, default="")
-    last_updated = models.DateTimeField(auto_now=False, auto_now_add=False, null=True)
+    last_updated = models.DateTimeField(auto_now=True, null=True)
 
 
     def get_default_avatar(self):
@@ -79,12 +79,6 @@ class UserProfileModel(models.Model):
     
     def get_username(self):
         return f"{self.first_name} {self.last_name}"
-    
-    def save(self, *args, **kwargs):
-        if self.id:
-            self.last_updated = datetime.now()
-
-        return super().save(*args, **kwargs)
 
 
 
