@@ -1,4 +1,4 @@
-{% extends "base/base.html" %}
+{% extends "base/staffs/base.html" %}
 {% load static %}
 {% load widget_tweaks %}
 
@@ -7,37 +7,38 @@
 {% block content %}
 <main class="min-h-screen p-4 md:p-8 flex items-center justify-center">
   <section class="w-full max-w-6xl rounded-[2.4rem] border border-white/60 bg-white/95 shadow-2xl overflow-hidden">
-    <div class="grid lg:grid-cols-2 min-h-[640px]">
+    <div class="grid lg:grid-cols-2 min-h-[500px]">
 
       <!-- Left Visual Panel -->
       <aside class="p-3 lg:p-4">
-        <div class="h-full rounded-[2rem] overflow-hidden relative bg-slate-200">
+        <div class="h-full rounded-[2rem] overflow-hidden relative bg-gray-200">
           <img
             src="https://images.unsplash.com/photo-1560264418-c4445382edbc?q=80&w=1400&auto=format&fit=crop"
             alt="Staff member working at a computer"
             class="h-full w-full object-cover object-center"
             loading="lazy"
           />
-          <div class="absolute inset-0 bg-gradient-to-tr from-blue-900/30 via-transparent to-blue-500/10"></div>
+          <!-- Brand-tinted overlay: dark corner top-left, brand-orange glow bottom-right -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-dark-900/30 via-transparent to-brand-500/10"></div>
         </div>
       </aside>
 
       <!-- Right Form Panel -->
       <div class="px-6 py-8 sm:px-10 lg:px-12 lg:py-10 flex flex-col">
         <div class="flex items-center justify-between mb-10">
-          <a href="{% url "staff_login" %}" class="inline-flex items-center justify-center w-10 h-10 rounded-full text-slate-600 hover:text-blue-700 hover:bg-slate-100 transition-colors" aria-label="Go back">
+          <a href="{% url "staff_login" %}" class="inline-flex items-center justify-center w-10 h-10 rounded-full text-gray-500 hover:text-brand-500 hover:bg-gray-100 transition-colors" aria-label="Go back">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M15 19l-7-7 7-7" />
             </svg>
           </a>
-          <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-blue-900 hover:text-blue-700 transition-colors">
+          <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
             ACCBIZZ
           </a>
         </div>
 
-        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-slate-950">Verification Code</h1>
-        <p class="mt-2 text-sm text-slate-600 max-w-[520px]">
-          We sent you a verification code on <span class="font-semibold text-slate-900">{{ user_email }}</span>
+        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-dark-900">Verification Code</h1>
+        <p class="mt-2 text-sm text-gray-500 max-w-[520px]">
+          We sent you a verification code on <span class="font-semibold text-dark-900">{{ user_email }}</span>
         </p>
 
         {% if messages %}
@@ -70,7 +71,7 @@
                 maxlength="1"
                 autocomplete="one-time-code"
                 data-otp-index="{{ forloop.counter0 }}"
-                class="otp-input w-full h-14 sm:h-16 rounded-2xl border border-slate-300 bg-white text-center text-xl font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                class="otp-input w-full h-14 sm:h-16 rounded-2xl border border-gray-300 bg-white text-center text-xl font-semibold text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition"
               />
             {% endfor %}
           </div>
@@ -80,12 +81,12 @@
             <p class="mt-3 text-sm text-red-600">{{ otp_form.otp_code.errors.0 }}</p>
           {% endif %}
 
-          <p class="mt-4 text-sm text-slate-600 text-right">
+          <p class="mt-4 text-sm text-gray-500 text-right">
             Resend Code in
-            <span id="resendTimer" class="font-semibold text-slate-900">00:60</span>
+            <span id="resendTimer" class="font-semibold text-dark-900">00:60</span>
           </p>
           <p class="mt-1 text-sm text-right hidden" id="resendWrapper">
-            <a href="{% url 'resend_staff_otp' %}" id="resendLink" class="font-semibold text-blue-700 hover:text-blue-900 underline underline-offset-2 transition-colors">
+            <a href="{% url 'resend_staff_otp' %}" id="resendLink" class="font-semibold text-brand-500 hover:text-brand-600 underline underline-offset-2 transition-colors">
               <span id="resendLinkText">Resend Code</span>
             </a>
           </p>
@@ -94,7 +95,7 @@
             id="verifyButton"
             type="submit"
             disabled
-            class="mt-6 w-full h-12 rounded-full bg-slate-400 text-white text-sm font-medium cursor-not-allowed transition disabled:opacity-90 enabled:bg-slate-950 enabled:hover:bg-blue-700 enabled:cursor-pointer inline-flex items-center justify-center gap-2"
+            class="mt-6 w-full h-12 rounded-full bg-gray-300 text-white text-sm font-medium cursor-not-allowed transition disabled:opacity-90 enabled:bg-dark-900 enabled:hover:bg-brand-600 enabled:cursor-pointer inline-flex items-center justify-center gap-2"
           >
             <svg
               id="verifySpinner"
@@ -283,8 +284,8 @@
       otpCodeField.value = code;
       otpForm.dataset.submitting = 'true';
       verifyButton.disabled = true;
-      verifyButton.classList.remove('enabled:bg-slate-950', 'enabled:hover:bg-blue-700', 'enabled:cursor-pointer');
-      verifyButton.classList.add('bg-slate-800', 'cursor-not-allowed');
+      verifyButton.classList.remove('enabled:bg-dark-900', 'enabled:hover:bg-brand-600', 'enabled:cursor-pointer');
+      verifyButton.classList.add('bg-dark-800', 'cursor-not-allowed');
 
       if (verifySpinner) verifySpinner.classList.remove('hidden');
       if (verifyBtnText) verifyBtnText.textContent = 'Verifying';

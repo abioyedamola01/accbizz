@@ -1,4 +1,4 @@
-{% extends "base/base.html" %}
+{% extends "base/staffs/base.html" %}
 {% load static %}
 {% load widget_tweaks %}
 
@@ -7,31 +7,32 @@
 {% block content %}
 <main class="min-h-screen p-4 md:p-8 flex items-center justify-center">
   <section class="w-full max-w-6xl rounded-[2.4rem] border border-white/60 bg-white/95 shadow-2xl overflow-hidden">
-    <div class="grid lg:grid-cols-2 min-h-[640px]">
+    <div class="grid lg:grid-cols-2 min-h-[500px]">
 
       <!-- Left Visual Panel -->
       <aside class="p-3 lg:p-4">
-        <div class="h-full rounded-[2rem] overflow-hidden relative bg-slate-200">
+        <div class="h-full rounded-[2rem] overflow-hidden relative bg-gray-200">
           <img
             src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop"
             alt="Staff working on computers"
             class="h-full w-full object-cover object-center"
             loading="lazy"
           />
-          <div class="absolute inset-0 bg-gradient-to-tr from-blue-900/30 via-transparent to-blue-500/10"></div>
+          <!-- Brand-tinted overlay: dark corner top-left, brand-orange glow bottom-right -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-dark-900/30 via-transparent to-brand-500/10"></div>
         </div>
       </aside>
 
       <!-- Right Form Panel -->
       <div class="px-6 py-8 sm:px-10 lg:px-12 lg:py-10 flex flex-col">
         <div class="flex items-center justify-end mb-10">
-          <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-blue-900 hover:text-blue-700 transition-colors">
+          <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
             ACCBIZZ
           </a>
         </div>
 
-        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-slate-950">Log in</h1>
-        <p class="mt-2 text-sm text-slate-600 max-w-[520px]">
+        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-dark-900">Log in</h1>
+        <p class="mt-2 text-sm text-gray-500 max-w-[520px]">
           This portal is restricted to authorized staff only. Staff accounts are created by Supreme Administrators.
         </p>
 
@@ -57,25 +58,25 @@
           {% csrf_token %}
 
           <div>
-            <label for="{{ login_form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-slate-800">
+            <label for="{{ login_form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-700">
               Email Address
             </label>
-            {% render_field login_form.email placeholder="you@company.com" class+="w-full h-12 rounded-full border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition" %}
+            {% render_field login_form.email placeholder="you@company.com" class+="w-full h-12 rounded-full border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
             {% if login_form.email.errors %}
               <p class="mt-2 text-sm text-red-600">{{ login_form.email.errors.0 }}</p>
             {% endif %}
           </div>
 
           <div>
-            <label for="{{ login_form.password.id_for_label }}" class="block mb-2 text-sm font-medium text-slate-800">
+            <label for="{{ login_form.password.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-700">
               Password
             </label>
             <div class="relative">
-              {% render_field login_form.password placeholder="Password" class+="w-full h-12 rounded-full border border-slate-300 bg-white px-4 pr-12 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition" %}
+              {% render_field login_form.password placeholder="Password" class+="w-full h-12 rounded-full border border-gray-300 bg-white px-4 pr-12 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
               <button
                 type="button"
                 data-target="{{ login_form.password.id_for_label }}"
-                class="toggle-password absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-700 transition"
+                class="toggle-password absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-brand-500 transition"
                 aria-label="Toggle password visibility"
               >
                 <!-- Eye (default state: password hidden, click to reveal) -->
@@ -94,11 +95,11 @@
             {% endif %}
           </div>
 
-          <label class="flex items-center gap-2 text-sm text-slate-600 select-none">
-            <input id="acceptPolicy" type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-400" />
+          <label class="flex items-center gap-2 text-sm text-gray-500 select-none">
+            <input id="acceptPolicy" type="checkbox" class="rounded border-gray-300 text-brand-500 focus:ring-brand-400" />
             <span>
               I accept the
-              <a href="#" class="font-semibold text-slate-900 hover:text-blue-700 underline underline-offset-2">Terms &amp; Conditions</a>
+              <a href="#" class="font-semibold text-dark-900 hover:text-brand-500 underline underline-offset-2">Terms &amp; Conditions</a>
             </span>
           </label>
 
@@ -106,7 +107,7 @@
             id="loginButton"
             type="submit"
             disabled
-            class="w-full h-12 rounded-full bg-slate-400 text-white text-sm font-medium cursor-not-allowed transition disabled:opacity-90 enabled:bg-slate-950 enabled:hover:bg-blue-700 enabled:cursor-pointer inline-flex items-center justify-center gap-2"
+            class="w-full h-12 rounded-full bg-gray-300 text-white text-sm font-medium cursor-not-allowed transition disabled:opacity-90 enabled:bg-dark-900 enabled:hover:bg-brand-600 enabled:cursor-pointer inline-flex items-center justify-center gap-2"
           >
             <svg
               id="loginSpinner"
@@ -160,8 +161,8 @@
 
       loginForm.dataset.submitting = 'true';
       loginButton.disabled = true;
-      loginButton.classList.remove('enabled:bg-slate-950', 'enabled:hover:bg-blue-700', 'enabled:cursor-pointer');
-      loginButton.classList.add('bg-slate-800', 'cursor-not-allowed');
+      loginButton.classList.remove('enabled:bg-dark-900', 'enabled:hover:bg-brand-600', 'enabled:cursor-pointer');
+      loginButton.classList.add('bg-dark-800', 'cursor-not-allowed');
 
       if (loginSpinner) loginSpinner.classList.remove('hidden');
       if (loginBtnText) loginBtnText.textContent = 'Logging in';

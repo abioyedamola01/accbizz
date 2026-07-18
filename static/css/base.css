@@ -1,15 +1,64 @@
 :root {
-  --brand-50: #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-200: #bfdbfe;
-  --brand-300: #93c5fd;
-  --brand-400: #60a5fa;
-  --brand-500: #3b82f6;
-  --brand-600: #2563eb;
-  --brand-700: #1d4ed8;
-  --brand-800: #1e40af;
-  --brand-900: #1e3a8a;
+  /* Brand — orange (primary accent) */
+  --brand-50: #FEF5F1;
+  --brand-100: #FDE8DE;
+  --brand-200: #FAD0BD;
+  --brand-300: #F6AF8D;
+  --brand-400: #F38D5E;
+  --brand-500: #EF6B2E; /* base — matches original #EF6A2E */
+  --brand-600: #E45411;
+  --brand-700: #BE460E;
+  --brand-800: #98380B;
+  --brand-900: #722A09;
+
+  /* Gray — neutral text/icons/borders */
+  --gray-50: #F7F7F8;
+  --gray-100: #EFEFF0;
+  --gray-200: #E0DFE2;
+  --gray-300: #C6C4CA;
+  --gray-400: #A4A1AA;
+  --gray-500: #8A8792; /* base — matches original brand-gray */
+  --gray-600: #706D78;
+  --gray-700: #5A5760;
+  --gray-800: #413F45;
+  --gray-900: #28272B;
+
+  /* Green — success / positive trend */
+  --green-50: #F0FAF4;
+  --green-100: #DDF4E7;
+  --green-200: #BAE8D0;
+  --green-300: #8CD9B0;
+  --green-400: #5ECA91;
+  --green-500: #3AB072; /* base — close to original #3BB273 */
+  --green-600: #30925E;
+  --green-700: #26734A;
+  --green-800: #1E5C3B;
+  --green-900: #17452D;
+
+  /* Dark — text / promo card / navy */
+  --dark-50: #F6F5F9;
+  --dark-100: #EAE9F2;
+  --dark-200: #D3CFE3;
+  --dark-300: #ADA5CA;
+  --dark-400: #7B6EAA;
+  --dark-500: #574B81;
+  --dark-600: #413960;
+  --dark-700: #302947;
+  --dark-800: #231E33;
+  --dark-900: #181523; /* base — close to original #1F1B2E */
+
+  /* Page background */
+  --cream: #F4EEE3;
+
+  /* Card shadow (tinted with dark-900) */
+  --shadow-card: 0 2px 10px 0 rgba(31, 27, 46, 0.04);
 }
+
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #E4DFD3; border-radius: 10px; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 
 html, body {
   margin: 0;

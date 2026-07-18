@@ -32,8 +32,11 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUserModel(AbstractUser):
-    username = models.CharField(unique=False, max_length=254, default="")
     email = models.EmailField(unique=True, max_length=254)
+    first_name = None
+    last_name = None
+    username = None
+    profile = models.OneToOneField("staffs.UserProfileModel", null=True, verbose_name="Profile", on_delete=models.CASCADE, related_name="user")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -44,10 +47,37 @@ class CustomUserModel(AbstractUser):
         return self.email
     
     def save(self, *args, **kwargs):
-        if self.username != f"{self.first_name} {self.last_name}":
-            self.username = f"{self.first_name} {self.last_name}"
+        if self.id is None or self.profile is None:
+            self.profile = UserProfileModel.objects.create()
         return super().save(*args, **kwargs)
     
+        
+    
+
+class UserProfileModel(models.Model):
+    role_choices = [
+        ("super_admin", "Super Administrator"),
+        ("admin", "Administrator")
+    ]
+    gender_choices = [
+        ("m", "Male"),
+        ("f", "Female")
+    ]
+    
+    first_name = models.CharField(unique=False, max_length=154, default="")
+    last_name = models.CharField(unique=False, max_length=154, default="")
+    avatar = models.ImageField(upload_to="avatars/%y/%m/%d/", default="")
+    role = models.CharField(max_length=75, choices=role_choices, default="")
+    gender = models.CharField(max_length=10, choices=gender_choices, default="")
+    nationality =  models.CharField(max_length=64, default="")
+    phone = models.CharField(max_length=20, default="")
+
+
+    def get_default_avatar(self):
+        return "https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000"
+    
+    def get_username(self):
+        return f"{self.first_name} {self.last_name}"
 
 
 

@@ -2,11 +2,13 @@ from django.urls import path
 from .views import (
     StaffLoginView,
     VerifyStaffLoginOTP,
-    ResendStaffOTPView
+    ResendStaffOTPView,
+    StaffLogoutView
 )
 
 urlpatterns = [
     path("login", StaffLoginView, name="staff_login"),
     path("login/verify_otp", VerifyStaffLoginOTP, name="verify_otp_staff"),
-    path("login/verify_otp/resend", ResendStaffOTPView, name="resend_staff_otp")
+    path("login/verify_otp/resend", ResendStaffOTPView, name="resend_staff_otp"),
+    path("logout", StaffLogoutView, name="staff_logout")
 ]

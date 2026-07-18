@@ -5,8 +5,10 @@ from django.shortcuts import (
 )
 from django.contrib.auth import  (
     authenticate, 
-    login
+    login,
+    logout
     )
+from django.contrib.auth.decorators import login_required
 from .models import OTPVerifyModel
 from .forms import (
     StaffLoginForm,
@@ -40,8 +42,9 @@ def StaffLoginView(request):
             form.add_error(None, "Staff is not active at the moment.")
         elif user.is_active and user.is_staff:
             purpose = "staff_login"
+            username = user.profile.get_username()
             otp, otp_id = CreateOTP(user, purpose)
-            SendOTPEmail(user.username, email, otp, purpose)
+            SendOTPEmail(username, email, otp, verify_purpose="Staff Login")
 
             request.session["otp_verify_info"] = {
                 "user_id": user.id,
@@ -116,7 +119,7 @@ def ResendStaffOTPView(request):
     
     otp_instance.invalidate_otp()
     new_otp, new_otp_id = CreateOTP(user, purpose)
-    SendOTPEmail(user.username, user.email, new_otp, purpose)
+    SendOTPEmail(user.profile.get_username(), user.email, new_otp, verify_purpose=otp_instance.get_purpose_display())
     otp_verify_info["otp_id"] = new_otp_id
     otp_verify_info["otp_uuid"] = str(uuid.uuid4())
     request.session["otp_verify_info"] = otp_verify_info
@@ -127,3 +130,10 @@ def ResendStaffOTPView(request):
         "otp_form": form
     })
 
+
+
+@login_required
+def StaffLogoutView(request):
+    request.session.flush()
+    logout(request)
+    return redirect("home")

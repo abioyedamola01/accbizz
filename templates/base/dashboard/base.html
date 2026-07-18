@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Dashboard · Accbizz{% endblock title %}</title>
+
+  <!-- Tailwind compiled CSS -->
+  <link rel="stylesheet" href="{% static 'css/output.css' %}" />
+  <!-- Global design tokens -->
+  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  {% block extra_css %}{% endblock extra_css %}
+</head>
+<body class="font-sans text-dark-900 antialiased h-screen w-screen overflow-hidden m-0 p-0 bg-cream">
+
+<div class="flex h-screen w-screen overflow-hidden">
+
+  {% include "base/dashboard/partials/_sidebar.html" %}
+
+  <div class="flex-1 h-screen overflow-y-auto min-w-0">
+    {% include "base/dashboard/partials/_topbar.html" %}
+
+    <main class="p-4 pt-0">
+      {% block content %}{% endblock content %}
+    </main>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+{% block extra_js %}{% endblock extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
+</html>
