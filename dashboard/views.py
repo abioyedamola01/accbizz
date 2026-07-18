@@ -25,7 +25,7 @@ def ProfileView(request):
     profile = request.user.profile
     profile_info = list()
     for field, value in model_to_dict(profile).items():
-        if field not in ("id", "avatar",):
+        if field not in ("id", "avatar", "last_updated"):
             field_name = str(field).replace("_", " ").title()
             if field == "role":
                 value = profile.get_role_display()
@@ -33,9 +33,10 @@ def ProfileView(request):
                 value = profile.get_gender_display()
 
             profile_info.append((field_name, value))
+    
 
     context = {
-        "current": "communication",
+        "current": "staff profile",
         "profile_info": profile_info,
         "profile_form": profile_form,
         "avatar_form":  avatar_form

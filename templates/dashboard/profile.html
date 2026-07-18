@@ -42,7 +42,10 @@
       {# ---- Profile information card ---- #}
       <div class="bg-white rounded-2xl shadow-card p-5">
         <div class="flex items-center justify-between mb-4">
-          <p class="text-base font-bold text-dark-900">Profile Information</p>
+          <p class="text-base text-dark-900">
+            <span class="font-bold">Profile Information</span>
+            {% if user.profile.last_updated %} <span class="text-sm text-gray-500 font-thin">(Last updated: {{ user.profile.last_updated }})</span> {% endif %}
+          </p>
         </div>
 {% comment %} 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
