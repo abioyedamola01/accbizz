@@ -28,7 +28,7 @@ def StaffLoginView(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
 
-
+    request.session.flush()
     form = StaffLoginForm(request.POST or None)
 
     if request.POST and form.is_valid():

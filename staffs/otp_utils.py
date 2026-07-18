@@ -45,11 +45,9 @@ def SendOTPEmail(user_name, user_email, raw_code, verify_purpose):
 
 def VerifyOTP(input_otp, otp_instance):
     if otp_instance.is_expired():
-        otp_instance.invalidate_otp()
         return (False, "OTP is expired.")
 
     if otp_instance.attempts >= 5:
-        otp_instance.invalidate_otp()
         return (False, "Max number of attempts reached.")
     
     otp_instance.add_attempt()
