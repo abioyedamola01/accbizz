@@ -2,7 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{% block title %}Verification Code{% endblock title %}
+{% block title %}Verify Email · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 <main class="min-h-screen p-4 md:p-8 flex items-center justify-center">
@@ -32,11 +32,11 @@
             </svg>
           </a>
           <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
-            ACCBIZZ
+            {{ site_info.display_name|title }}
           </a>
         </div>
 
-        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-dark-900">Verification Code</h1>
+        <h1 class="text-4xl md:text-5xl font-semibold tracking-tight text-dark-900">OTP Verification</h1>
         <p class="mt-2 text-sm text-gray-500 max-w-[520px]">
           We sent you a verification code on <span class="font-semibold text-dark-900">{{ user_email }}</span>
         </p>

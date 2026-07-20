@@ -1,10 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import (AbstractUser, BaseUserManager,)
 from django.conf import settings
-from django.utils import timezone, timesince
-from datetime import timedelta, datetime
-
-from django.shortcuts import redirect
+from django.utils import timezone
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -143,8 +141,8 @@ admin_permissions = [
     ("view_dashboard", "Can view dashboard"),
     ("view_analytics", "Can view analytics"),
 
-    # Website
-    ("manage_site", "Can manage website"),
+    # Site
+    ("manage_site", "Can manage site"),
     ("manage_homepage", "Can manage homepage"),
     ("manage_navigation", "Can manage navigation"),
     ("manage_site_settings", "Can manage site settings"),

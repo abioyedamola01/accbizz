@@ -2,7 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{% block title %}Log In{% endblock title %}
+{% block title %}Login · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 <main class="min-h-screen p-4 md:p-8 flex items-center justify-center">
@@ -27,7 +27,7 @@
       <div class="px-6 py-8 sm:px-10 lg:px-12 lg:py-10 flex flex-col">
         <div class="flex items-center justify-end mb-10">
           <a href="{% url 'home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
-            ACCBIZZ
+            {{ site_info.display_name|title|default:"Accbizz" }}
           </a>
         </div>
 

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}Dashboard · Accbizz{% endblock title %}</title>
+  <title>{% block title %}Dashboard · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
 
   <!-- Tailwind compiled CSS -->
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
@@ -32,7 +32,6 @@
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 {% block extra_js %}{% endblock extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
 </body>

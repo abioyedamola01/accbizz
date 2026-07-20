@@ -1,15 +1,6 @@
-from django.conf import settings
 import random
-from django.contrib.auth.hashers import (
-    make_password,
-    check_password
-)
-from django.contrib.auth import (
-    authenticate,
-    login
-)
+from django.contrib.auth.hashers import (make_password, check_password)
 from django.core.mail import send_mail
-from django.conf import settings
 from .models import OTPVerifyModel
 
 

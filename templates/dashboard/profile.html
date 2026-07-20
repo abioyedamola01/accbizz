@@ -2,7 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{% block title %}{{ user.profile.get_username|default:"My Profile" }} · Accbizz{% endblock title %}
+{% block title %}Dashboard {{ current|title }} · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 <div class="flex flex-col gap-4">

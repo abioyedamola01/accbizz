@@ -1,24 +1,12 @@
 import uuid
-from django.shortcuts import (
-    render, 
-    redirect
-)
-from django.contrib.auth import  (
-    authenticate, 
-    login,
-    logout
-    )
+from django.shortcuts import (render, redirect)
+from django.contrib.auth import (authenticate, login,logout)
 from django.contrib.auth.decorators import login_required
+from django.forms.models import model_to_dict
+from dashboard.models import SiteModel
 from .models import OTPVerifyModel
-from .forms import (
-    StaffLoginForm,
-    VerifyOTPForm,
-)
-from .otp_utils import (
-    CreateOTP,
-    SendOTPEmail,
-    VerifyOTP
-)
+from .forms import (StaffLoginForm, VerifyOTPForm,)
+from .otp_utils import (CreateOTP,SendOTPEmail,VerifyOTP,)
 
 
 
@@ -27,6 +15,9 @@ from .otp_utils import (
 def StaffLoginView(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
+    
+    site_info = model_to_dict(SiteModel.objects.first())
+    print(site_info)
 
     request.session.flush()
     form = StaffLoginForm(request.POST or None)
@@ -58,7 +49,8 @@ def StaffLoginView(request):
         
 
     return render(request, "staffs/login.html", {
-        "login_form": form
+        "site_info": site_info,
+        "login_form": form,
     })
 
 
@@ -66,6 +58,8 @@ def StaffLoginView(request):
 def VerifyStaffLoginOTP(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
+    
+    site_info = model_to_dict(SiteModel.objects.first())
 
     otp_verify_info =  request.session.get("otp_verify_info", None)
     if not otp_verify_info:
@@ -91,6 +85,7 @@ def VerifyStaffLoginOTP(request):
 
         form.add_error(None, verify_comment)
     return render(request, "staffs/otp.html", {
+        "site_info": site_info,
         "user_email": otp_verify_info["user_email"],
         "otp_uuid": otp_verify_info["otp_uuid"],
         "otp_form": form
@@ -103,6 +98,8 @@ def VerifyStaffLoginOTP(request):
 def ResendStaffOTPView(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
+    
+    site_info = model_to_dict(SiteModel.objects.first())
 
     otp_verify_info = request.session.get("otp_verify_info", None)
     if not otp_verify_info:
@@ -125,6 +122,7 @@ def ResendStaffOTPView(request):
     request.session["otp_verify_info"] = otp_verify_info
     
     return render(request, "staffs/otp.html", {
+        "site_info": site_info,
         "user_email": otp_verify_info["user_email"],
         "otp_uuid": otp_verify_info["otp_uuid"],
         "otp_form": form
