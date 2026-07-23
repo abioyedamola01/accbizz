@@ -1,0 +1,7 @@
+{% extends "base/main/base.html" %}
+{% block content %}
+  {% for section in enabled_sections %}
+    {% include "main/partials/_"|add:section.name|add:".html" %}
+  {% endfor %}
+  
+{% endblock content %}

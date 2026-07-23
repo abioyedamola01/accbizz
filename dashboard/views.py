@@ -1,15 +1,17 @@
 from django.shortcuts import (render, redirect,)
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.forms.models import model_to_dict
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset,)
-from .models import SiteModel
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm)
+from .models import (SiteModel, HeroSectionModel,)
 
 
 # Create your views here.
 @login_required()
-@permission_required("staffs.view_dahboard", raise_exception=True)
+@permission_required("staffs.view_dashboard", raise_exception=True)
 def DashboardHomeView(request):
     return render(request, "dashboard/home.html", {})
+
+
 
 
 @login_required
@@ -65,11 +67,13 @@ def UpdateProfileInfoView(request):
     return redirect("dashboard_profile")
 
 
+
+
+
+
+
 @login_required
-@permission_required((
-    "staffs.view_dashboard",
-    "manage_site",
-), raise_exception=True)
+@permission_required(("staffs.view_dashboard", "staffs.manage_site", "staffs.manage_homepage",), raise_exception=True)
 def SiteView(request):
     site_info_instance = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info_instance)
@@ -92,10 +96,7 @@ def SiteView(request):
 
 
 @login_required
-@permission_required((
-    "staffs.view_dashboard",
-    "manage_site",
-), raise_exception=True)
+@permission_required(("staffs.view_dashboard", "staffs.manage_site", ), raise_exception=True)
 def UpdateSiteInfoView(request):
     site_info = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info)
@@ -106,14 +107,49 @@ def UpdateSiteInfoView(request):
 
 
 
-
+@login_required
+@permission_required(("staffs.view_dashboard", "staffs.manage_site", "staffs.manage_homepage",), raise_exception=True)
 def UpdateSiteHomeSectionsView(request):
     section_formset = SiteHomeSectionUpdateFormset(request.POST or None)
     if request.POST and section_formset.is_valid():
         section_formset.save()
         
 
-
     return redirect("dashboard_site")
 
 
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_site", "staffs.manage_contents"), raise_exception=True)
+def ContentsView(request):
+    hero_instance = HeroSectionModel.objects.first()
+    hero_form = HeroInfoForm(request.POST or None, instance=hero_instance)
+    hero_img_form = HeroImgForm(request.POST or None, instance=hero_instance)
+    context = {
+        "hero_form": hero_form,
+        "hero_img_form": hero_img_form,
+
+        "current": "contents",
+        "page_blurb": "Manage all the contents displayed across your website."
+    }
+
+    return render(request, "dashboard/contents.html", context)
+
+
+
+@login_required
+@permission_required(("staffs.manage_site", "staffs.manage_contents", "staffs.manage_hero",), raise_exception=True)
+def UpdateHeroView(request, type):
+    hero_instance = HeroSectionModel.objects.first()
+    hero_form = HeroInfoForm(request.POST or None, instance=hero_instance) if type == "info" else HeroImgForm(request.POST or None, request.FILES or None, instance=hero_instance)
+
+    if type == "reset":
+        hero_instance.img = ""
+        hero_instance.save(update_fields=("img",))
+    elif hero_form and request.POST and hero_form.is_valid():
+        hero_form.save()
+
+    return redirect("dashboard_contents")

@@ -1,0 +1,64 @@
+{# Hero — include on the home page #}
+<section class="relative overflow-hidden">
+
+  {# Soft decorative glow behind the visual — quiet, not a competing accent #}
+  <div class="pointer-events-none absolute -right-24 top-10 w-[520px] h-[520px] rounded-full bg-brand-200/60 blur-3xl"></div>
+
+  <div class="relative max-w-6xl mx-auto px-4 lg:px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+
+      {# ==================== Left: copy ==================== #}
+      <div>
+        <h1 class="uppercase mb-4 text-[15px] font-bold text-brand-900">{{ site_info.company_name }}</h1>
+        <h1 class="text-[2.3rem] sm:text-5xl lg:text-[3.2rem] font-extrabold tracking-tight leading-[1.08]">
+          <span class="block bg-gradient-to-b from-brand-400 to-dark-900 bg-clip-text text-transparent">{{ hero_section.title }}</span>
+        </h1>
+        <p class="mt-5 text-base text-gray-600 text-justify leading-relaxed">
+          {{ hero_section.sub_title }}
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a href="#"
+            class="inline-flex items-center h-11 px-6 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors">
+            Contact Us
+          </a>
+          <a href="#"
+            class="inline-flex items-center h-11 px-6 rounded-xl border border-gray-200 text-dark-900 text-sm font-semibold hover:bg-cream transition-colors">
+            View Our Work
+          </a>
+        </div>
+
+      </div>
+
+      {# ==================== Right: visual ==================== #}
+      <div class="relative h-[380px] sm:h-[440px]">
+
+        {# ---- Hero photo ---- #}
+        <div class="absolute inset-0 rounded-3xl overflow-hidden shadow-card">
+          <img
+            {% if hero_section.img %} src="{{ hero_section.img.url }}" {% else %} src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop" {% endif %}
+            alt="Students working on computers"
+            class="h-full w-full object-cover object-center"
+            loading="lazy"
+          />
+          <!-- Brand-tinted overlay: dark corner top-left, brand-orange glow bottom-right -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-dark-900/30 via-transparent to-brand-500/10"></div>
+        </div>
+
+        {# ---- Floating stat badge, overlapping the photo ---- #}
+        <div class="absolute left-4 bottom-4 lg:-left-8 lg:bottom-6 sm:bottom-10 w-44 bg-white rounded-2xl shadow-card p-4">
+          <p class="text-2xl font-extrabold text-brand-500">500+</p>
+          <p class="text-xs text-gray-500 mt-1">Students mentored to better grades</p>
+        </div>
+
+      </div>
+
+    </div>
+    
+
+
+  </div>
+</section>
+
+
+

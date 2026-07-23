@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel,)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel,)
 
 
 class EditProfileForm(forms.ModelForm):
@@ -29,3 +29,13 @@ class SiteHomeSectionUpdateForm(forms.ModelForm):
 
 SiteHomeSectionUpdateFormset =  forms.modelformset_factory(HomeSectionModel, form=SiteHomeSectionUpdateForm, extra=0)
         
+
+class HeroInfoForm(forms.ModelForm):
+    class Meta:
+        model = HeroSectionModel
+        fields = ("title", "sub_title",)
+
+class HeroImgForm(forms.ModelForm):
+    class Meta:
+        model = HeroSectionModel
+        fields = ("img",)

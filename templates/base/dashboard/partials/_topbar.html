@@ -3,11 +3,16 @@
 
   <div>
     <h1 class="text-xl font-bold">Dashboard {% if current %}/ {{ current|title }}{% endif %}</h1>
-    <p class="text-sm text-gray-500">Hello {{ user.profile.first_name }}, welcome back!</p>
+    
+    {% if page_blurb %}
+      <p class="text-sm text-gray-500">{{ page_blurb }}</p>
+    {% else %}
+      <p class="text-sm text-gray-500">Hello {{ user.profile.first_name }}, welcome back!</p>
+    {% endif %}
   </div>
 
 
-
+  
 
   
 

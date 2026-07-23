@@ -34,6 +34,7 @@ class CustomUserModel(AbstractUser):
     first_name = None
     last_name = None
     username = None
+    is_staff_member = models.BooleanField(default=False)
     profile = models.OneToOneField("staffs.UserProfileModel", null=True, verbose_name="Profile", on_delete=models.CASCADE, related_name="user")
 
     USERNAME_FIELD = "email"
@@ -45,8 +46,11 @@ class CustomUserModel(AbstractUser):
         return self.email
     
     def save(self, *args, **kwargs):
-        if self.id is None or self.profile is None:
+        if not self.id or not self.profile:
             self.profile = UserProfileModel.objects.create()
+        
+        if not self.id:
+            self.set_password(self.password)
         return super().save(*args, **kwargs)
     
         
@@ -85,7 +89,7 @@ class OTPVerifyModel(models.Model):
     verify_purposes = [
         ("staff_login", "Login Staff"),
     ]
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="otp_instances")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="otp_instances", null=True)
     purpose = models.CharField(max_length=50, choices=verify_purposes)
     hash_otp = models.CharField(max_length=150)
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
@@ -147,6 +151,10 @@ admin_permissions = [
     ("manage_navigation", "Can manage navigation"),
     ("manage_site_settings", "Can manage site settings"),
     ("manage_seo", "Can manage SEO settings"),
+
+    # Contents
+    ("manage_contents", "Can manage contents"),
+    ("manage_hero", "Can manage hero info"),
 
     # Pages
     ("view_pages", "Can view pages"),

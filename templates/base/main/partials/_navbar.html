@@ -1,0 +1,89 @@
+{# Public site navbar — no auth actions here; staff login is a separate area. #}
+<header class="sticky top-0 z-40 bg-white/90 backdrop-blur shadow-card">
+  <div class="max-w-6xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
+
+    {# ---- Logo ---- #}
+    <a href="#" class="flex items-center gap-2 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+        <span class="text-white font-extrabold text-sm">A</span>
+      </div>
+      <span class="font-bold text-lg tracking-tight text-dark-900">{{ site_info.display_name|title|default:"Accbizz" }}</span>
+    </a>
+
+    {# ---- Desktop nav links ---- #}
+    <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-600">
+      <a href="#" {% if current == "home" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        Home
+        {% if current == "home" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      </a>
+      <a href="#" {% if current == "about" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        About
+        {% if current == "about" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      </a>
+      <a href="#" {% if current == "services" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        Services
+        {% if current == "services" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      </a>
+      <a href="#" {% if current == "projects" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        Projects
+        {% if current == "projects" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      </a>
+      <a href="#" {% if current == "contact" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        Contact
+        {% if current == "contact" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      </a>
+     </nav>
+
+    {# ---- CTA ---- #}
+    <div class="flex items-center gap-3">
+      <a href="#"
+        class="hidden sm:inline-flex items-center h-10 px-5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors">
+        Contact Us
+      </a>
+
+      {# ---- Mobile toggle ---- #}
+      <button id="navToggleBtn" type="button" aria-controls="mobileNav" aria-expanded="false"
+        class="lg:hidden w-9 h-9 rounded-xl bg-cream flex items-center justify-center text-dark-900 cursor-pointer">
+        <span class="sr-only">Toggle menu</span>
+        <svg id="navIconOpen" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <svg id="navIconClose" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {# ---- Mobile nav panel ---- #}
+  <nav id="mobileNav" class="lg:hidden hidden flex-col gap-1 mt-4 px-4 pb-4 text-sm font-medium text-gray-600">
+    
+    <a href="" {% if current == "home" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Home</a>
+    <a href="" {% if current == "about" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>About</a>
+    <a href="" {% if current == "services" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Services</a>
+    <a href="" {% if current == "projects" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Projects</a>
+    <a href="" {% if current == "contact" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Contact</a>
+  </nav>
+</header>
+
+<script>
+  (function () {
+    const toggleBtn = document.getElementById('navToggleBtn');
+    const panel = document.getElementById('mobileNav');
+    const iconOpen = document.getElementById('navIconOpen');
+    const iconClose = document.getElementById('navIconClose');
+
+    function setNavOpen(isOpen) {
+      panel.classList.toggle('hidden', !isOpen);
+      panel.classList.toggle('flex', isOpen);
+      iconOpen.classList.toggle('hidden', isOpen);
+      iconClose.classList.toggle('hidden', !isOpen);
+      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    toggleBtn.addEventListener('click', function () {
+      const isCurrentlyOpen = !panel.classList.contains('hidden');
+      setNavOpen(!isCurrentlyOpen);
+    });
+  })();
+</script>

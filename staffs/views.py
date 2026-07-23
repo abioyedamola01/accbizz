@@ -17,7 +17,6 @@ def StaffLoginView(request):
         return redirect("dashboard_home")
     
     site_info = model_to_dict(SiteModel.objects.first())
-    print(site_info)
 
     request.session.flush()
     form = StaffLoginForm(request.POST or None)
@@ -27,11 +26,12 @@ def StaffLoginView(request):
         password = form.cleaned_data["password"]
         user = authenticate(request, email=email, password=password)
         
-        if user is None:
+        if not user:
             form.add_error(None, "Inavid email or password. Try again")
         elif not user.is_active:
             form.add_error(None, "Staff is not active at the moment.")
-        elif user.is_active and user.is_staff:
+        elif user.is_active and user.is_staff_member:
+            print("WD")
             purpose = "staff_login"
             username = user.profile.get_username()
             otp, otp_id = CreateOTP(user, purpose)
@@ -46,6 +46,8 @@ def StaffLoginView(request):
             }
 
             return redirect("verify_otp_staff")
+        else:
+            form.add_error(None, "Not a staff member. Check with the admins to update your status.")
         
 
     return render(request, "staffs/login.html", {
@@ -135,3 +137,4 @@ def StaffLogoutView(request):
     request.session.flush()
     logout(request)
     return redirect("home")
+

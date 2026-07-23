@@ -1,5 +1,8 @@
 from django.urls import path
-from .views import (DashboardHomeView, ProfileView, UpdateProfileAvatarView,UpdateProfileInfoView, SiteView, UpdateSiteInfoView, UpdateSiteHomeSectionsView,)
+from .views import (DashboardHomeView, 
+                    ProfileView, UpdateProfileAvatarView, UpdateProfileInfoView, 
+                    SiteView, UpdateSiteInfoView, UpdateSiteHomeSectionsView, 
+                    ContentsView, UpdateHeroView)
 
 
 urlpatterns = [
@@ -10,4 +13,6 @@ urlpatterns = [
     path("site", SiteView, name="dashboard_site"),
     path("site/update-site-info", UpdateSiteInfoView, name="dashboard_update_site_info"),
     path("site/update-site-home-sections", UpdateSiteHomeSectionsView, name="dashboard_update_home_sections"),
+    path("contents", ContentsView, name="dashboard_contents"),
+    path("contents/update-hero/<slug:type>", UpdateHeroView, name="dashboard_update_hero"),
 ]

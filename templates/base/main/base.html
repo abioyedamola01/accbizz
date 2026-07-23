@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
+
+  <!-- Tailwind compiled CSS -->
+  <link rel="stylesheet" href="{% static 'css/output.css' %}" />
+  <!-- Global design tokens -->
+  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  {% block extra_css %}{% endblock extra_css %}
+</head>
+<body class="font-sans text-dark-900 antialiased bg-cream">
+
+  {% include "base/main/partials/_navbar.html" %}
+
+  <main>
+    {% block content %}{% endblock content %}
+  </main>
+
+  {% include "base/main/partials/_footer.html" %}
+
+{% block extra_js %}{% endblock extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+</body>
+</html>
