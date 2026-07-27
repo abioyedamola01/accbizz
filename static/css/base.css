@@ -48,7 +48,7 @@
   --dark-900: #181523; /* base — close to original #1F1B2E */
 
   /* Page background */
-  --cream: #F4EEE3;
+  --cream: #f4eee3de;
 
   /* Card shadow (tinted with dark-900) */
   --shadow-card: 0 2px 10px 0 rgba(31, 27, 46, 0.04);

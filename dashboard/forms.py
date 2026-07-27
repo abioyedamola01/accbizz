@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel, HeroSectionModel,)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel)
 
 
 class EditProfileForm(forms.ModelForm):
@@ -39,3 +39,16 @@ class HeroImgForm(forms.ModelForm):
     class Meta:
         model = HeroSectionModel
         fields = ("img",)
+
+
+
+class AboutForm(forms.ModelForm):
+    class Meta:
+        model = AboutSectionModel
+        fields = ("description", "story", "mission", "vision",)
+
+
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = TeamModel
+        fields = ("avatar", "name", "email", "role", )

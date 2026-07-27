@@ -1,7 +1,10 @@
 {% extends "base/main/base.html" %}
+
+{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
 {% block content %}
   {% for section in enabled_sections %}
-    {% include "main/partials/_"|add:section.name|add:".html" %}
+    {% include "main/partials/home/_"|add:section.name|add:".html" %}
   {% endfor %}
   
 {% endblock content %}

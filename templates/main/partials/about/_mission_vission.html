@@ -1,0 +1,50 @@
+{# Mission & Vision #}
+<section class="px-4 lg:px-6 py-6">
+  <div class="max-w-6xl mx-auto flex flex-col gap-6">
+
+    {# ---- Our Mission: title left, text right ---- #}
+    <div class="bg-white rounded-3xl shadow-card overflow-hidden">
+      <div class="flex flex-col md:flex-row">
+
+        <div class="w-full md:w-1/2 p-8 sm:p-12">
+          <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block">
+            Our Purpose
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+            What is our mission?
+          </h2>
+        </div>
+
+        <div class="w-full md:w-1/2 p-8 sm:p-12 flex items-center">
+          <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
+            {{ about.mission }}
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    {# ---- Our Vision: text left, title right (mirrored) ---- #}
+    <div class="bg-white rounded-3xl shadow-card overflow-hidden">
+      <div class="flex flex-col md:flex-row-reverse">
+
+        <div class="w-full md:w-1/2 p-8 sm:p-12 md:text-right">
+          <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block md:text-right">
+            Our Direction
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+            What is our vision?
+          </h2>
+        </div>
+
+        <div class="w-full md:w-1/2 p-8 sm:p-12 flex items-center">
+          <p class="text-sm sm:text-base text-gray-600 leading-relaxed md:text-right">
+            {{ about.vision }}
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>

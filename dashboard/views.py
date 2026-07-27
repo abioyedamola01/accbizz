@@ -1,8 +1,8 @@
 from django.shortcuts import (render, redirect,)
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.forms.models import model_to_dict
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm)
-from .models import (SiteModel, HeroSectionModel,)
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm)
+from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel)
 
 
 # Create your views here.
@@ -123,15 +123,22 @@ def UpdateSiteHomeSectionsView(request):
 
 
 @login_required
-@permission_required(("staffs.manage_site", "staffs.manage_contents"), raise_exception=True)
+@permission_required(("staffs.manage_contents"), raise_exception=True)
 def ContentsView(request):
     hero_instance = HeroSectionModel.objects.first()
     hero_form = HeroInfoForm(request.POST or None, instance=hero_instance)
     hero_img_form = HeroImgForm(request.POST or None, instance=hero_instance)
+    about_instance = AboutSectionModel.objects.first()
+    about_form = AboutForm(request.POST or None, instance=about_instance)
+    team_members = list(about_instance.team.order_by("-id",).filter(is_member=True))
+    team_form = TeamForm()
+
     context = {
         "hero_form": hero_form,
         "hero_img_form": hero_img_form,
-
+        "about_form": about_form,
+        "team": team_members,
+        "team_form":  team_form,
         "current": "contents",
         "page_blurb": "Manage all the contents displayed across your website."
     }
@@ -141,7 +148,7 @@ def ContentsView(request):
 
 
 @login_required
-@permission_required(("staffs.manage_site", "staffs.manage_contents", "staffs.manage_hero",), raise_exception=True)
+@permission_required(("staffs.manage_contents", "staffs.manage_hero",), raise_exception=True)
 def UpdateHeroView(request, type):
     hero_instance = HeroSectionModel.objects.first()
     hero_form = HeroInfoForm(request.POST or None, instance=hero_instance) if type == "info" else HeroImgForm(request.POST or None, request.FILES or None, instance=hero_instance)
@@ -151,5 +158,50 @@ def UpdateHeroView(request, type):
         hero_instance.save(update_fields=("img",))
     elif hero_form and request.POST and hero_form.is_valid():
         hero_form.save()
+
+    return redirect("dashboard_contents")
+
+
+
+@login_required
+@permission_required(("staffs.manage_contents",), raise_exception=True)
+def UpdateAboutView(request):
+    about_instance = AboutSectionModel.objects.first()
+    about_form = AboutForm(request.POST or None, instance=about_instance)
+
+    if request.POST and about_form.is_valid:
+        about_form.save()
+
+    return redirect("dashboard_contents")
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.update_team_member"), raise_exception=True)
+def UpdateTeamMemberView(request, member):
+    team_member = TeamModel.objects.filter(slug=member).first()
+    team_form = TeamForm(request.POST or None, request.FILES or None, instance=team_member)
+
+    if  request.POST and team_form.is_valid():
+        team_form.save()
+
+    return redirect("dashboard_contents")
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.remove_team_member"), raise_exception=True)
+def RemoveTeamMemberView(request, member):
+    team_member = TeamModel.objects.filter(slug=member).first()
+    team_member.remove_as_member()
+
+    return redirect("dashboard_contents")
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.add_team_member"), raise_exception=True)
+def AddTeamMemberView(request):
+    team_form = TeamForm(request.POST or None, request.FILES or None)
+
+    if request.POST and team_form.is_valid():
+        team_form.save()
 
     return redirect("dashboard_contents")

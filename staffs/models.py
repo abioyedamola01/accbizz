@@ -68,7 +68,7 @@ class UserProfileModel(models.Model):
     
     first_name = models.CharField(unique=False, max_length=154, default="")
     last_name = models.CharField(unique=False, max_length=154, default="")
-    avatar = models.ImageField(upload_to="avatars/%y/%m/%d/", default="")
+    avatar = models.ImageField(upload_to="profile/avatars/%y/%m/%d/", default="")
     role = models.CharField(max_length=75, choices=role_choices, default="")
     gender = models.CharField(max_length=10, choices=gender_choices, default="")
     nationality =  models.CharField(max_length=64, default="")
@@ -155,6 +155,12 @@ admin_permissions = [
     # Contents
     ("manage_contents", "Can manage contents"),
     ("manage_hero", "Can manage hero info"),
+
+    # Team
+    ("manage_team", "Can manage team"),
+    ("update_team_member", "Can update team member info"),
+    ("remove_team_member", "Can remove team member"),
+    ("add_team_member", "Can addremove team member"),
 
     # Pages
     ("view_pages", "Can view pages"),

@@ -12,11 +12,11 @@
 
     {# ---- Desktop nav links ---- #}
     <nav class="hidden lg:flex items-center gap-8 text-sm font-medium text-gray-600">
-      <a href="#" {% if current == "home" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+      <a href="{% url "main_home" %}" {% if current == "home" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
         Home
         {% if current == "home" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>
-      <a href="#" {% if current == "about" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+      <a href="{% url "main_about" %}" {% if current == "about" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
         About
         {% if current == "about" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>

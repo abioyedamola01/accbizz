@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (DashboardHomeView, 
                     ProfileView, UpdateProfileAvatarView, UpdateProfileInfoView, 
                     SiteView, UpdateSiteInfoView, UpdateSiteHomeSectionsView, 
-                    ContentsView, UpdateHeroView)
+                    ContentsView, UpdateHeroView, UpdateAboutView, UpdateTeamMemberView, RemoveTeamMemberView, AddTeamMemberView,)
 
 
 urlpatterns = [
@@ -14,5 +14,9 @@ urlpatterns = [
     path("site/update-site-info", UpdateSiteInfoView, name="dashboard_update_site_info"),
     path("site/update-site-home-sections", UpdateSiteHomeSectionsView, name="dashboard_update_home_sections"),
     path("contents", ContentsView, name="dashboard_contents"),
-    path("contents/update-hero/<slug:type>", UpdateHeroView, name="dashboard_update_hero"),
+    path("contents/home/update-hero/<slug:type>", UpdateHeroView, name="dashboard_update_hero"),
+    path("contents/about/update-about-info", UpdateAboutView, name="dashboard_update_about"),
+    path("contents/team/update-team-member/<slug:member>", UpdateTeamMemberView, name="dashboard_update_team_member"),
+    path("contents/team/remove-team-member/<slug:member>", RemoveTeamMemberView, name="dashboard_remove_team_member"),
+    path("contents/team/add-team-member", AddTeamMemberView, name="dashboard_add_team_member"),
 ]

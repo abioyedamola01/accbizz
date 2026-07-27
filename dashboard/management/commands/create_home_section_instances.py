@@ -7,7 +7,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            home_sections = [("hero", 0, "Homepage headline, description, call-to-action buttons, and hero media."),]
+            home_sections = [
+                ("hero", 0, "Homepage headline, description, call-to-action buttons, and hero media."),
+                ("about", 1, "Introduction with a brief overview, supporting image, and a link to the full About page."),
+            ]
 
             for section, order, blurb in home_sections:
                 section_instance, is_created = HomeSectionModel.objects.get_or_create(name=section)

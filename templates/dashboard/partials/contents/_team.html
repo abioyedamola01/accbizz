@@ -1,0 +1,513 @@
+{% load widget_tweaks %}
+{% load static %}
+
+{# Team Members Table #}
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5 overflow-hidden">
+
+  {# ---- Header ---- #}
+  <div class="flex items-center justify-between py-4 border-b border-gray-100">
+    <div class="flex items-center gap-2">
+      <h2 class="text-base font-bold text-dark-900">Team</h2>
+      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ team|length }} members</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <button type="button" onclick="openAddMemberModal()"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
+        </svg>
+        Add member
+        </button>
+    </div>
+  </div>
+
+  {# ---- Table (this scrolls horizontally; the manage panel below deliberately does not) ---- #}
+  <div id="teamTableScroll" class="overflow-x-auto">
+    <table class="w-full min-w-[720px] text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500"> </th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Email address</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Role</th>
+          <th class="w-24 py-3 pr-5"></th>
+        </tr>
+      </thead>
+
+      {% for member in team %}
+      <tbody class="team-member-group divide-y divide-gray-100 border-b border-gray-100">
+        <tr>
+          <td class="py-3 pr-4">
+            <div class="flex items-center gap-3">
+              <img {% if member.avatar %} src="{{ member.avatar.url }}" {% else %} src="{{ member.get_default_avatar }}" {% endif %} alt="{{ member.name }}" class="w-8 h-8 rounded-full object-cover shrink-0" />
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-dark-900 truncate">{{ member.name|title }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm text-gray-600">{{ member.email }}</span>
+          </td>
+          <td class="py-3 pr-4">
+            <span class="text-sm text-gray-600">{{ member.role|title }}</span>
+          </td>
+          <td class="py-3 pr-5">
+              <div role="button" tabindex="0" onclick="toggleManageRow(this)"
+                class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition-opacity"
+                data-update-url="{% url "dashboard_update_team_member" member=member.slug %}"
+                data-delete-url="{% url "dashboard_remove_team_member" member=member.slug %}"
+                data-name="{{ member.name }}"
+                data-email="{{ member.email }}"
+                data-role="{{ member.role }}"
+                data-avatar="{% if member.avatar %}{{ member.avatar.url }}{% else %}{{ member.get_default_avatar }}{% endif %}">
+                Manage
+              </div>
+          </td>
+        </tr>
+
+        {# ---- Empty placeholder row — JS builds the sticky, viewport-width panel into this <td> on demand ---- #}
+        <tr class="team-manage-row hidden">
+          <td colspan="4" class="p-0"></td>
+        </tr>
+      </tbody>
+      {% endfor %}
+
+    </table>
+  </div>
+
+  {# ---- Shared delete confirmation modal ---- #}
+  <div id="deleteMemberModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+      <button type="button" onclick="closeDeleteConfirm()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </div>
+
+      <h3 class="text-base font-bold text-dark-900 mb-1">Remove team member</h3>
+      <p class="text-sm text-gray-500 mb-6">
+        Are you sure you want to remove <span id="deleteMemberName" class="font-semibold text-dark-900"></span> from the team? This action cannot be undone.
+      </p>
+
+      <form method="post" id="deleteMemberForm" action="">
+        {% csrf_token %}
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" onclick="closeDeleteConfirm()"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit"
+            class="text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 cursor-pointer transition">
+            Remove member
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{# ---- Add member modal ---- #}
+<div id="addMemberModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+
+    <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <h3 class="text-base font-bold text-dark-900">Add team member</h3>
+      <button type="button" onclick="closeAddMemberModal()"
+        class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-6 py-5">
+      <form method="post" enctype="multipart/form-data" id="addMemberForm" action="{% url "dashboard_add_team_member" %}">
+        {% csrf_token %}
+
+        <div class="flex items-center gap-4 mb-5">
+          <div class="relative w-16 h-16 shrink-0">
+            <img class="add-form-avatar-preview w-16 h-16 rounded-full object-cover bg-gray-200"
+              src="https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000" alt="New member" />
+
+            <label
+              class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
+              aria-label="Upload photo">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
+              </svg>
+              {% render_field team_form.avatar class+="add-form-avatar-input add-form-required-field hidden" %}
+            </label>
+
+            <span class="add-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-4.5 h-4.5 bg-emerald-500 rounded-full ring-2 ring-white items-center justify-center">
+              <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </span>
+          </div>
+
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-dark-900">Photo</p>
+            <p class="add-form-avatar-filename text-xs text-gray-500 mt-0.5 truncate">Click the pencil to upload a photo</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {% for field in team_form %}
+            {% if field.name != "avatar" %}
+            <div class="min-w-0 {% if field.name == 'name' %}sm:col-span-2{% endif %}">
+              <label class="text-xs font-medium text-gray-500 block mb-1">{{ field.label }}</label>
+              {% render_field field class+="add-form-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </form>
+    </div>
+
+    <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <button type="button" onclick="closeAddMemberModal()"
+        class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+        Cancel
+      </button>
+      <button type="submit" form="addMemberForm" id="addMemberSaveBtn" disabled
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+        <svg id="addMemberSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span id="addMemberSaveLabel">Create member</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+
+
+</div>
+
+{# ---- Single reusable form template — rendered once, cloned per-member by JS ---- #}
+<template id="teamMemberFormTemplate">
+  <div class="bg-gray-50 border-t border-gray-100 p-5">
+    <form method="post" enctype="multipart/form-data" class="team-manage-form space-y-4">
+      {% csrf_token %}
+
+      <div class="flex items-center gap-4">
+        {# Avatar preview + hidden file input, using the label itself as the edit trigger #}
+        <div class="relative w-16 h-16 shrink-0">
+          <img class="team-form-avatar-preview w-16 h-16 rounded-full object-cover bg-gray-200" src="" alt="" />
+
+          <label
+            class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
+            aria-label="Change photo">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
+            </svg>
+            <input type="file" name="avatar" accept="image/*" class="team-form-avatar-input hidden" />
+          </label>
+
+          {# Shown once a new file is selected, confirming the upload registered #}
+          <span class="team-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-4.5 h-4.5 bg-emerald-500 rounded-full ring-2 ring-white items-center justify-center">
+            <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </span>
+        </div>
+
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-dark-900">Photo</p>
+          <p class="team-form-avatar-filename text-xs text-gray-500 mt-0.5 truncate">Click the pencil to upload a new photo</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for field in team_form %}
+          {% if field.name != "avatar" %}
+          <div class="min-w-0">
+            <label class="text-xs font-medium text-gray-500 block mb-1">{{ field.label }}</label>
+            {% render_field field class+="team-form-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <button type="button" class="team-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
+          </svg>
+          Delete member
+        </button>
+
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleManageRow(this)"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit"
+            class="team-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg class="team-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span class="team-form-save-label">Save changes</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script>
+  // Toggles the hidden manage row for a member: builds the form from the
+  // shared <template> on open, tears it down on close. Only one row is
+  // ever open across the whole table at a time. The built panel is pinned
+  // to the visible edge of the horizontal scroll area (not the table's
+  // full min-width), so it never scrolls or overflows the screen.
+  function toggleManageRow(el) {
+    const tbody = el.closest('tbody');
+    if (!tbody) return;
+
+    const manageRow = tbody.querySelector('.team-manage-row');
+    const cell = manageRow.querySelector('td');
+    const isOpen = !manageRow.classList.contains('hidden');
+
+    if (isOpen) {
+      manageRow.classList.add('hidden');
+      cell.innerHTML = ''; // tear down so file inputs/edits don't linger stale
+      return;
+    }
+
+    // Close + clear any other open manage row first
+    document.querySelectorAll('.team-manage-row').forEach((row) => {
+      if (!row.classList.contains('hidden')) {
+        row.classList.add('hidden');
+        row.querySelector('td').innerHTML = '';
+      }
+    });
+
+    // The "Manage" trigger always carries this member's data via data-*,
+    // regardless of which element inside the row was actually clicked.
+    const trigger = tbody.querySelector('[data-update-url]');
+
+    const template = document.getElementById('teamMemberFormTemplate');
+    const fragment = template.content.cloneNode(true);
+
+    const form = fragment.querySelector('form');
+    form.action = trigger.dataset.updateUrl;
+
+    const avatarPreview = fragment.querySelector('.team-form-avatar-preview');
+    avatarPreview.src = trigger.dataset.avatar;
+    avatarPreview.alt = trigger.dataset.name;
+
+    // Populate each text field by matching its `name` attribute against
+    // the trigger's dataset (name="email" -> dataset.email, etc.)
+    fragment.querySelectorAll('.team-form-field').forEach((fieldEl) => {
+      const value = trigger.dataset[fieldEl.name];
+      if (value !== undefined) {
+        fieldEl.value = value;
+      }
+    });
+
+    const deleteBtn = fragment.querySelector('.team-form-delete-btn');
+    deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
+    deleteBtn.dataset.memberName = trigger.dataset.name;
+
+    // Disable + spin the Save button on submit, so the user gets clear
+    // feedback while the request is in flight.
+    const savedForm = fragment.querySelector('.team-manage-form');
+    savedForm.addEventListener('submit', function () {
+      const saveBtn = savedForm.querySelector('.team-form-save-btn');
+      const spinner = savedForm.querySelector('.team-form-save-spinner');
+      const label = savedForm.querySelector('.team-form-save-label');
+
+      saveBtn.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = 'Saving...';
+    });
+
+    cell.appendChild(fragment);
+    manageRow.classList.remove('hidden');
+
+    // Pin the panel to the left edge of the visible scroll area and size
+    // it to match, so it displays "normally" and never extends past the
+    // screen regardless of the table's wider min-width or scroll offset.
+    const panel = cell.firstElementChild;
+    const scrollWrapper = document.getElementById('teamTableScroll');
+    panel.style.position = 'sticky';
+    panel.style.left = '0px';
+    panel.style.width = scrollWrapper.clientWidth + 'px';
+
+    function syncPanelWidth() {
+      if (!document.body.contains(panel)) {
+        window.removeEventListener('resize', syncPanelWidth);
+        return;
+      }
+      panel.style.width = scrollWrapper.clientWidth + 'px';
+    }
+    window.addEventListener('resize', syncPanelWidth);
+  }
+
+  // Live preview + "uploaded" indicator when a new avatar file is chosen
+  // (edit/manage panel)
+  document.addEventListener('change', function (event) {
+    if (!event.target.classList.contains('team-form-avatar-input')) return;
+
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const form = input.closest('form');
+    const preview = form.querySelector('.team-form-avatar-preview');
+    const badge = form.querySelector('.team-form-avatar-uploaded-badge');
+    const filenameEl = form.querySelector('.team-form-avatar-filename');
+
+    preview.src = URL.createObjectURL(file);
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+    filenameEl.textContent = file.name;
+  });
+
+  // Opens the shared delete confirmation modal for whichever member's
+  // delete button (inside a built form) was clicked.
+  function openDeleteConfirm(el) {
+    const modal = document.getElementById('deleteMemberModal');
+    const form = document.getElementById('deleteMemberForm');
+    const nameEl = document.getElementById('deleteMemberName');
+
+    form.action = el.dataset.deleteUrl;
+    nameEl.textContent = el.dataset.memberName;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeDeleteConfirm() {
+    const modal = document.getElementById('deleteMemberModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  document.addEventListener('click', function (event) {
+    const modal = document.getElementById('deleteMemberModal');
+    if (event.target === modal) closeDeleteConfirm();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    const modal = document.getElementById('deleteMemberModal');
+    if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeDeleteConfirm();
+    }
+  });
+
+  // ---- Add member modal ----
+
+  function openAddMemberModal() {
+    const modal = document.getElementById('addMemberModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeAddMemberModal() {
+    const modal = document.getElementById('addMemberModal');
+    const form = document.getElementById('addMemberForm');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+
+    // Reset the form so a re-open starts clean (not mid-"Creating..." state,
+    // no stale preview/filename from a previously selected file)
+    form.reset();
+    document.getElementById('addMemberSpinner').classList.add('hidden');
+    document.getElementById('addMemberSaveLabel').textContent = 'Create member';
+
+    const preview = form.querySelector('.add-form-avatar-preview');
+    preview.src = "https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000";
+    form.querySelector('.add-form-avatar-uploaded-badge').classList.add('hidden');
+    form.querySelector('.add-form-avatar-filename').textContent = 'Click the pencil to upload a photo';
+
+    updateAddMemberSaveState();
+  }
+
+  // Checks every required field (all fields marked .add-form-required-field,
+  // including the avatar file input) and enables Save only once all are filled.
+  function updateAddMemberSaveState() {
+    const form = document.getElementById('addMemberForm');
+    const saveBtn = document.getElementById('addMemberSaveBtn');
+    const fields = form.querySelectorAll('.add-form-required-field');
+
+    let allFilled = true;
+
+    fields.forEach((field) => {
+      if (field.type === 'file') {
+        if (!field.files || field.files.length === 0) allFilled = false;
+      } else if (!field.value || !field.value.trim()) {
+        allFilled = false;
+      }
+    });
+
+    saveBtn.disabled = !allFilled;
+  }
+
+  // Live preview + "uploaded" indicator for the Add Member avatar input
+  document.addEventListener('change', function (event) {
+    if (!event.target.classList.contains('add-form-avatar-input')) return;
+
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const form = input.closest('form');
+    const preview = form.querySelector('.add-form-avatar-preview');
+    const badge = form.querySelector('.add-form-avatar-uploaded-badge');
+    const filenameEl = form.querySelector('.add-form-avatar-filename');
+
+    preview.src = URL.createObjectURL(file);
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+    filenameEl.textContent = file.name;
+  });
+
+  // Re-check Save button state on every keystroke / change to any required field
+  document.addEventListener('input', function (event) {
+    if (event.target.classList.contains('add-form-required-field')) {
+      updateAddMemberSaveState();
+    }
+  });
+  document.addEventListener('change', function (event) {
+    if (event.target.classList.contains('add-form-required-field')) {
+      updateAddMemberSaveState();
+    }
+  });
+
+  // Disable + spin the Create button on submit (only reachable once all
+  // fields are already filled, since the button is disabled until then)
+  document.getElementById('addMemberForm').addEventListener('submit', function () {
+    document.getElementById('addMemberSaveBtn').disabled = true;
+    document.getElementById('addMemberSpinner').classList.remove('hidden');
+    document.getElementById('addMemberSaveLabel').textContent = 'Creating...';
+  });
+
+  // Close on backdrop click / Escape
+  document.addEventListener('click', function (event) {
+    const addModal = document.getElementById('addMemberModal');
+    if (event.target === addModal) closeAddMemberModal();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    const addModal = document.getElementById('addMemberModal');
+    if (event.key === 'Escape' && !addModal.classList.contains('hidden')) {
+      closeAddMemberModal();
+    }
+  });
+</script>

@@ -1,0 +1,16 @@
+{% extends "base/main/base.html" %}
+
+{% block title %}About us · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
+{% block content %}
+
+
+{% include "main/partials/about/_intro.html" %}
+{% include "main/partials/about/_story.html" %}
+{% include "main/partials/about/_mission_vission.html" %}
+{% include "main/partials/about/_values.html" %}
+{% if team %} {% include "main/partials/about/_team.html" %} {% endif %}
+{% include "main/partials/about/_cta.html" %}
+
+
+{% endblock content %}
