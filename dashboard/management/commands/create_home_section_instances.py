@@ -9,7 +9,8 @@ class Command(BaseCommand):
         try:
             home_sections = [
                 ("hero", 0, "Homepage headline, description, call-to-action buttons, and hero media."),
-                ("about", 1, "Introduction with a brief overview, supporting image, and a link to the full About page."),
+                ("about", 1, "Introduction with a brief overview, supporting image"),
+                ("services", 2, "Services with a brief introduction, featured service cards."),
             ]
 
             for section, order, blurb in home_sections:

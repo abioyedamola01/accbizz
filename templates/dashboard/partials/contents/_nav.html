@@ -1,0 +1,23 @@
+{# Horizontal sub-nav for the Contents page — mirrors the public navbar's active-link style. #}
+<nav class="flex items-center gap-8 text-sm font-medium text-gray-600 border-b border-gray-100 mb-6 px-1">
+  <a href="?tab=home" {% if content_tab == "home" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
+    Home
+    {% if content_tab == "home" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+  </a>
+  <a href="?tab=about" {% if content_tab == "about" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
+    About
+    {% if content_tab == "about" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+  </a>
+  <a href="?tab=services" {% if content_tab == "services" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
+    Services
+    {% if content_tab == "services" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+  </a>
+  <a href="?tab=faqs" {% if content_tab == "faqs" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
+    FAQs
+    {% if content_tab == "faqs" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+  </a>
+  <a href="?tab=contacts" {% if content_tab == "contacts" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
+    Contacts
+    {% if content_tab == "contacts" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+  </a>
+</nav>

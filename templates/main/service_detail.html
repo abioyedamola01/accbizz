@@ -1,0 +1,15 @@
+{% extends "base/main/base.html" %}
+
+{% block title %}{{ service.title }} · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
+{% block content %}
+    {% include "main/partials/service_detail/_hero.html" %}
+    {% include "main/partials/service_detail/_overview.html" %}
+    {% if packages|length %}
+        {% include "main/partials/service_detail/_packages.html" %}
+    {% endif %}
+    {% include "main/partials/service_detail/_related.html" %}
+    {% if faqs|length %}
+        {% include "main/partials/faqs/sect.html" %}
+    {% endif %}
+{% endblock content %}

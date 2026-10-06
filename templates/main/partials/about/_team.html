@@ -23,7 +23,7 @@
             <h3 class="text-sm font-semibold text-dark-900">{{ member.name|title }}</h3>
             <p class="text-sm text-brand-500 font-medium mb-4">{{ member.role|title }}</p>
             <hr class="border-gray-100 mb-3" />
-            <p class="text-xs text-gray-500 leading-relaxed">{{ member.email }}</p>
+            <a href="mailto:{{ member.email }}" class="text-xs text-gray-500 leading-relaxed">{{ member.email }}</a>
           </div>
         {% endfor %}
        

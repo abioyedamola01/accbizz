@@ -20,7 +20,7 @@
         About
         {% if current == "about" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>
-      <a href="#" {% if current == "services" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+      <a href="{% url "main_services" %}" {% if current == "services" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
         Services
         {% if current == "services" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>

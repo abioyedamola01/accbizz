@@ -6,8 +6,9 @@
 
 {% block content %}
 
-{% include "dashboard/partials/contents/_hero.html" %}
-{% include "dashboard/partials/contents/_about.html" %}
-{% include "dashboard/partials/contents/_team.html" %}
+{% include "dashboard/partials/contents/_nav.html" %}
+
+{% include "dashboard/partials/contents/content_pages/_"|add:content_tab|add:".html" %}
+
 
 {% endblock content %}

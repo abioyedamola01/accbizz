@@ -6,5 +6,8 @@
   {% for section in enabled_sections %}
     {% include "main/partials/home/_"|add:section.name|add:".html" %}
   {% endfor %}
+
+
+  {% comment %} {% include "main/partials/home/_services.html" %} {% endcomment %}
   
 {% endblock content %}

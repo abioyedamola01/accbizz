@@ -87,10 +87,52 @@ class HomeSectionModel(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id or not self.site:
-            site_instance = SiteModel.objects.first()
-            self.site = site_instance if site_instance else None
+            self.site = SiteModel.objects.first()
 
         if self.id and not self.slug:
             self.slug = f"{self.id}-{slugify(self.name)}"
 
         return super().save(*args, **kwargs)
+
+
+
+
+
+class ServiceModel(models.Model):
+    title = models.CharField(max_length=65)
+    slug = models.SlugField(default="")
+    blurb = models.CharField(max_length=125)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="services", null=True)
+    related_services = models.ManyToManyField("self", symmetrical=True)
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.site = SiteModel.objects.first()
+            super().save(*args, **kwargs)
+        self.slug = f"{self.id}-{slugify(self.title)}"
+
+        return super().save(update_fields=("slug",))
+
+    def __str__(self):
+        return self.title
+
+
+
+class ServicePackageModel(models.Model):
+    title = models.CharField(max_length=65)
+    blurb = models.CharField(max_length=125)
+    is_removed = models.BooleanField(default=False)
+    service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.CASCADE, related_name="packages")
+
+
+
+
+
+
+class FAQsModel(models.Model):
+    question = models.CharField(max_length=264)
+    answer = models.TextField()
+    is_featured = models.BooleanField(default=False)
+    service = models.ForeignKey("dashboard.ServiceModel", null=True, on_delete=models.CASCADE, related_name="faqs")

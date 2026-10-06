@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel)
 
 
 class EditProfileForm(forms.ModelForm):
@@ -52,3 +52,9 @@ class TeamForm(forms.ModelForm):
     class Meta:
         model = TeamModel
         fields = ("avatar", "name", "email", "role", )
+
+
+class FAQForm(forms.ModelForm):
+    class Meta:
+        model = FAQsModel
+        fields = ("question", "answer",)
