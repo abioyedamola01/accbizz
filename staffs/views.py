@@ -6,13 +6,13 @@ from django.forms.models import model_to_dict
 from dashboard.models import SiteModel
 from .models import OTPVerifyModel
 from .forms import (StaffLoginForm, VerifyOTPForm,)
-from .otp_utils import (CreateOTP,SendOTPEmail,VerifyOTP,)
+from .otp_utils import (create_otp, send_otp_mail, verify_otp,)
 
 
 
 
 
-def StaffLoginView(request):
+def staff_login_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
     
@@ -34,8 +34,8 @@ def StaffLoginView(request):
             print("WD")
             purpose = "staff_login"
             username = user.profile.get_username()
-            otp, otp_id = CreateOTP(user, purpose)
-            SendOTPEmail(username, email, otp, verify_purpose="Staff Login")
+            otp, otp_id = create_otp(user, purpose)
+            send_otp_mail(username, email, otp, verify_purpose="Staff Login")
 
             request.session["otp_verify_info"] = {
                 "user_id": user.id,
@@ -57,7 +57,7 @@ def StaffLoginView(request):
 
 
 
-def VerifyStaffLoginOTP(request):
+def verify_staff_login_otp_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
     
@@ -78,7 +78,7 @@ def VerifyStaffLoginOTP(request):
 
         user = otp_instance.user
         
-        verify_status, verify_comment = VerifyOTP(form.cleaned_data["otp_code"], otp_instance)
+        verify_status, verify_comment = verify_otp(form.cleaned_data["otp_code"], otp_instance)
 
         if verify_status:
             request.session.flush()
@@ -97,7 +97,7 @@ def VerifyStaffLoginOTP(request):
 
 
 
-def ResendStaffOTPView(request):
+def resend_staff_otp_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard_home")
     
@@ -117,8 +117,8 @@ def ResendStaffOTPView(request):
     user = otp_instance.user
     
     otp_instance.invalidate_otp()
-    new_otp, new_otp_id = CreateOTP(user, purpose)
-    SendOTPEmail(user.profile.get_username(), user.email, new_otp, verify_purpose=otp_instance.get_purpose_display())
+    new_otp, new_otp_id = create_otp(user, purpose)
+    send_otp_mail(user.profile.get_username(), user.email, new_otp, verify_purpose=otp_instance.get_purpose_display())
     otp_verify_info["otp_id"] = new_otp_id
     otp_verify_info["otp_uuid"] = str(uuid.uuid4())
     request.session["otp_verify_info"] = otp_verify_info
@@ -133,7 +133,7 @@ def ResendStaffOTPView(request):
 
 
 @login_required
-def StaffLogoutView(request):
+def staff_logout_view(request):
     request.session.flush()
     logout(request)
     return redirect("home")

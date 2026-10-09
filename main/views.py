@@ -5,7 +5,7 @@ from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel,)
 from django.http import (JsonResponse, Http404)
 
 
-def HomeView(request):
+def home_view(request):
     site_info_instance = SiteModel.objects.select_related("hero", "about",).prefetch_related("services",).first()
     enabled_home_sections = site_info_instance.sections.filter(is_enabled=True).order_by("order",)
 
@@ -25,7 +25,7 @@ def HomeView(request):
 
 
 
-def AboutView(request):
+def about_view(request):
     site_info_instance = SiteModel.objects.select_related("about").first()
     team_members = site_info_instance.about.team.filter(is_member=True)
 
@@ -40,7 +40,7 @@ def AboutView(request):
 
 
 
-def ServicesView(request):
+def services_view(request):
     context = {
         "current": "services"
     }
@@ -48,7 +48,7 @@ def ServicesView(request):
     return render(request, "main/services.html", context)
 
 
-def ServiceDetailView(request, service_slug):
+def service_detail_view(request, service_slug):
     # site_info_instance = SiteModel.objects.select_related("about",).first()
     service = ServiceModel.objects.prefetch_related("packages", "related_services", "faqs",).filter(slug=service_slug).first()
     service_faqs = list(service.faqs.filter().order_by("-id")[:5]) # latest 5 faqs
@@ -71,7 +71,7 @@ def ServiceDetailView(request, service_slug):
 
 
 
-def GetFAQsBatch(request, service_slug, faqs_batch_point):
+def get_faqs_batch(request, service_slug, faqs_batch_point):
     service = ServiceModel.objects.prefetch_related("faqs").filter(slug=service_slug).first()
 
     if service:

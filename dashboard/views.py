@@ -10,7 +10,7 @@ from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, 
 # Create your views here.
 @login_required()
 @permission_required("staffs.view_dashboard", raise_exception=True)
-def DashboardHomeView(request):
+def dashboard_home_view(request):
     
     context = {}
 
@@ -21,7 +21,7 @@ def DashboardHomeView(request):
 
 @login_required
 @permission_required("staffs.view_dashboard", raise_exception=True)
-def ProfileView(request):
+def profile_view(request):
     profile_form = EditProfileForm(request.POST or None, instance=request.user.profile)
     avatar_form = UpdateAvatarForm()
     profile = request.user.profile
@@ -50,7 +50,7 @@ def ProfileView(request):
 
 @login_required
 @permission_required("staffs.view_dashboard", raise_exception=True)
-def UpdateProfileAvatarView(request):
+def update_profile_avatar_view(request):
     avatar_form = UpdateAvatarForm(request.POST or None, request.FILES or None)
 
     if request.POST and avatar_form.is_valid():
@@ -62,7 +62,7 @@ def UpdateProfileAvatarView(request):
 
 @login_required
 @permission_required("staffs.view_dashboard", raise_exception=True)
-def UpdateProfileInfoView(request):
+def update_profile_info_view(request):
     profile_edit_form = EditProfileForm(request.POST or None)
 
     if request.POST and profile_edit_form.is_valid():
@@ -79,7 +79,7 @@ def UpdateProfileInfoView(request):
 
 @login_required
 @permission_required(("staffs.view_dashboard", "staffs.manage_site", "staffs.manage_homepage",), raise_exception=True)
-def SiteView(request):
+def site_view(request):
     site_info_instance = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info_instance)    
 
@@ -96,7 +96,7 @@ def SiteView(request):
 
 @login_required
 @permission_required(("staffs.view_dashboard", "staffs.manage_site", ), raise_exception=True)
-def UpdateSiteInfoView(request):
+def update_site_info_view(request):
     site_info = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info)
     if request.POST and site_info_form.is_valid():
@@ -108,7 +108,7 @@ def UpdateSiteInfoView(request):
 
 @login_required
 @permission_required(("staffs.view_dashboard", "staffs.manage_site", "staffs.manage_homepage",), raise_exception=True)
-def UpdateSiteHomeSectionsView(request):
+def update_site_home_sections_view(request):
     section_formset = SiteHomeSectionUpdateFormset(request.POST or None)
     if request.POST and section_formset.is_valid():
         section_formset.save()
@@ -123,7 +123,7 @@ def UpdateSiteHomeSectionsView(request):
 
 @login_required
 @permission_required(("staffs.manage_contents"), raise_exception=True)
-def ContentsView(request):
+def contents_view(request):
     tab = str(request.GET.get("tab")).lower()
     tab = tab if tab in ["home", "about", "services", "faqs", "contacts"] else "home"
 
@@ -180,7 +180,7 @@ def ContentsView(request):
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_hero",), raise_exception=True)
-def UpdateHeroView(request, type):
+def update_hero_view(request, type):
     hero_instance = HeroSectionModel.objects.first()
     hero_form = HeroInfoForm(request.POST or None, instance=hero_instance) if type == "info" else HeroImgForm(request.POST or None, request.FILES or None, instance=hero_instance)
 
@@ -196,7 +196,7 @@ def UpdateHeroView(request, type):
 
 @login_required
 @permission_required(("staffs.manage_contents",), raise_exception=True)
-def UpdateAboutView(request):
+def update_about_view(request):
     about_instance = AboutSectionModel.objects.first()
     about_form = AboutForm(request.POST or None, instance=about_instance)
 
@@ -208,7 +208,7 @@ def UpdateAboutView(request):
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.update_team_member"), raise_exception=True)
-def UpdateTeamMemberView(request, member):
+def update_team_member_view(request, member):
     team_member = TeamModel.objects.filter(slug=member).first()
     team_form = TeamForm(request.POST or None, request.FILES or None, instance=team_member)
 
@@ -220,7 +220,7 @@ def UpdateTeamMemberView(request, member):
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.remove_team_member"), raise_exception=True)
-def RemoveTeamMemberView(request, member):
+def remove_team_member_view(request, member):
     team_member = TeamModel.objects.filter(slug=member).first()
     team_member.remove_as_member()
 
@@ -229,7 +229,7 @@ def RemoveTeamMemberView(request, member):
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.add_team_member"), raise_exception=True)
-def AddTeamMemberView(request):
+def add_team_member_view(request):
     team_form = TeamForm(request.POST or None, request.FILES or None)
 
     if request.POST and team_form.is_valid():

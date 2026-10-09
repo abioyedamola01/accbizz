@@ -4,13 +4,13 @@ from django.core.mail import send_mail
 from .models import OTPVerifyModel
 
 
-def GenerateOTP(length=6):
+def generate_otp(length=6):
     code = "".join(str(random.randint(0, 9)) for _  in range(length))
     return code
 
 
-def CreateOTP(user, verify_purpose):
-    raw_code = GenerateOTP(6)
+def create_otp(user, verify_purpose):
+    raw_code = generate_otp(6)
     hash_code = make_password(raw_code)
 
     OTPVerifyModel.objects.filter(user=user, purpose=verify_purpose, is_valid=True).update(is_valid=False) # invalidate  all  existing  otps with the same purpose
@@ -23,7 +23,7 @@ def CreateOTP(user, verify_purpose):
     return raw_code, otp_instance.id
 
 
-def SendOTPEmail(user_name, user_email, raw_code, verify_purpose):
+def send_otp_mail(user_name, user_email, raw_code, verify_purpose):
     send_mail(
         subject=f"Email verification for {verify_purpose}",
         message=f"Dear {user_name},\nYour OTP code is: {raw_code}. It expires in 5 minutes.",
@@ -34,7 +34,7 @@ def SendOTPEmail(user_name, user_email, raw_code, verify_purpose):
 
 
 
-def VerifyOTP(input_otp, otp_instance):
+def verify_otp(input_otp, otp_instance):
     if otp_instance.is_expired():
         return (False, "OTP is expired.")
 

@@ -1,11 +1,11 @@
 from django.urls import path
-from .views import (HomeView, AboutView, ServicesView, ServiceDetailView, GetFAQsBatch)
+from .views import (about_view, get_faqs_batch, home_view, service_detail_view, services_view)
 
 
 urlpatterns = [
-    path("", HomeView, name="main_home"),
-    path("about", AboutView, name="main_about"),
-    path("services", ServicesView, name="main_services"),
-    path("services/<slug:service_slug>", ServiceDetailView, name="main_service_detail"),
-    path("services/<slug:service_slug>/<int:faqs_batch_point>", GetFAQsBatch, name="get_faqs_batch"),
+    path("", home_view, name="main_home"),
+    path("about", about_view, name="main_about"),
+    path("services", services_view, name="main_services"),
+    path("services/<slug:service_slug>", service_detail_view, name="main_service_detail"),
+    path("services/<slug:service_slug>/<int:faqs_batch_point>", get_faqs_batch, name="get_faqs_batch"),
 ]
