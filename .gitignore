@@ -38,6 +38,7 @@ instance/
 
 # Scrapy stuff
 .scrapy
+scrap.py
 
 # Sphinx documentation
 docs/_build/

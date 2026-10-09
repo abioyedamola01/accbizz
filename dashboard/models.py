@@ -100,7 +100,7 @@ class HomeSectionModel(models.Model):
 
 class ServiceModel(models.Model):
     title = models.CharField(max_length=65)
-    slug = models.SlugField(default="")
+    slug = models.SlugField(unique=True, default="")
     blurb = models.CharField(max_length=125)
     description = models.TextField()
     is_active = models.BooleanField(default=True)
@@ -132,7 +132,15 @@ class ServicePackageModel(models.Model):
 
 
 class FAQsModel(models.Model):
+    slug = models.SlugField(unique=True, default="")
     question = models.CharField(max_length=264)
     answer = models.TextField()
     is_featured = models.BooleanField(default=False)
-    service = models.ForeignKey("dashboard.ServiceModel", null=True, on_delete=models.CASCADE, related_name="faqs")
+    service = models.ForeignKey("dashboard.ServiceModel", null=True, blank=True, on_delete=models.CASCADE, related_name="faqs")
+
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.slug = f"{self.id}-{slugify(self.question[:10])}"
+
+        super().save(*args, **kwargs)

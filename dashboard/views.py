@@ -1,9 +1,10 @@
 from django.shortcuts import (render, redirect,)
+from django.urls import reverse
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.forms.models import model_to_dict
 from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm)
-from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel)
-
+from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel)
+from .utils import (toast_json_ok, toast_json_error,)
 
 
 
@@ -157,10 +158,13 @@ def contents_view(request):
         }
     elif tab == "faqs":
         faqs = FAQsModel.objects.select_related("service").filter().order_by("-id")
+        services = list(ServiceModel.objects.filter().values("id", "title"))
+
         faq_form = FAQForm()
 
         context = {
             "faqs": faqs,
+            "services": services,
             "faq_form": faq_form
         }
 
@@ -239,3 +243,44 @@ def add_team_member_view(request):
 
 
 
+
+
+
+
+@login_required
+@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.update_faq")
+def update_faq_view(request, faq):
+    faq_inst = FAQsModel.objects.filter(slug=faq).first()
+    faqs_form = FAQForm(request.POST or None, instance=faq_inst)
+
+    if request.POST and faqs_form.is_valid() and faq_inst:
+        faqs_form.save()
+
+        return toast_json_ok(f"{faq_inst.question} has been updated successfully.")
+    
+    return toast_json_error(f"Can't update {faq_inst.question}")
+    
+
+
+@login_required
+@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.delete_faq")
+def delete_faq_view(request, faq):
+    faq_inst = FAQsModel.objects.filter(slug=faq).first()
+
+    if faq_inst:
+        faq_inst.delete()
+        return toast_json_ok(f"{faq_inst.question} has been deleted successfully.")
+            
+    return toast_json_error(f"Can't delete {faq_inst.question}")
+
+
+@login_required
+@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.add_faq")
+def add_faq_view(request):
+    faq = FAQForm(request.POST or None)
+
+    if (request.POST and faq.is_valid() and faq):
+        faq.save()
+        return toast_json_ok("FAQ added successfully.")
+
+    return toast_json_error("Can't add FAQ.")

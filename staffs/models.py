@@ -169,6 +169,12 @@ admin_permissions = [
     ("delete_pages", "Can delete pages"),
     ("publish_pages", "Can publish pages"),
 
+    #FAQs
+    ("manage_faqs", "Can manage FAQs"),
+    ("add_faq", "Can add FAQs"),
+    ("update_faq", "Can update FAQs"),
+    ("delete_faq", "Can delete FAQs"),
+
     # Services
     ("view_services", "Can view services"),
     ("add_services", "Can add services"),
@@ -196,17 +202,6 @@ admin_permissions = [
     ("change_testimonials", "Can change testimonials"),
     ("delete_testimonials", "Can delete testimonials"),
 
-    # Team
-    ("view_team", "Can view team members"),
-    ("add_team", "Can add team members"),
-    ("change_team", "Can change team members"),
-    ("delete_team", "Can delete team members"),
-
-    # FAQ
-    ("view_faq", "Can view FAQs"),
-    ("add_faq", "Can add FAQs"),
-    ("change_faq", "Can change FAQs"),
-    ("delete_faq", "Can delete FAQs"),
 
     # Media Library
     ("view_media", "Can view media library"),

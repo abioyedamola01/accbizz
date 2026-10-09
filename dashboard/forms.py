@@ -57,4 +57,4 @@ class TeamForm(forms.ModelForm):
 class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQsModel
-        fields = ("question", "answer",)
+        fields = ("question", "answer", "service",)

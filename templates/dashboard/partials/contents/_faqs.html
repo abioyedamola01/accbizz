@@ -1,27 +1,95 @@
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# FAQs table (client-side build with DUMMY DATA).                        #}
-{#                                                                       #}
-{# When connecting the backend:                                          #}
-{#  1. Replace the hard-coded <tbody> rows with the loop in the comment  #}
-{#     just above them.                                                  #}
-{#  2. Replace the hand-written fields in the Add modal and the edit     #}
-{#     <template> with {% render_field faq_form.question %} etc.         #}
-{#  3. Fill the "" URLs (form action, data-update-url, data-delete-url). #}
-{#  4. Replace the dummy "5 FAQs" badge with {{ faqs|length }}.          #}
-{# ===================================================================== #}
+<style>
+  /* Service filter: plain CSS so the spacing never depends on the Tailwind build */
+  .faq-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .faq-filter-btn:hover { background: #f9fafb; }
 
-<div class="bg-white rounded-2xl shadow-card mt-8 p-5 overflow-hidden">
+  .faq-filter-panel {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem;
+    width: 17rem;
+    max-width: 90vw;
+    padding: 0.5rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    z-index: 30;
+  }
+  .faq-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    color: #374151;
+    border-radius: 0.5rem;
+    cursor: pointer;
+  }
+  .faq-filter-row:hover { background: #f9fafb; }
+  .faq-filter-row--all { font-weight: 600; color: #111827; }
+  .faq-filter-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
+  .faq-filter-divider { margin: 0.375rem 0.25rem; border-top: 1px solid #f3f4f6; }
+  .faq-filter-options { max-height: 15rem; overflow-y: auto; }
+  .faq-filter-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .faq-filter-count { flex: none; font-size: 0.75rem; color: #9ca3af; }
+</style>
+
+{# Service list for the dropdowns: [{'id': 4, 'title': '...'}, ...] -> read by the JS below #}
+{{ services|json_script:"faqServicesData" }}
+
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
 
   {# ---- Header ---- #}
-  <div class="flex items-center justify-between py-4 border-b border-gray-100">
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
     <div class="flex items-center gap-2">
       <h2 class="text-base font-bold text-dark-900">FAQs</h2>
-      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ faqs|length }} FAQs</span>
+      <span id="faqCountBadge" data-total="{{ faqs|length }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ faqs|length }} FAQs</span>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+
+      {# ---- Service filter (client side only): multi-select dropdown, everything selected by default ---- #}
+      <div id="faqFilter" class="relative">
+        <button type="button" id="faqFilterBtn" aria-haspopup="true" aria-expanded="false"
+          class="faq-filter-btn">
+          <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+          </svg>
+          <span id="faqFilterLabel">All services</span>
+          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+          </svg>
+        </button>
+
+        <div id="faqFilterPanel" role="group" aria-label="Filter FAQs by service"
+          class="faq-filter-panel hidden">
+          <label class="faq-filter-row faq-filter-row--all">
+            <input type="checkbox" id="faqFilterAll" checked />
+            All services
+          </label>
+          <div class="faq-filter-divider"></div>
+          {# General + one checkbox per service, built by JS from the services list #}
+          <div id="faqFilterOptions" class="faq-filter-options"></div>
+        </div>
+      </div>
+
       <button type="button" onclick="openAddFaqModal()"
         class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -43,7 +111,6 @@
         </tr>
       </thead>
 
-      
       {% for faq in faqs %}
       <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
         <tr>
@@ -52,13 +119,14 @@
           <td class="py-3 pr-5">
             <button type="button" onclick="toggleManageRow(this)"
               class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url=""
-              data-delete-url=""
+              data-update-url="{% url "dashboard_update_faq" faq.slug %}"
+              data-delete-url="{% url "dashboard_delete_faq" faq.slug %}"
               data-question="{{ faq.question }}"
               data-answer="{{ faq.answer }}"
               data-service="{{ faq.service_id|default_if_none:'' }}">Manage</button>
           </td>
         </tr>
+        {# Manage panel is built by JS from #faqFormTemplate when "Manage" is clicked #}
         <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
       </tbody>
       {% empty %}
@@ -66,89 +134,11 @@
         <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs yet. Use "Add FAQ" to create the first one.</td></tr>
       </tbody>
       {% endfor %}
-      
 
-      
-{% comment %}       
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">What services do you offer?</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">General</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="" data-delete-url=""
-              data-question="What services do you offer?"
-              data-answer="We offer accounting and bookkeeping, tax advisory, payroll and audit support for individuals and growing businesses."
-              data-service="">Manage</button>
-          </td>
-        </tr>
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
+      {# Shown by the filter when no FAQ matches the selected services #}
+      <tbody id="faqFilterEmpty" class="hidden">
+        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs match the selected services.</td></tr>
       </tbody>
-
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">How long does a tax filing take?</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">Tax Advisory</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="" data-delete-url=""
-              data-question="How long does a tax filing take?"
-              data-answer="Most filings are completed within 3 to 5 working days once we have all your documents."
-              data-service="2">Manage</button>
-          </td>
-        </tr>
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody>
-
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">Can you run payroll for a small team?</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">Payroll</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="" data-delete-url=""
-              data-question="Can you run payroll for a small team?"
-              data-answer="Yes. We handle salary calculations, deductions, payslips and statutory remittances for teams of any size."
-              data-service="3">Manage</button>
-          </td>
-        </tr>
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody>
-
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">What documents do I need for an audit?</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">Audit</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="" data-delete-url=""
-              data-question="What documents do I need for an audit?"
-              data-answer="Bank statements, invoices, receipts, payroll records and your general ledger for the period being audited."
-              data-service="4">Manage</button>
-          </td>
-        </tr>
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody>
-
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">How do I get started?</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">General</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="" data-delete-url=""
-              data-question="How do I get started?"
-              data-answer="Send us a message through the contact page and one of our team will schedule a free consultation."
-              data-service="">Manage</button>
-          </td>
-        </tr>
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody> {% endcomment %}
 
     </table>
   </div>
@@ -181,9 +171,13 @@
             class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
             Cancel
           </button>
-          <button type="submit"
-            class="text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 cursor-pointer transition">
-            Delete FAQ
+          <button type="submit" id="deleteFaqSubmitBtn"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg id="deleteFaqSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span id="deleteFaqLabel">Delete FAQ</span>
           </button>
         </div>
       </form>
@@ -205,30 +199,29 @@
       </div>
 
       <div class="flex-1 overflow-y-auto px-6 py-5">
-        <form method="post" id="addFaqForm" action="" class="space-y-4">
+        <form method="post" id="addFaqForm" action="{% url "dashboard_add_faq" %}" class="space-y-4">
           {% csrf_token %}
 
           <div>
             <label for="addFaqQuestion" class="text-xs font-medium text-gray-500 block mb-1">Question</label>
-            <input type="text" id="addFaqQuestion" name="question" placeholder="e.g. How long does a tax filing take?"
-              class="add-faq-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" />
+            {% render_field faq_form.question id="addFaqQuestion" class="add-faq-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
           </div>
 
           <div>
             <label for="addFaqAnswer" class="text-xs font-medium text-gray-500 block mb-1">Answer</label>
-            <textarea id="addFaqAnswer" name="answer" rows="5" placeholder="Write a clear, short answer"
-              class="add-faq-required-field w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y"></textarea>
+            {% render_field faq_form.answer id="addFaqAnswer" class="add-faq-required-field w-full min-h-[60px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
           </div>
 
           <div>
-            <label for="addFaqService" class="text-xs font-medium text-gray-500 block mb-1">Service</label>
-            <select id="addFaqService" name="service"
+            <label for="addFaqServiceSelect" class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+
+            {# The real form field stays in the DOM (so it posts) but is hidden; the dropdown below fills it with the chosen service id #}
+            <div class="hidden">{% render_field faq_form.service id="addFaqService" %}</div>
+
+            {# No name attribute, so the dropdown itself is never posted #}
+            <select id="addFaqServiceSelect"
               class="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
               <option value="">General</option>
-              <option value="1">Accounting &amp; Bookkeeping</option>
-              <option value="2">Tax Advisory</option>
-              <option value="3">Payroll</option>
-              <option value="4">Audit</option>
             </select>
           </div>
         </form>
@@ -253,7 +246,7 @@
   </div>
 </div>
 
-{# ---- Single reusable edit form — rendered once, cloned per-FAQ by JS ---- #}
+{# ---- Single reusable edit form: rendered once, cloned per-FAQ by JS ---- #}
 <template id="faqFormTemplate">
   <div class="bg-gray-50 border-t border-gray-100 p-5">
     <form method="post" class="faq-manage-form space-y-4">
@@ -262,25 +255,24 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="min-w-0 sm:col-span-2">
           <label class="text-xs font-medium text-gray-500 block mb-1">Question</label>
-          <input type="text" name="question"
-            class="faq-form-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" />
+          {% render_field faq_form.question id="editFaqQuestion" class="faq-form-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
         </div>
 
         <div class="min-w-0 sm:col-span-2">
           <label class="text-xs font-medium text-gray-500 block mb-1">Answer</label>
-          <textarea name="answer" rows="4"
-            class="faq-form-field w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y"></textarea>
+          {% render_field faq_form.answer id="editFaqAnswer" class="faq-form-field w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
         </div>
 
         <div class="min-w-0">
           <label class="text-xs font-medium text-gray-500 block mb-1">Service</label>
-          <select name="service"
-            class="faq-form-field w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+
+          {# Hidden real field: filled with the trigger's data-service, then kept in sync by the dropdown #}
+          <div class="hidden">{% render_field faq_form.service id="editFaqService" class="faq-form-field" %}</div>
+
+          {# No name attribute, so the dropdown itself is never posted #}
+          <select
+            class="faq-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
             <option value="">General</option>
-            <option value="1">Accounting &amp; Bookkeeping</option>
-            <option value="2">Tax Advisory</option>
-            <option value="3">Payroll</option>
-            <option value="4">Audit</option>
           </select>
         </div>
       </div>
@@ -313,6 +305,108 @@
 </template>
 
 <script>
+  // ---- Services (read from the json_script tag at the top of this file) ----
+
+  const FAQ_SERVICES = (function () {
+    const el = document.getElementById('faqServicesData');
+    if (!el) return [];
+    try {
+      const data = JSON.parse(el.textContent);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  // Fills a dropdown with one option per service. The first "General"
+  // option (value "") is already in the markup and is kept.
+  function fillServiceOptions(select) {
+    select.querySelectorAll('option:not([value=""])').forEach((o) => o.remove());
+    FAQ_SERVICES.forEach((service) => {
+      const option = document.createElement('option');
+      option.value = String(service.id);
+      option.textContent = service.title;
+      select.appendChild(option);
+    });
+  }
+
+  // Keeps the hidden service field in step with the visible dropdown:
+  // starts on the field's current id, then writes the chosen id back on change.
+  function linkServiceSelect(select, hiddenField) {
+    select.value = hiddenField.value || '';
+    if (select.selectedIndex === -1) {
+      // The stored id is not in the list (e.g. service was removed): fall back to General
+      select.selectedIndex = 0;
+      hiddenField.value = '';
+    }
+    select.addEventListener('change', function () {
+      hiddenField.value = select.value;
+    });
+  }
+
+  // ---- AJAX submit (shared by add / update / delete) ----
+  // Uses ajaxPost / showToast / queueToast from base/dashboard/partials/_toast.html
+
+  function clearFieldErrors(form) {
+    form.querySelectorAll('.faq-field-error').forEach((el) => el.remove());
+    form.querySelectorAll('[data-has-error]').forEach((el) => {
+      el.style.borderColor = '';
+      el.removeAttribute('data-has-error');
+      el.removeAttribute('aria-invalid');
+    });
+  }
+
+  // errors looks like { question: ["This field is required."], ... }
+  function showFieldErrors(form, errors) {
+    Object.keys(errors).forEach((name) => {
+      // The real service field is hidden, so its error goes under the dropdown
+      const target = name === 'service'
+        ? form.querySelector('.faq-service-select, #addFaqServiceSelect')
+        : form.querySelector('[name="' + name + '"]');
+      if (!target) return; // e.g. non-field errors: the toast covers those
+
+      const list = Array.isArray(errors[name]) ? errors[name] : [errors[name]];
+      const first = list[0];
+      const text = typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
+
+      const p = document.createElement('p');
+      p.className = 'faq-field-error text-red-500 text-xs mt-1';
+      p.textContent = text;
+      target.insertAdjacentElement('afterend', p);
+      target.style.borderColor = '#f87171';
+      target.setAttribute('data-has-error', '');
+      target.setAttribute('aria-invalid', 'true');
+    });
+  }
+
+  // Posts the form with fetch. On success: queue the toast, reload the page
+  // (so the table is fresh) and the toast appears after the reload.
+  // On failure: restore the button, show field errors and an error toast.
+  function faqSubmit(form, opts) {
+    clearFieldErrors(form);
+
+    opts.button.disabled = true;
+    if (opts.spinner) opts.spinner.classList.remove('hidden');
+    opts.label.textContent = opts.busyText;
+
+    return ajaxPost(form).then(function (result) {
+      if (result.ok) {
+        queueToast(result.message || opts.successFallback, 'success');
+        window.location.reload();
+        return;
+      }
+
+      opts.button.disabled = false;
+      if (opts.spinner) opts.spinner.classList.add('hidden');
+      opts.label.textContent = opts.idleText;
+
+      if (result.data && result.data.errors) showFieldErrors(form, result.data.errors);
+      showToast(result.message, 'error');
+    });
+  }
+
+  // ---- Manage row (edit) ----
+
   // Toggles the hidden manage row for an FAQ: builds the edit form from the
   // shared <template> on open, tears it down on close. Only one row is open
   // at a time. The built panel is pinned to the visible edge of the
@@ -349,7 +443,8 @@
     form.action = trigger.dataset.updateUrl;
 
     // Populate each field by matching its `name` against the trigger's
-    // dataset (name="question" -> dataset.question, "answer", "service")
+    // dataset (question -> data-question, answer -> data-answer,
+    // service -> data-service, which is the service id)
     fragment.querySelectorAll('.faq-form-field').forEach((fieldEl) => {
       const value = trigger.dataset[fieldEl.name];
       if (value !== undefined) {
@@ -357,20 +452,27 @@
       }
     });
 
+    // Dropdown <-> hidden service field
+    const serviceSelect = fragment.querySelector('.faq-service-select');
+    const serviceField = fragment.querySelector('[name="service"]');
+    fillServiceOptions(serviceSelect);
+    linkServiceSelect(serviceSelect, serviceField);
+
     const deleteBtn = fragment.querySelector('.faq-form-delete-btn');
     deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
     deleteBtn.dataset.faqQuestion = trigger.dataset.question;
 
-    // Disable + spin the Save button on submit
-    const savedForm = fragment.querySelector('.faq-manage-form');
-    savedForm.addEventListener('submit', function () {
-      const saveBtn = savedForm.querySelector('.faq-form-save-btn');
-      const spinner = savedForm.querySelector('.faq-form-save-spinner');
-      const label = savedForm.querySelector('.faq-form-save-label');
-
-      saveBtn.disabled = true;
-      spinner.classList.remove('hidden');
-      label.textContent = 'Saving...';
+    // "Save changes" posts this form with fetch (no page reload)
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      faqSubmit(form, {
+        button: form.querySelector('.faq-form-save-btn'),
+        spinner: form.querySelector('.faq-form-save-spinner'),
+        label: form.querySelector('.faq-form-save-label'),
+        busyText: 'Saving...',
+        idleText: 'Save changes',
+        successFallback: 'FAQ updated.',
+      });
     });
 
     cell.appendChild(fragment);
@@ -416,7 +518,27 @@
     document.body.classList.remove('overflow-hidden');
   }
 
+  // Delete posts with fetch too (the form only carries the CSRF token; the
+  // FAQ is identified by the URL set in openDeleteConfirm)
+  document.getElementById('deleteFaqForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    faqSubmit(event.currentTarget, {
+      button: document.getElementById('deleteFaqSubmitBtn'),
+      spinner: document.getElementById('deleteFaqSpinner'),
+      label: document.getElementById('deleteFaqLabel'),
+      busyText: 'Deleting...',
+      idleText: 'Delete FAQ',
+      successFallback: 'FAQ deleted.',
+    });
+  });
+
   // ---- Add FAQ modal ----
+
+  // Wire the Add modal's dropdown to its hidden service field once, on load
+  const addServiceSelect = document.getElementById('addFaqServiceSelect');
+  const addServiceField = document.getElementById('addFaqService');
+  fillServiceOptions(addServiceSelect);
+  linkServiceSelect(addServiceSelect, addServiceField);
 
   function openAddFaqModal() {
     const modal = document.getElementById('addFaqModal');
@@ -433,7 +555,8 @@
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
 
-    // Reset so a re-open starts clean (not mid-"Creating..." state)
+    // Reset so a re-open starts clean (not mid-"Creating..." state).
+    // This also puts the hidden service field and the dropdown back to General.
     form.reset();
     document.getElementById('addFaqSpinner').classList.add('hidden');
     document.getElementById('addFaqSaveLabel').textContent = 'Create FAQ';
@@ -462,13 +585,161 @@
     }
   });
 
-  // Disable + spin the Create button on submit (only reachable once the
-  // required fields are filled, since the button is disabled until then)
-  document.getElementById('addFaqForm').addEventListener('submit', function () {
-    document.getElementById('addFaqSaveBtn').disabled = true;
-    document.getElementById('addFaqSpinner').classList.remove('hidden');
-    document.getElementById('addFaqSaveLabel').textContent = 'Creating...';
+  // Create posts with fetch (only reachable once the required fields are
+  // filled, since the button is disabled until then)
+  document.getElementById('addFaqForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    faqSubmit(event.currentTarget, {
+      button: document.getElementById('addFaqSaveBtn'),
+      spinner: document.getElementById('addFaqSpinner'),
+      label: document.getElementById('addFaqSaveLabel'),
+      busyText: 'Creating...',
+      idleText: 'Create FAQ',
+      successFallback: 'FAQ added.',
+    });
   });
+
+  // ---- Service filter (client side only) ----
+  // Checkbox dropdown. Everything is selected by default; unchecking a
+  // service hides the FAQs of that service in real time. The unchecked
+  // services are remembered for this browser tab, because every save
+  // reloads the page and the filter should survive that.
+
+  (function initFaqFilter() {
+    const FILTER_KEY = 'faqFilterExcluded';
+
+    const wrapper = document.getElementById('faqFilter');
+    const button = document.getElementById('faqFilterBtn');
+    const panel = document.getElementById('faqFilterPanel');
+    const label = document.getElementById('faqFilterLabel');
+    const allBox = document.getElementById('faqFilterAll');
+    const optionsEl = document.getElementById('faqFilterOptions');
+    const emptyBody = document.getElementById('faqFilterEmpty');
+    const badge = document.getElementById('faqCountBadge');
+    if (!wrapper) return;
+
+    const groups = Array.from(document.querySelectorAll('#faqTableScroll tbody.faq-group'));
+
+    function serviceOf(group) {
+      return group.querySelector('[data-update-url]').dataset.service || '';
+    }
+
+    // How many FAQs each service has (shown next to its checkbox)
+    const counts = {};
+    groups.forEach((group) => {
+      const value = serviceOf(group);
+      counts[value] = (counts[value] || 0) + 1;
+    });
+
+    function addOption(value, title) {
+      const row = document.createElement('label');
+      row.className = 'faq-filter-row';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = value;
+      box.checked = true;
+      box.dataset.title = title;
+      box.className = 'faq-filter-option';
+
+      const name = document.createElement('span');
+      name.className = 'faq-filter-name';
+      name.textContent = title;
+
+      const count = document.createElement('span');
+      count.className = 'faq-filter-count';
+      count.textContent = counts[value] || 0;
+
+      row.append(box, name, count);
+      optionsEl.appendChild(row);
+    }
+
+    addOption('', 'General');
+    FAQ_SERVICES.forEach((service) => addOption(String(service.id), service.title));
+
+    const boxes = Array.from(optionsEl.querySelectorAll('.faq-filter-option'));
+
+    // Restore what was unchecked before the last reload
+    try {
+      const excluded = JSON.parse(sessionStorage.getItem(FILTER_KEY) || '[]');
+      boxes.forEach((box) => {
+        if (excluded.includes(box.value)) box.checked = false;
+      });
+    } catch (e) { /* storage unavailable: start with everything selected */ }
+
+    function applyFilter() {
+      const selected = boxes.filter((box) => box.checked);
+      const everything = selected.length === boxes.length;
+      const values = new Set(selected.map((box) => box.value));
+
+      let visible = 0;
+      groups.forEach((group) => {
+        const show = everything || values.has(serviceOf(group));
+        group.classList.toggle('hidden', !show);
+        if (show) {
+          visible += 1;
+        } else {
+          // Don't leave an open edit panel behind a hidden row
+          const manageRow = group.querySelector('.faq-manage-row');
+          if (manageRow && !manageRow.classList.contains('hidden')) {
+            manageRow.classList.add('hidden');
+            manageRow.querySelector('td').innerHTML = '';
+          }
+        }
+      });
+
+      // "All services" checkbox mirrors the options
+      allBox.checked = everything;
+      allBox.indeterminate = !everything && selected.length > 0;
+
+      // Button label
+      if (everything) label.textContent = 'All services';
+      else if (selected.length === 0) label.textContent = 'None selected';
+      else if (selected.length === 1) label.textContent = selected[0].dataset.title;
+      else label.textContent = selected.length + ' of ' + boxes.length + ' services';
+
+      // "No match" row and the count badge
+      emptyBody.classList.toggle('hidden', !(groups.length > 0 && visible === 0));
+      const total = groups.length;
+      badge.textContent = visible === total ? total + ' FAQs' : visible + ' of ' + total + ' FAQs';
+
+      // Remember the unchecked services (new services default to selected)
+      try {
+        const excluded = boxes.filter((box) => !box.checked).map((box) => box.value);
+        if (excluded.length === 0) sessionStorage.removeItem(FILTER_KEY);
+        else sessionStorage.setItem(FILTER_KEY, JSON.stringify(excluded));
+      } catch (e) { /* ignore */ }
+    }
+
+    allBox.addEventListener('change', function () {
+      boxes.forEach((box) => { box.checked = allBox.checked; });
+      applyFilter();
+    });
+
+    optionsEl.addEventListener('change', applyFilter);
+
+    function setPanelOpen(open) {
+      panel.classList.toggle('hidden', !open);
+      button.setAttribute('aria-expanded', String(open));
+    }
+
+    button.addEventListener('click', function () {
+      setPanelOpen(panel.classList.contains('hidden'));
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!wrapper.contains(event.target)) setPanelOpen(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
+        setPanelOpen(false);
+        button.focus();
+      }
+    });
+
+    applyFilter();
+  })();
 
   // ---- Close modals on backdrop click / Escape ----
 

@@ -1,0 +1,192 @@
+{# ===================================================================== #}
+{# Shared dashboard toast + AJAX helper.                                 #}
+{# Include once in base/dashboard/base.html, before {% block extra_js %}: #}
+{#   {% include "base/dashboard/partials/_toast.html" %}                  #}
+{#                                                                       #}
+{# Globals it defines:                                                   #}
+{#   showToast(message, type)  type: 'success' | 'error' | 'info'        #}
+{#   queueToast(message, type) show the toast AFTER the next page load   #}
+{#   ajaxPost(form, opts)      fetch POST of a form, resolves to         #}
+{#                             { ok, status, data, message }, never      #}
+{#                             rejects                                   #}
+{# Plain CSS on purpose, so it works without rebuilding Tailwind.        #}
+{# ===================================================================== #}
+
+<style>
+  #toastRoot {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: calc(100vw - 2rem);
+    max-width: 22rem;
+    pointer-events: none;
+  }
+  .app-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.75rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-left-width: 4px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    font-size: 0.875rem;
+    color: #111827;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .app-toast.is-visible { opacity: 1; transform: translateY(0); }
+  .app-toast__icon { flex: none; width: 1.25rem; height: 1.25rem; margin-top: 0.0625rem; }
+  .app-toast__msg { flex: 1; min-width: 0; line-height: 1.35; word-wrap: break-word; }
+  .app-toast__close {
+    flex: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: #9ca3af;
+    line-height: 0;
+  }
+  .app-toast__close:hover { color: #4b5563; }
+  .app-toast--success { border-left-color: #22c55e; }
+  .app-toast--success .app-toast__icon { color: #16a34a; }
+  .app-toast--error { border-left-color: #ef4444; }
+  .app-toast--error .app-toast__icon { color: #dc2626; }
+  .app-toast--info { border-left-color: #6b7280; }
+  .app-toast--info .app-toast__icon { color: #4b5563; }
+</style>
+
+<div id="toastRoot" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+  (function () {
+    var STORAGE_KEY = 'dashboardPendingToast';
+    var DURATION_MS = 5000; // auto-close after 5 seconds
+    var root = document.getElementById('toastRoot');
+
+    var ICONS = {
+      success: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+      error: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>',
+      info: '<path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>'
+    };
+
+    function svg(inner, cls) {
+      return '<svg class="' + cls + '" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">' + inner + '</svg>';
+    }
+
+    window.showToast = function (message, type) {
+      type = ICONS[type] ? type : 'info';
+
+      var toast = document.createElement('div');
+      toast.className = 'app-toast app-toast--' + type;
+      toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      toast.innerHTML =
+        svg(ICONS[type], 'app-toast__icon') +
+        '<div class="app-toast__msg"></div>' +
+        '<button type="button" class="app-toast__close" aria-label="Close">' +
+        svg('<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>', '') +
+        '</button>';
+
+      // textContent, never innerHTML, so server messages can't inject markup
+      toast.querySelector('.app-toast__msg').textContent = message;
+      toast.querySelector('.app-toast__close svg').style.cssText = 'width:1rem;height:1rem';
+
+      var timer = null;
+      function close() {
+        clearTimeout(timer);
+        toast.classList.remove('is-visible');
+        setTimeout(function () { toast.remove(); }, 200);
+      }
+
+      toast.querySelector('.app-toast__close').addEventListener('click', close);
+      root.appendChild(toast);
+      requestAnimationFrame(function () { toast.classList.add('is-visible'); });
+      timer = setTimeout(close, DURATION_MS);
+    };
+
+    // Save a toast to show after the next page load (used before location.reload())
+    window.queueToast = function (message, type) {
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ message: message, type: type }));
+      } catch (e) { /* storage unavailable: the toast is simply skipped */ }
+    };
+
+    // Show a toast queued by the previous page load, once
+    try {
+      var pending = sessionStorage.getItem(STORAGE_KEY);
+      if (pending) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        var t = JSON.parse(pending);
+        if (t && t.message) window.showToast(t.message, t.type);
+      }
+    } catch (e) { /* ignore */ }
+
+    // POST a form with fetch. Always resolves (never rejects) with:
+    //   { ok, status, data, message }
+    // `message` is the server's message, or a friendly one for timeouts,
+    // network errors, expired sessions and non-JSON responses.
+    window.ajaxPost = function (form, options) {
+      var timeoutMs = (options && options.timeoutMs) || 15000;
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+
+      return fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin',
+        signal: controller.signal
+      })
+        .then(function (response) {
+          return response.json().then(
+            function (data) { return { response: response, data: data }; },
+            function () { return { response: response, data: null }; }
+          );
+        })
+        .then(function (r) {
+          var response = r.response;
+          var data = r.data;
+
+          if (data && typeof data === 'object') {
+            var ok = response.ok && data.ok !== false;
+            return {
+              ok: ok,
+              status: response.status,
+              data: data,
+              message: data.message || (ok ? '' : 'Something went wrong. Please try again.')
+            };
+          }
+
+          // Not JSON: usually a redirect to the login page, or a server error page
+          return {
+            ok: false,
+            status: response.status,
+            data: null,
+            message: response.redirected
+              ? 'Your session may have expired. Please refresh and log in again.'
+              : 'Unexpected response from the server (' + response.status + ').'
+          };
+        })
+        .catch(function (error) {
+          var timedOut = !!error && error.name === 'AbortError';
+          return {
+            ok: false,
+            status: 0,
+            data: null,
+            timedOut: timedOut,
+            message: timedOut
+              ? 'The request timed out. Please try again.'
+              : 'Network error. Check your connection and try again.'
+          };
+        })
+        .finally(function () { clearTimeout(timer); });
+    };
+  })();
+</script>

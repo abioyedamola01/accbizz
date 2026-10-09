@@ -3,6 +3,7 @@ from .views import (dashboard_home_view,
                     profile_view, update_profile_avatar_view, update_profile_info_view,
                     site_view, update_site_info_view, update_site_home_sections_view,
                     contents_view, update_hero_view, update_about_view, update_team_member_view, remove_team_member_view, add_team_member_view,
+                    update_faq_view, delete_faq_view, add_faq_view
 )
 
 
@@ -20,4 +21,7 @@ urlpatterns = [
     path("contents/team/update-team-member/<slug:member>", update_team_member_view, name="dashboard_update_team_member"),
     path("contents/team/remove-team-member/<slug:member>", remove_team_member_view, name="dashboard_remove_team_member"),
     path("contents/team/add-team-member", add_team_member_view, name="dashboard_add_team_member"),
+    path("contents/faqs/update-faq/<slug:faq>", update_faq_view, name="dashboard_update_faq"),
+    path("contents/faqs/delete-faq/<slug:faq>", delete_faq_view, name="dashboard_delete_faq"),
+    path("contents/faqs/add-faq", add_faq_view, name="dashboard_add_faq")
 ]
