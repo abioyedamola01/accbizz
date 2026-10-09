@@ -1,5 +1,5 @@
 django > 4.2
-psycopg2
+psycopg2-binary
 dj_database_url
 dotenv
 django-widget-tweaks
