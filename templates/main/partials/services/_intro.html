@@ -1,0 +1,94 @@
+<section class="px-4 lg:px-6 pt-14 pb-6">
+  <div class="max-w-4xl mx-auto text-center">
+
+    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.15] text-dark-900">
+      Everything we can help you with
+    </h1>
+
+    <p class="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-gray-600 leading-relaxed">
+      Browse every service we offer, see what each one includes, and pick the one that fits your work.
+    </p>
+
+    {% if services|length > 3 %}
+      {# ---- Search (filters the grid in the browser) ---- #}
+      <div class="mt-8 max-w-md mx-auto">
+        <label for="serviceSearch" class="sr-only">Search services</label>
+        <div class="relative">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path stroke-linecap="round" d="M20 20l-3.5-3.5"/>
+          </svg>
+
+          <input id="serviceSearch" type="search" autocomplete="off" placeholder="Search services"
+            class="w-full h-12 rounded-full border border-gray-300 bg-white pl-11 pr-11 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" />
+
+          <button id="serviceSearchClear" type="button" aria-label="Clear search"
+            class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if services %}
+      <p id="serviceCount" data-total="{{ services|length }}" aria-live="polite"
+         class="mt-4 text-sm text-gray-500">
+        {{ services|length }} service{{ services|length|pluralize }}
+      </p>
+    {% endif %}
+
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var input = document.getElementById('serviceSearch');
+    var clearBtn = document.getElementById('serviceSearchClear');
+    var countEl = document.getElementById('serviceCount');
+    if (!input) return; // search is only rendered when there are enough services
+
+    function applyFilter() {
+      var term = input.value.trim().toLowerCase();
+      var cards = document.querySelectorAll('[data-service-card]');
+      var noResults = document.getElementById('serviceNoResults');
+      var visible = 0;
+
+      cards.forEach(function (card) {
+        var haystack = ((card.dataset.title || '') + ' ' + (card.dataset.blurb || '')).toLowerCase();
+        var match = !term || haystack.indexOf(term) !== -1;
+        card.classList.toggle('hidden', !match);
+        if (match) visible += 1;
+      });
+
+      clearBtn.classList.toggle('hidden', !term);
+      if (noResults) noResults.classList.toggle('hidden', !(term && visible === 0));
+
+      if (countEl) {
+        var total = parseInt(countEl.dataset.total, 10);
+        if (!term) {
+          countEl.textContent = total + (total === 1 ? ' service' : ' services');
+        } else {
+          countEl.textContent = 'Showing ' + visible + ' of ' + total;
+        }
+      }
+    }
+
+    input.addEventListener('input', applyFilter);
+
+    clearBtn.addEventListener('click', function () {
+      input.value = '';
+      applyFilter();
+      input.focus();
+    });
+
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && input.value) {
+        input.value = '';
+        applyFilter();
+      }
+    });
+  });
+</script>
