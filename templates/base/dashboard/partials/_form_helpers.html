@@ -1,0 +1,177 @@
+{# ===================================================================== #}
+{# Shared dashboard form helpers. Save as                                #}
+{#   templates/base/dashboard/partials/_form_helpers.html                #}
+{# and include it right AFTER the toast partial in                       #}
+{# base/dashboard/base.html:                                             #}
+{#   {% include "base/dashboard/partials/_toast.html" %}                  #}
+{#   {% include "base/dashboard/partials/_form_helpers.html" %}           #}
+{#                                                                       #}
+{# 1. Inline edit forms: every <form class="site-info-form"> gets        #}
+{#    Edit / Cancel / Save (fetch) with no page reload. This replaces    #}
+{#    the edit-mode scripts that used to live in _hero.html / site.html. #}
+{# 2. autoUploadImage(opts): upload a chosen image with fetch right away #}
+{# ===================================================================== #}
+
+<script>
+  (function () {
+    // ---- Django's |title filter, so a saved value looks like the server-rendered one ----
+    function djangoTitle(value) {
+      var t = String(value).toLowerCase().replace(/\p{L}+/gu, function (word) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      });
+      t = t.replace(/([a-z])'([A-Z])/g, function (m) { return m.toLowerCase(); });
+      return t.replace(/\d([A-Z])/g, function (m) { return m.toLowerCase(); });
+    }
+
+    // ---- Inline edit forms (.site-info-form) ----
+
+    function setEditing(form, editing) {
+      var editToggle = form.querySelector('[data-action="edit"]');
+      var saveButton = form.querySelector('[data-action="save"]');
+      var cancelButton = form.querySelector('[data-action="cancel"]');
+
+      form.querySelectorAll('.site-view-value').forEach(function (el) {
+        el.classList.toggle('hidden', editing);
+      });
+      form.querySelectorAll('.site-edit-field').forEach(function (el) {
+        el.classList.toggle('hidden', !editing);
+      });
+
+      editToggle.classList.toggle('opacity-0', editing);
+      editToggle.classList.toggle('pointer-events-none', editing);
+      saveButton.classList.toggle('opacity-0', !editing);
+      saveButton.classList.toggle('pointer-events-none', !editing);
+      cancelButton.classList.toggle('opacity-0', !editing);
+      cancelButton.classList.toggle('pointer-events-none', !editing);
+    }
+
+    function enterEditMode(form) {
+      // Snapshot current values so Cancel can restore them later
+      form.querySelectorAll('.site-edit-field').forEach(function (el) {
+        el.dataset.originalValue = el.value;
+      });
+      window.clearFieldErrors(form);
+      setEditing(form, true);
+    }
+
+    // discard = true restores the snapshot (Cancel); false keeps what is in the fields (after a save)
+    function exitEditMode(form, discard) {
+      if (discard) {
+        form.querySelectorAll('.site-edit-field').forEach(function (el) {
+          if (el.dataset.originalValue !== undefined) el.value = el.dataset.originalValue;
+        });
+      }
+      window.clearFieldErrors(form);
+      setEditing(form, false);
+    }
+
+    // After a successful save: put the new values into the read-only text and leave edit mode.
+    // If the view returns { "values": { "<field name>": "<text to show>" } } that text is used,
+    // otherwise the typed value is shown the way |title would show it.
+    function commitSave(form, result) {
+      var values = (result.data && result.data.values) || {};
+
+      form.querySelectorAll('.site-edit-field').forEach(function (field) {
+        var view = field.parentElement.querySelector('.site-view-value');
+        if (view) {
+          view.textContent = values[field.name] !== undefined ? values[field.name] : djangoTitle(field.value);
+        }
+        field.dataset.originalValue = field.value;
+      });
+
+      var lastUpdated = form.querySelector('[data-last-updated]');
+      if (lastUpdated) lastUpdated.textContent = '(Last updated: just now)';
+
+      exitEditMode(form, false);
+    }
+
+    document.addEventListener('click', function (event) {
+      var trigger = event.target.closest('[data-action="edit"], [data-action="cancel"]');
+      if (!trigger) return;
+
+      var form = trigger.closest('.site-info-form');
+      if (!form) return;
+
+      if (trigger.dataset.action === 'edit') enterEditMode(form);
+      else exitEditMode(form, true);
+    });
+
+    // Keyboard activation (Enter/Space) on the div-based Edit trigger
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+
+      var trigger = event.target.closest('[data-action="edit"]');
+      if (!trigger) return;
+
+      var form = trigger.closest('.site-info-form');
+      if (!form) return;
+
+      event.preventDefault();
+      enterEditMode(form);
+    });
+
+    // Save posts with fetch; the page stays where it is
+    document.addEventListener('submit', function (event) {
+      var form = event.target;
+      if (!form.classList || !form.classList.contains('site-info-form')) return;
+
+      event.preventDefault();
+      window.submitForm(form, {
+        button: form.querySelector('[data-action="save"]'),
+        label: form.querySelector('[data-save-label]'),
+        busyText: 'Saving...',
+        idleText: 'Save',
+        successFallback: form.dataset.successMessage || 'Changes saved.',
+        onSuccess: function (result) { commitSave(form, result); }
+      });
+    });
+
+    // ---- Image upload on file choose ----
+    // opts.input            the <input type="file"> (must sit inside the form to post)
+    // opts.img              the <img> to preview in
+    // opts.otherImages      optional CSS selector of more <img>s to update after a save
+    // opts.successFallback  toast text if the server sent none
+    // The server may return { "url": "..." } to swap the preview for the saved file.
+    window.autoUploadImage = function (opts) {
+      var input = opts.input;
+      var img = opts.img;
+      if (!input || !img) return;
+      var form = opts.form || input.form;
+
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+
+        if (file.type && file.type.indexOf('image/') !== 0) {
+          window.showToast('Please choose an image file.', 'error');
+          input.value = '';
+          return;
+        }
+
+        var previous = img.src;
+        img.src = URL.createObjectURL(file); // instant preview
+        img.classList.add('opacity-60');
+
+        window.ajaxPost(form).then(function (result) {
+          img.classList.remove('opacity-60');
+
+          if (result.ok) {
+            var url = result.data && result.data.url;
+            if (url) img.src = url;
+            if (opts.otherImages) {
+              document.querySelectorAll(opts.otherImages).forEach(function (other) {
+                other.src = url || img.src;
+              });
+            }
+            window.showToast(result.message || opts.successFallback || 'Image updated.', 'success');
+          } else {
+            img.src = previous; // put the old image back
+            window.showToast(result.message, 'error');
+          }
+
+          input.value = ''; // lets the same file be chosen again
+        });
+      });
+    };
+  })();
+</script>

@@ -1,7 +1,7 @@
 {% load widget_tweaks %}
 
 <div class="bg-white rounded-2xl shadow-card mt-8 p-5">
-  <form method="post" class="site-info-form" action="{% url "dashboard_update_about" %}">
+  <form method="post" class="site-info-form" data-success-message="About page updated." action="{% url "dashboard_update_about" %}">
     {% csrf_token %}
 
     <div class="mb-6 flex items-center justify-between">
@@ -43,7 +43,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-8H7v8"/>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 3v5h8"/>
               </svg>
-              Save
+              <span data-save-label>Save</span>
             </button>
           </div>
         </div>
@@ -65,5 +65,3 @@
   </form>
 
 </div>
-
-

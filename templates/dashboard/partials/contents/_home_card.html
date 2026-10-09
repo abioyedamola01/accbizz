@@ -154,13 +154,28 @@
 
     updateOrderInputs();
 
-    form.addEventListener('submit', function () {
+    // Show a field error under the section's description, because the
+    // real inputs (order / toggle) are hidden.
+    function sectionFieldTarget(name, formEl) {
+      const input = formEl.querySelector('[name="' + name + '"]');
+      const row = input && input.closest('[data-slug]');
+      return row ? row.querySelector('.flex-1 p:last-child') : null;
+    }
+
+    // Save posts with fetch; the page already shows the new state, so it stays put
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
       updateOrderInputs();
-      if (form.dataset.submitting === 'true') return;
-      form.dataset.submitting = 'true';
-      button.disabled = true;
-      spinner.classList.remove('hidden');
-      btnText.textContent = 'Saving';
+      submitForm(form, {
+        button: button,
+        spinner: spinner,
+        label: btnText,
+        busyText: 'Saving',
+        idleText: 'Save Changes',
+        successFallback: 'Homepage sections updated.',
+        fieldTarget: sectionFieldTarget,
+        onSuccess: function () {},
+      });
     });
   })();
 </script>

@@ -6,6 +6,8 @@
 {# Globals it defines:                                                   #}
 {#   showToast(message, type)  type: 'success' | 'error' | 'info'        #}
 {#   queueToast(message, type) show the toast AFTER the next page load   #}
+{#   submitForm(form, opts)    ajaxPost + button state + toasts +        #}
+{#                             inline field errors (see its comments)    #}
 {#   ajaxPost(form, opts)      fetch POST of a form, resolves to         #}
 {#                             { ok, status, data, message }, never      #}
 {#                             rejects                                   #}
@@ -187,6 +189,85 @@
           };
         })
         .finally(function () { clearTimeout(timer); });
+    };
+
+    // ---- Shared form submit (fetch + toast) ----
+
+    function clearFieldErrors(form) {
+      form.querySelectorAll('.field-error').forEach(function (el) { el.remove(); });
+      form.querySelectorAll('[data-has-error]').forEach(function (el) {
+        el.style.borderColor = '';
+        el.removeAttribute('data-has-error');
+        el.removeAttribute('aria-invalid');
+      });
+    }
+
+    // errors looks like { question: ["This field is required."], ... }
+    // opts.fieldTarget(name, form) may return the element to put a field's error
+    // under (e.g. a visible dropdown standing in for a hidden field).
+    function showFieldErrors(form, errors, opts) {
+      Object.keys(errors).forEach(function (name) {
+        var target = (opts && opts.fieldTarget && opts.fieldTarget(name, form)) ||
+          form.querySelector('[name="' + name + '"]');
+        if (!target) return; // e.g. non-field errors: the toast covers those
+
+        var list = Array.isArray(errors[name]) ? errors[name] : [errors[name]];
+        var first = list[0];
+        var text = typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
+
+        var p = document.createElement('p');
+        p.className = 'field-error text-red-500 text-xs mt-1';
+        p.textContent = text;
+        target.insertAdjacentElement('afterend', p);
+        target.style.borderColor = '#f87171';
+        target.setAttribute('data-has-error', '');
+        target.setAttribute('aria-invalid', 'true');
+      });
+    }
+
+    window.clearFieldErrors = clearFieldErrors;
+
+    // Posts `form` with fetch and reports the result with a toast.
+    //   opts.button, opts.spinner, opts.label   the submit button parts (spinner and label optional)
+    //   opts.busyText / opts.idleText           label while sending / at rest
+    //   opts.successFallback                    toast text if the server sent none
+    //   opts.onSuccess(result)                  optional. Without it the page
+    //                                           reloads (toast shows after the reload).
+    //                                           With it, the page stays put.
+    //   opts.fieldTarget(name, form)            optional, see showFieldErrors
+    //   opts.timeoutMs                          optional, default 15000
+    window.submitForm = function (form, opts) {
+      clearFieldErrors(form);
+
+      opts.button.disabled = true;
+      if (opts.spinner) opts.spinner.classList.remove('hidden');
+      if (opts.label) opts.label.textContent = opts.busyText;
+
+      function resetButton() {
+        opts.button.disabled = false;
+        if (opts.spinner) opts.spinner.classList.add('hidden');
+        if (opts.label) opts.label.textContent = opts.idleText;
+      }
+
+      return window.ajaxPost(form, { timeoutMs: opts.timeoutMs }).then(function (result) {
+        if (result.ok) {
+          var text = result.message || opts.successFallback;
+          if (opts.onSuccess) {
+            resetButton();
+            window.showToast(text, 'success');
+            opts.onSuccess(result);
+          } else {
+            window.queueToast(text, 'success');
+            window.location.reload();
+          }
+          return result;
+        }
+
+        resetButton();
+        if (result.data && result.data.errors) showFieldErrors(form, result.data.errors, opts);
+        window.showToast(result.message, 'error');
+        return result;
+      });
     };
   })();
 </script>

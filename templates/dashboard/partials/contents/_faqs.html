@@ -344,65 +344,20 @@
     });
   }
 
-  // ---- AJAX submit (shared by add / update / delete) ----
-  // Uses ajaxPost / showToast / queueToast from base/dashboard/partials/_toast.html
+  // ---- AJAX submit (add / update / delete) ----
+  // submitForm / showToast come from base/dashboard/partials/_toast.html.
+  // On success it reloads the page (toast shows after the reload).
 
-  function clearFieldErrors(form) {
-    form.querySelectorAll('.faq-field-error').forEach((el) => el.remove());
-    form.querySelectorAll('[data-has-error]').forEach((el) => {
-      el.style.borderColor = '';
-      el.removeAttribute('data-has-error');
-      el.removeAttribute('aria-invalid');
-    });
+  // The real service field is hidden, so its error goes under the dropdown
+  function faqFieldTarget(name, form) {
+    if (name === 'service') {
+      return form.querySelector('.faq-service-select, #addFaqServiceSelect');
+    }
+    return null;
   }
 
-  // errors looks like { question: ["This field is required."], ... }
-  function showFieldErrors(form, errors) {
-    Object.keys(errors).forEach((name) => {
-      // The real service field is hidden, so its error goes under the dropdown
-      const target = name === 'service'
-        ? form.querySelector('.faq-service-select, #addFaqServiceSelect')
-        : form.querySelector('[name="' + name + '"]');
-      if (!target) return; // e.g. non-field errors: the toast covers those
-
-      const list = Array.isArray(errors[name]) ? errors[name] : [errors[name]];
-      const first = list[0];
-      const text = typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
-
-      const p = document.createElement('p');
-      p.className = 'faq-field-error text-red-500 text-xs mt-1';
-      p.textContent = text;
-      target.insertAdjacentElement('afterend', p);
-      target.style.borderColor = '#f87171';
-      target.setAttribute('data-has-error', '');
-      target.setAttribute('aria-invalid', 'true');
-    });
-  }
-
-  // Posts the form with fetch. On success: queue the toast, reload the page
-  // (so the table is fresh) and the toast appears after the reload.
-  // On failure: restore the button, show field errors and an error toast.
   function faqSubmit(form, opts) {
-    clearFieldErrors(form);
-
-    opts.button.disabled = true;
-    if (opts.spinner) opts.spinner.classList.remove('hidden');
-    opts.label.textContent = opts.busyText;
-
-    return ajaxPost(form).then(function (result) {
-      if (result.ok) {
-        queueToast(result.message || opts.successFallback, 'success');
-        window.location.reload();
-        return;
-      }
-
-      opts.button.disabled = false;
-      if (opts.spinner) opts.spinner.classList.add('hidden');
-      opts.label.textContent = opts.idleText;
-
-      if (result.data && result.data.errors) showFieldErrors(form, result.data.errors);
-      showToast(result.message, 'error');
-    });
+    return submitForm(form, Object.assign({ fieldTarget: faqFieldTarget }, opts));
   }
 
   // ---- Manage row (edit) ----

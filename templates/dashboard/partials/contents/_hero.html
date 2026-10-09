@@ -1,26 +1,14 @@
 {% load widget_tweaks %}
 
 
-{# ---- Hero image form ---- #}
+{# ---- Hero image form (uploads with fetch as soon as a file is chosen; see the script at the bottom) ---- #}
 <form method="post" enctype="multipart/form-data" action="{% url "dashboard_update_hero" type="img"%}" class="hidden">
   {% csrf_token %}
-  {% render_field hero_img_form.img id="heroImgInput" accept="image/*" class="hidden" onchange="this.form.submit()" %}
+  {% render_field hero_img_form.img id="heroImgInput" accept="image/*" class="hidden" %}
 </form>
-<script>
-  (function () {
-    const form = document.getElementById('heroImgForm');
-    const input = document.getElementById('heroImgInput');
-
-    input.addEventListener('change', function () {
-      if (!input.files.length || form.dataset.submitting === 'true') return;
-      form.dataset.submitting = 'true';
-      form.submit();
-    });
-  })();
-</script>
 
 <div class="bg-white rounded-2xl shadow-card mt-4 p-5" data-site-info-card>
-  <form method="post" class="site-info-form" data-form-role="site-info" action="{% url "dashboard_update_hero" type="info"%}">
+  <form method="post" class="site-info-form" data-form-role="site-info" data-success-message="Hero section updated." action="{% url "dashboard_update_hero" type="info"%}">
     {% csrf_token %}
 
     <div class="mb-6 flex items-center justify-between">
@@ -62,7 +50,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-8H7v8"/>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 3v5h8"/>
               </svg>
-              Save
+              <span data-save-label>Save</span>
             </button>
           </div>
         </div>
@@ -73,7 +61,7 @@
       <div class="relative shrink-0">
         <img
           {% if hero_img_form.img.value %} src="{{ hero_img_form.img.value.url }}" {% else %} src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop" {% endif %}
-          alt="Hero image"
+          alt="Hero image" id="heroImgPreview"
           class="w-40 h-24 rounded-lg object-cover">
         <label for="heroImgInput"
           class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
@@ -108,79 +96,13 @@
 </div>
 
 <script>
-  (function () {
-    // Delegate from the document so this works no matter how many
-    // .site-info-form instances are on the page, and even if some
-    // are added dynamically later.
-    document.addEventListener('click', function (event) {
-      const trigger = event.target.closest('[data-action="edit"], [data-action="cancel"]');
-      if (!trigger) return;
-
-      const form = trigger.closest('.site-info-form');
-      if (!form) return;
-
-      const action = trigger.dataset.action;
-      if (action === 'edit') {
-        enterEditMode(form);
-      } else if (action === 'cancel') {
-        exitEditMode(form);
-      }
+  // autoUploadImage comes from base/dashboard/partials/_form_helpers.html,
+  // which loads after the page content, so wait for the page to finish loading.
+  document.addEventListener('DOMContentLoaded', function () {
+    autoUploadImage({
+      input: document.getElementById('heroImgInput'),
+      img: document.getElementById('heroImgPreview'),
+      successFallback: 'Hero image updated.',
     });
-
-    // Support keyboard activation (Enter/Space) on the div-based Edit trigger
-    document.addEventListener('keydown', function (event) {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-
-      const trigger = event.target.closest('[data-action="edit"]');
-      if (!trigger) return;
-
-      const form = trigger.closest('.site-info-form');
-      if (!form) return;
-
-      event.preventDefault();
-      enterEditMode(form);
-    });
-
-    function enterEditMode(form) {
-      const editToggle = form.querySelector('[data-action="edit"]');
-      const saveButton = form.querySelector('[data-action="save"]');
-      const cancelButton = form.querySelector('[data-action="cancel"]');
-      const viewValues = form.querySelectorAll('.site-view-value');
-      const editFields = form.querySelectorAll('.site-edit-field');
-
-      // Snapshot current values so Cancel can restore them later
-      editFields.forEach((el) => {
-        el.dataset.originalValue = el.value;
-      });
-
-      viewValues.forEach((el) => el.classList.add('hidden'));
-      editFields.forEach((el) => el.classList.remove('hidden'));
-
-      editToggle.classList.add('opacity-0', 'pointer-events-none');
-      saveButton.classList.remove('opacity-0', 'pointer-events-none');
-      cancelButton.classList.remove('opacity-0', 'pointer-events-none');
-    }
-
-    function exitEditMode(form) {
-      const editToggle = form.querySelector('[data-action="edit"]');
-      const saveButton = form.querySelector('[data-action="save"]');
-      const cancelButton = form.querySelector('[data-action="cancel"]');
-      const viewValues = form.querySelectorAll('.site-view-value');
-      const editFields = form.querySelectorAll('.site-edit-field');
-
-      // Restore original values, discarding any unsaved edits
-      editFields.forEach((el) => {
-        if (el.dataset.originalValue !== undefined) {
-          el.value = el.dataset.originalValue;
-        }
-      });
-
-      viewValues.forEach((el) => el.classList.remove('hidden'));
-      editFields.forEach((el) => el.classList.add('hidden'));
-
-      editToggle.classList.remove('opacity-0', 'pointer-events-none');
-      saveButton.classList.add('opacity-0', 'pointer-events-none');
-      cancelButton.classList.add('opacity-0', 'pointer-events-none');
-    }
-  })();
+  });
 </script>

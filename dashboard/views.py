@@ -58,7 +58,8 @@ def update_profile_avatar_view(request):
         avatar_form = UpdateAvatarForm(request.POST, request.FILES, instance=request.user.profile)
         avatar_form.save()
 
-    return redirect("dashboard_profile")
+        return toast_json_ok("Profile picture updated successfully.")
+    return toast_json_error("Can't update profile picture.")
 
 
 @login_required
@@ -70,7 +71,8 @@ def update_profile_info_view(request):
         profile_edit_form = EditProfileForm(request.POST, instance=request.user.profile)
         profile_edit_form.save()
 
-    return redirect("dashboard_profile")
+        return toast_json_ok("Profile updated successfully.")
+    return toast_json_error("Can't update profile.")
 
 
 
@@ -103,7 +105,8 @@ def update_site_info_view(request):
     if request.POST and site_info_form.is_valid():
         site_info_form.save()
 
-    return redirect("dashboard_site")
+        return toast_json_ok("Site info updated successfully.")
+    return toast_json_error("Can't update site info.")
 
 
 
@@ -113,9 +116,9 @@ def update_site_home_sections_view(request):
     section_formset = SiteHomeSectionUpdateFormset(request.POST or None)
     if request.POST and section_formset.is_valid():
         section_formset.save()
-        
 
-    return redirect("dashboard_site")
+        return toast_json_ok("Home sections updated successfully.")
+    return toast_json_error("Can't update home sections.")
 
 
 
@@ -169,11 +172,6 @@ def contents_view(request):
         }
 
 
-
-
-
-
-
     context["content_tab"] = tab
     context["current"] = "contents"
     context["page_blurb"] = "Manage all the contents displayed across your website."
@@ -191,10 +189,13 @@ def update_hero_view(request, type):
     if type == "reset":
         hero_instance.img = ""
         hero_instance.save(update_fields=("img",))
+
+        return redirect("dashboard_contents")
     elif hero_form and request.POST and hero_form.is_valid():
         hero_form.save()
 
-    return redirect("dashboard_contents")
+        return toast_json_ok("Hero updated successfully.")
+    return toast_json_error("Can't update hero.")
 
 
 
@@ -207,7 +208,9 @@ def update_about_view(request):
     if request.POST and about_form.is_valid:
         about_form.save()
 
-    return redirect("dashboard_contents")
+        return toast_json_ok(f"About info has been updated successfully.")
+            
+    return toast_json_error(f"Can't update about info.")
 
 
 @login_required
@@ -218,17 +221,22 @@ def update_team_member_view(request, member):
 
     if  request.POST and team_form.is_valid():
         team_form.save()
-
-    return redirect("dashboard_contents")
-
+        return toast_json_ok(f"{team_member.name} has been updated successfully.")
+            
+    return toast_json_error(f"Can't update {team_member.name}")
+    
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_team", "staffs.remove_team_member"), raise_exception=True)
 def remove_team_member_view(request, member):
     team_member = TeamModel.objects.filter(slug=member).first()
-    team_member.remove_as_member()
 
-    return redirect("dashboard_contents")
+    if team_member:
+        team_member.remove_as_member()
+        return toast_json_ok(f"{team_member.name} has been removed successfully.")
+                
+    return toast_json_error(f"Can't remove {team_member.name}")
+
 
 
 @login_required
@@ -238,8 +246,9 @@ def add_team_member_view(request):
 
     if request.POST and team_form.is_valid():
         team_form.save()
-
-    return redirect("dashboard_contents")
+        return toast_json_ok(f"Team member has been added successfully.")
+            
+    return toast_json_error(f"Can't add team member.")
 
 
 

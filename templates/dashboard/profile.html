@@ -19,7 +19,7 @@
             <form method="post" enctype="multipart/form-data" action="{% url "update_profile_avatar" %}" class="relative shrink-0">
               {% csrf_token %}
 
-              <img {% if user.profile.avatar %} src="{{ user.profile.avatar.url }}" {% else %} src="{{ user.profile.get_default_avatar }}" {% endif %} alt="{{ user.get_full_name }}" class="w-16 h-16 rounded-full object-cover">
+              <img id="profileAvatarImg" {% if user.profile.avatar %} src="{{ user.profile.avatar.url }}" {% else %} src="{{ user.profile.get_default_avatar }}" {% endif %} alt="{{ user.get_full_name }}" class="w-16 h-16 rounded-full object-cover">
               <label for="avatarInput" 
                 class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
                 aria-label="Change profile picture">
@@ -27,7 +27,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
                 </svg>
               </label>
-              {% render_field avatar_form.avatar id="avatarInput" accept="image/*" class="hidden" onchange="this.form.submit()" %}
+              {% render_field avatar_form.avatar id="avatarInput" accept="image/*" class="hidden" %}
             </form>
             <div>
               <p class="text-lg font-bold text-dark-900">
@@ -76,7 +76,7 @@
       <div class="bg-white rounded-2xl shadow-card p-5">
         <p class="text-base font-bold text-dark-900 mb-4">Edit Profile</p>
 
-        <form method="post" action="{% url "update_profile_info" %}" class="flex flex-col gap-4">
+        <form method="post" id="profileInfoForm" action="{% url "update_profile_info" %}" class="flex flex-col gap-4">
           {% csrf_token %}
 
 
@@ -155,25 +155,39 @@
           </button>
 
           <script>
-            (function () {
-              const form = document.getElementById('saveChangesButton').closest('form');
-              const button = document.getElementById('saveChangesButton');
-              const spinner = document.getElementById('saveChangesSpinner');
-              const btnText = document.getElementById('saveChangesBtnText');
+            // submitForm / autoUploadImage come from base/dashboard/partials/_toast.html
+            // and _form_helpers.html, which load after the page content.
+            document.addEventListener('DOMContentLoaded', function () {
+              // Avatar: uploads as soon as a file is chosen. Add data-user-avatar to
+              // the sidebar/topbar avatar <img> tags so they update too.
+              autoUploadImage({
+                input: document.getElementById('avatarInput'),
+                img: document.getElementById('profileAvatarImg'),
+                otherImages: '[data-user-avatar]',
+                successFallback: 'Profile picture updated.',
+              });
 
-              if (form) {
-                form.addEventListener('submit', function (event) {
-                  if (form.dataset.submitting === 'true') {
-                    event.preventDefault();
-                    return;
-                  }
-                  form.dataset.submitting = 'true';
-                  button.disabled = true;
-                  spinner.classList.remove('hidden');
-                  btnText.textContent = 'Saving';
+              // Profile info: saves with fetch, then reloads so the
+              // "Profile Information" card on the left shows the new values
+              const form = document.getElementById('profileInfoForm');
+              form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                submitForm(form, {
+                  button: document.getElementById('saveChangesButton'),
+                  spinner: document.getElementById('saveChangesSpinner'),
+                  label: document.getElementById('saveChangesBtnText'),
+                  busyText: 'Saving',
+                  idleText: 'Save Changes',
+                  successFallback: 'Profile updated.',
+                  // The gender <select> sits in a relative wrapper, so put its error after the wrapper
+                  fieldTarget: function (name, formEl) {
+                    if (name !== 'gender') return null;
+                    const select = formEl.querySelector('[name="gender"]');
+                    return select && select.closest('.group');
+                  },
                 });
-              }
-            })();
+              });
+            });
           </script>
         </form>
       </div>

@@ -103,9 +103,13 @@
             class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
             Cancel
           </button>
-          <button type="submit"
-            class="text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg px-4 py-2 cursor-pointer transition">
-            Remove member
+          <button type="submit" id="deleteMemberSubmitBtn"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg id="deleteMemberSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span id="deleteMemberLabel">Remove member</span>
           </button>
         </div>
       </form>
@@ -262,6 +266,23 @@
 </template>
 
 <script>
+  // ---- AJAX submit (add / update / remove) ----
+  // submitForm / showToast come from base/dashboard/partials/_toast.html.
+  // On success it reloads the page (the toast shows after the reload).
+
+  // The avatar input is hidden inside the pencil label, so show its error
+  // under the "Photo" filename line instead.
+  function teamFieldTarget(name, form) {
+    if (name === 'avatar') {
+      return form.querySelector('.team-form-avatar-filename, .add-form-avatar-filename');
+    }
+    return null;
+  }
+
+  function teamSubmit(form, opts) {
+    return submitForm(form, Object.assign({ fieldTarget: teamFieldTarget }, opts));
+  }
+
   // Toggles the hidden manage row for a member: builds the form from the
   // shared <template> on open, tears it down on close. Only one row is
   // ever open across the whole table at a time. The built panel is pinned
@@ -316,17 +337,19 @@
     deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
     deleteBtn.dataset.memberName = trigger.dataset.name;
 
-    // Disable + spin the Save button on submit, so the user gets clear
-    // feedback while the request is in flight.
+    // "Save changes" posts this form with fetch (no page reload). The avatar
+    // file travels with it because ajaxPost sends a FormData.
     const savedForm = fragment.querySelector('.team-manage-form');
-    savedForm.addEventListener('submit', function () {
-      const saveBtn = savedForm.querySelector('.team-form-save-btn');
-      const spinner = savedForm.querySelector('.team-form-save-spinner');
-      const label = savedForm.querySelector('.team-form-save-label');
-
-      saveBtn.disabled = true;
-      spinner.classList.remove('hidden');
-      label.textContent = 'Saving...';
+    savedForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      teamSubmit(savedForm, {
+        button: savedForm.querySelector('.team-form-save-btn'),
+        spinner: savedForm.querySelector('.team-form-save-spinner'),
+        label: savedForm.querySelector('.team-form-save-label'),
+        busyText: 'Saving...',
+        idleText: 'Save changes',
+        successFallback: 'Team member updated.',
+      });
     });
 
     cell.appendChild(fragment);
@@ -487,12 +510,32 @@
     }
   });
 
-  // Disable + spin the Create button on submit (only reachable once all
-  // fields are already filled, since the button is disabled until then)
-  document.getElementById('addMemberForm').addEventListener('submit', function () {
-    document.getElementById('addMemberSaveBtn').disabled = true;
-    document.getElementById('addMemberSpinner').classList.remove('hidden');
-    document.getElementById('addMemberSaveLabel').textContent = 'Creating...';
+  // Create posts with fetch (only reachable once all fields are filled,
+  // since the button is disabled until then)
+  document.getElementById('addMemberForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    teamSubmit(event.currentTarget, {
+      button: document.getElementById('addMemberSaveBtn'),
+      spinner: document.getElementById('addMemberSpinner'),
+      label: document.getElementById('addMemberSaveLabel'),
+      busyText: 'Creating...',
+      idleText: 'Create member',
+      successFallback: 'Team member added.',
+    });
+  });
+
+  // Remove posts with fetch too (the form only carries the CSRF token; the
+  // member is identified by the URL set in openDeleteConfirm)
+  document.getElementById('deleteMemberForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    teamSubmit(event.currentTarget, {
+      button: document.getElementById('deleteMemberSubmitBtn'),
+      spinner: document.getElementById('deleteMemberSpinner'),
+      label: document.getElementById('deleteMemberLabel'),
+      busyText: 'Removing...',
+      idleText: 'Remove member',
+      successFallback: 'Team member removed.',
+    });
   });
 
   // Close on backdrop click / Escape

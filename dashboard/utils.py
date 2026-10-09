@@ -1,10 +1,13 @@
 from django.http import JsonResponse
 
-def toast_json_ok(message, status=200):
+def toast_json_ok(message, status=200, *args, **kwargs):
     load = {
         "ok": True,
         "message": message
     }
+
+    if "url" in kwargs.keys():
+        load["url"] = kwargs["url"]
 
     return JsonResponse(load, status=status)
 
