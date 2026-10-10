@@ -1,0 +1,814 @@
+{% load widget_tweaks %}
+
+{# ===================================================================== #}
+{# Dashboard > Contents > Testimonials                                    #}
+{#                                                                       #}
+{# Expects from the view:                                                #}
+{#   testimonials       queryset (use select_related("service"))         #}
+{#   testimonial_form   form with name, title, quote, service             #}
+{#   services           [{'id': 4, 'title': '...'}, ...] (as for FAQs)    #}
+{# URL names used (rename here if yours differ):                          #}
+{#   dashboard_add_testimonial                                            #}
+{#   dashboard_update_testimonial  <id>                                   #}
+{#   dashboard_delete_testimonial  <id>                                   #}
+{# "Stay anonymous" is only a switch in the page: when on, name and title #}
+{# are posted blank, so the server stores them as null.                   #}
+{# ===================================================================== #}
+
+<style>
+  /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */
+
+  /* Service filter (same as the FAQs one) */
+  .tst-filter-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem;
+    font-size: 0.875rem; font-weight: 600; color: #374151; background: #fff;
+    border: 1px solid #e5e7eb; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.15s ease;
+  }
+  .tst-filter-btn:hover { background: #f9fafb; }
+  .tst-filter-panel {
+    position: absolute; right: 0; top: 100%; margin-top: 0.5rem; width: 17rem; max-width: 90vw; padding: 0.5rem;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12); z-index: 30;
+  }
+  .tst-filter-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; font-size: 0.875rem; color: #374151; border-radius: 0.5rem; cursor: pointer; }
+  .tst-filter-row:hover { background: #f9fafb; }
+  .tst-filter-row--all { font-weight: 600; color: #111827; }
+  .tst-filter-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
+  .tst-filter-divider { margin: 0.375rem 0.25rem; border-top: 1px solid #f3f4f6; }
+  .tst-filter-options { max-height: 15rem; overflow-y: auto; }
+  .tst-filter-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tst-filter-count { flex: none; font-size: 0.75rem; color: #9ca3af; }
+
+  /* Two-line preview of the quote in the table */
+  .tst-preview {
+    max-width: 32rem; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+
+  /* "Stay anonymous" switch. The checkbox is not posted; JS paints the track. */
+  .tst-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
+  .tst-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .tst-switch-track { position: relative; flex: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; transition: background-color 0.15s ease; }
+  .tst-switch-knob {
+    position: absolute; top: 0.125rem; left: 0.125rem; width: 1rem; height: 1rem;
+    background: #fff; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s ease;
+  }
+  .tst-switch.is-on .tst-switch-knob { transform: translateX(1rem); }
+  .tst-switch-input:focus-visible + .tst-switch-track { outline: 2px solid #9ca3af; outline-offset: 2px; }
+  .tst-switch-text { font-size: 0.875rem; color: #374151; }
+</style>
+
+{# Service list for the dropdowns: [{'id': 4, 'title': '...'}, ...] -> read by the JS below #}
+{{ services|json_script:"testimonialServicesData" }}
+
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+
+  {# ---- Header ---- #}
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+    <div class="flex items-center gap-2">
+      <h2 class="text-base font-bold text-dark-900">Testimonials</h2>
+      <span id="testimonialCountBadge" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ testimonials|length }} testimonial{{ testimonials|length|pluralize }}</span>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+
+      {# ---- Service filter (client side only): multi-select dropdown, everything selected by default ---- #}
+      <div id="testimonialFilter" class="relative">
+        <button type="button" id="testimonialFilterBtn" aria-haspopup="true" aria-expanded="false" class="tst-filter-btn">
+          <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
+          </svg>
+          <span id="testimonialFilterLabel">All services</span>
+          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+          </svg>
+        </button>
+
+        <div id="testimonialFilterPanel" role="group" aria-label="Filter testimonials by service" class="tst-filter-panel hidden">
+          <label class="tst-filter-row tst-filter-row--all">
+            <input type="checkbox" id="testimonialFilterAll" checked />
+            All services
+          </label>
+          <div class="tst-filter-divider"></div>
+          {# General + one checkbox per service, built by JS from the services list #}
+          <div id="testimonialFilterOptions" class="tst-filter-options"></div>
+        </div>
+      </div>
+
+      <button type="button" onclick="openAddTestimonialModal()"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
+        </svg>
+        Add testimonial
+      </button>
+    </div>
+  </div>
+
+  {# ---- Table (this scrolls horizontally; the manage panel below deliberately does not) ---- #}
+  <div id="testimonialTableScroll" class="overflow-x-auto">
+    <table class="w-full min-w-[480px] text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Testimonial</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Service</th>
+          <th class="w-24 py-3 pr-5"></th>
+        </tr>
+      </thead>
+
+      {% for testimonial in testimonials %}
+      <tbody class="tst-group divide-y divide-gray-100 border-b border-gray-100">
+        <tr>
+          <td class="py-3 pr-4">
+            <div class="flex flex-wrap items-baseline gap-x-2">
+              {% if testimonial.name %}
+                <span class="text-sm font-semibold text-dark-900">{{ testimonial.name }}</span>
+              {% else %}
+                <span class="text-sm font-semibold text-gray-400">Anonymous</span>
+              {% endif %}
+              {% if testimonial.title %}<span class="text-xs text-gray-500">{{ testimonial.title }}</span>{% endif %}
+            </div>
+            <p class="tst-preview mt-0.5 text-sm text-gray-600">{{ testimonial.quote }}</p>
+          </td>
+          <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ testimonial.service.title|default:"General" }}</span></td>
+          <td class="py-3 pr-5">
+            <button type="button" onclick="toggleTestimonialRow(this)"
+              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+              data-update-url="{% url "dashboard_update_testimonial" testimonial.slug %}"
+              data-delete-url="{% url "dashboard_delete_testimonial" testimonial.slug %}"
+              data-person-name="{{ testimonial.name|default_if_none:'' }}"
+              data-person-title="{{ testimonial.title|default_if_none:'' }}"
+              data-quote="{{ testimonial.quote }}"
+              data-anonymous="{% if not testimonial.name and not testimonial.title %}1{% else %}0{% endif %}"
+              data-service="{{ testimonial.service_id|default_if_none:'' }}">Manage</button>
+          </td>
+        </tr>
+        {# Manage panel is built by JS from #testimonialFormTemplate when "Manage" is clicked #}
+        <tr class="tst-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
+      </tbody>
+      {% empty %}
+      <tbody>
+        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials yet. Use "Add testimonial" to create the first one.</td></tr>
+      </tbody>
+      {% endfor %}
+
+      {# Shown by the filter when no testimonial matches the selected services #}
+      <tbody id="testimonialFilterEmpty" class="hidden">
+        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials match the selected services.</td></tr>
+      </tbody>
+
+    </table>
+  </div>
+
+  {# ---- Shared delete confirmation modal ---- #}
+  <div id="deleteTestimonialModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+      <button type="button" onclick="closeTestimonialDeleteConfirm()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </div>
+
+      <h3 class="text-base font-bold text-dark-900 mb-1">Delete testimonial</h3>
+      <p class="text-sm text-gray-500 mb-6">
+        Are you sure you want to delete <span id="deleteTestimonialWho" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      </p>
+
+      <form method="post" id="deleteTestimonialForm" action="" novalidate>
+        {% csrf_token %}
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" onclick="closeTestimonialDeleteConfirm()"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit" id="deleteTestimonialSubmitBtn"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg id="deleteTestimonialSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span id="deleteTestimonialLabel">Delete testimonial</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Add testimonial modal ---- #}
+  <div id="addTestimonialModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+
+      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
+        <h3 class="text-base font-bold text-dark-900">Add testimonial</h3>
+        <button type="button" onclick="closeAddTestimonialModal()"
+          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-6 py-5">
+        <form method="post" id="addTestimonialForm" action="{% url "dashboard_add_testimonial" %}" class="space-y-4" novalidate>
+          {% csrf_token %}
+
+          <div>
+            <label class="tst-switch">
+              <input type="checkbox" class="tst-switch-input tst-anon-input" id="addTestimonialAnon" />
+              <span class="tst-switch-track bg-gray-300"><span class="tst-switch-knob"></span></span>
+              <span class="tst-switch-text">Stay anonymous</span>
+            </label>
+            <p class="mt-1 text-xs text-gray-400">Hides the name and title on the public page.</p>
+          </div>
+
+          {# Name and title: hidden (and cleared) while Stay anonymous is on #}
+          <div class="tst-identity grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="min-w-0">
+              <label for="addTestimonialName" class="text-xs font-medium text-gray-500 block mb-1">Name</label>
+              {% render_field testimonial_form.name id="addTestimonialName" class="tst-name w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            </div>
+            <div class="min-w-0">
+              <label for="addTestimonialTitle" class="text-xs font-medium text-gray-500 block mb-1">Title</label>
+              {% render_field testimonial_form.title id="addTestimonialTitle" class="w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            </div>
+          </div>
+
+          <div>
+            <label for="addTestimonialQuote" class="text-xs font-medium text-gray-500 block mb-1">Quote</label>
+            {% render_field testimonial_form.quote id="addTestimonialQuote" rows="5" class="tst-quote w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+          </div>
+
+          <div>
+            <label for="addTestimonialServiceSelect" class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+
+            {# The real form field stays in the DOM (so it posts) but is hidden; the dropdown below fills it with the chosen service id #}
+            <div class="hidden">{% render_field testimonial_form.service id="addTestimonialService" %}</div>
+
+            {# No name attribute, so the dropdown itself is never posted #}
+            <select id="addTestimonialServiceSelect"
+              class="tst-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+              <option value="">General</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+        <button type="button" onclick="closeAddTestimonialModal()"
+          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          Cancel
+        </button>
+        <button type="submit" form="addTestimonialForm" id="addTestimonialSaveBtn" disabled
+          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          <svg id="addTestimonialSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="addTestimonialSaveLabel">Create testimonial</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ---- Single reusable edit form: rendered once, cloned per testimonial by JS ---- #}
+<template id="testimonialFormTemplate">
+  <div class="bg-gray-50 border-t border-gray-100 p-5">
+    <form method="post" class="tst-manage-form space-y-4" novalidate>
+      {% csrf_token %}
+
+      <div>
+        <label class="tst-switch">
+          <input type="checkbox" class="tst-switch-input tst-anon-input" />
+          <span class="tst-switch-track bg-gray-300"><span class="tst-switch-knob"></span></span>
+          <span class="tst-switch-text">Stay anonymous</span>
+        </label>
+        <p class="mt-1 text-xs text-gray-400">Hides the name and title on the public page.</p>
+      </div>
+
+      <div class="tst-identity grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="min-w-0">
+          <label for="editTestimonialName" class="text-xs font-medium text-gray-500 block mb-1">Name</label>
+          {% render_field testimonial_form.name id="editTestimonialName" class="tst-name w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+        </div>
+        <div class="min-w-0">
+          <label for="editTestimonialTitle" class="text-xs font-medium text-gray-500 block mb-1">Title</label>
+          {% render_field testimonial_form.title id="editTestimonialTitle" class="w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+        </div>
+      </div>
+
+      <div class="min-w-0">
+        <label for="editTestimonialQuote" class="text-xs font-medium text-gray-500 block mb-1">Quote</label>
+        {% render_field testimonial_form.quote id="editTestimonialQuote" rows="6" class="w-full min-h-[130px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+      </div>
+
+      <div class="min-w-0 sm:w-1/2">
+        <label class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+
+        {# Hidden real field: filled with the trigger's data-service, then kept in sync by the dropdown #}
+        <div class="hidden">{% render_field testimonial_form.service id="editTestimonialService" %}</div>
+
+        {# No name attribute, so the dropdown itself is never posted #}
+        <select class="tst-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+          <option value="">General</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <button type="button" class="tst-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openTestimonialDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
+          </svg>
+          Delete testimonial
+        </button>
+
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleTestimonialRow(this)"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit"
+            class="tst-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg class="tst-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span class="tst-form-save-label">Save changes</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script>
+  // submitForm / showToast come from base/dashboard/partials/_toast.html.
+  // On success it reloads the page (toast shows after the reload).
+
+  // ---- Services (read from the json_script tag at the top of this file) ----
+
+  const TESTIMONIAL_SERVICES = (function () {
+    const el = document.getElementById('testimonialServicesData');
+    if (!el) return [];
+    try {
+      const data = JSON.parse(el.textContent);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  // Fills a dropdown with one option per service. The first "General"
+  // option (value "") is already in the markup and is kept.
+  function fillTestimonialServiceOptions(select) {
+    select.querySelectorAll('option:not([value=""])').forEach((o) => o.remove());
+    TESTIMONIAL_SERVICES.forEach((service) => {
+      const option = document.createElement('option');
+      option.value = String(service.id);
+      option.textContent = service.title;
+      select.appendChild(option);
+    });
+  }
+
+  // Keeps the hidden service field in step with the visible dropdown:
+  // starts on the field's current id, then writes the chosen id back on change.
+  function linkTestimonialServiceSelect(select, hiddenField) {
+    select.value = hiddenField.value || '';
+    if (select.selectedIndex === -1) {
+      // The stored id is not in the list (e.g. service was removed): fall back to General
+      select.selectedIndex = 0;
+      hiddenField.value = '';
+    }
+    select.addEventListener('change', function () {
+      hiddenField.value = select.value;
+    });
+  }
+
+  // Field errors for the hidden service field go under the visible dropdown
+  function testimonialFieldTarget(name, form) {
+    if (name === 'service') return form.querySelector('.tst-service-select');
+    return null;
+  }
+
+  function testimonialSubmit(form, opts) {
+    return submitForm(form, Object.assign({ fieldTarget: testimonialFieldTarget }, opts));
+  }
+
+  // ---- Stay anonymous ----
+
+  // Paints the switch from its checkbox
+  function syncTestimonialSwitch(input) {
+    const wrap = input.closest('.tst-switch');
+    const track = wrap.querySelector('.tst-switch-track');
+    wrap.classList.toggle('is-on', input.checked);
+    track.classList.toggle('bg-brand-500', input.checked);
+    track.classList.toggle('bg-gray-300', !input.checked);
+  }
+
+  // Turning it on hides name and title and clears them (so they post blank and
+  // the server stores null). What was typed is remembered, so switching it back
+  // off does not lose it.
+  function applyAnonymous(form) {
+    const toggle = form.querySelector('.tst-anon-input');
+    const identity = form.querySelector('.tst-identity');
+    const name = form.querySelector('[name="name"]');
+    const title = form.querySelector('[name="title"]');
+
+    if (toggle.checked) {
+      if (name.value || title.value) {
+        identity.dataset.stashName = name.value;
+        identity.dataset.stashTitle = title.value;
+      }
+      name.value = '';
+      title.value = '';
+      identity.classList.add('hidden');
+    } else {
+      if (!name.value && !title.value) {
+        name.value = identity.dataset.stashName || '';
+        title.value = identity.dataset.stashTitle || '';
+      }
+      identity.classList.remove('hidden');
+    }
+    syncTestimonialSwitch(toggle);
+  }
+
+  function initAnonymousSwitch(form, onChange) {
+    const toggle = form.querySelector('.tst-anon-input');
+    if (!toggle.dataset.bound) {
+      toggle.addEventListener('change', function () {
+        applyAnonymous(form);
+        if (onChange) onChange();
+      });
+      toggle.dataset.bound = '1';
+    }
+    applyAnonymous(form);
+  }
+
+  // ---- Manage row (edit) ----
+
+  // Toggles the hidden manage row for a testimonial: builds the edit form from
+  // the shared <template> on open, tears it down on close. Only one row is
+  // open at a time. The built panel is pinned to the visible edge of the
+  // horizontal scroll area so it never overflows the screen.
+  function toggleTestimonialRow(el) {
+    const tbody = el.closest('tbody');
+    if (!tbody) return;
+
+    const manageRow = tbody.querySelector('.tst-manage-row');
+    const cell = manageRow.querySelector('td');
+    const isOpen = !manageRow.classList.contains('hidden');
+
+    if (isOpen) {
+      manageRow.classList.add('hidden');
+      cell.innerHTML = ''; // tear down so edits don't linger stale
+      return;
+    }
+
+    // Close + clear any other open manage row first
+    document.querySelectorAll('.tst-manage-row').forEach((row) => {
+      if (!row.classList.contains('hidden')) {
+        row.classList.add('hidden');
+        row.querySelector('td').innerHTML = '';
+      }
+    });
+
+    // The "Manage" trigger carries this testimonial's data via data-*
+    const trigger = tbody.querySelector('[data-update-url]');
+
+    const template = document.getElementById('testimonialFormTemplate');
+    const fragment = template.content.cloneNode(true);
+
+    const form = fragment.querySelector('form');
+    form.action = trigger.dataset.updateUrl;
+
+    form.querySelector('[name="name"]').value = trigger.dataset.personName || '';
+    form.querySelector('[name="title"]').value = trigger.dataset.personTitle || '';
+    form.querySelector('[name="quote"]').value = trigger.dataset.quote || '';
+
+    // Service: the hidden real field gets the id, the dropdown follows it
+    const hiddenService = form.querySelector('[name="service"]');
+    hiddenService.value = trigger.dataset.service || '';
+    const serviceSelect = form.querySelector('.tst-service-select');
+    fillTestimonialServiceOptions(serviceSelect);
+    linkTestimonialServiceSelect(serviceSelect, hiddenService);
+
+    // Anonymous testimonials open with the switch on and name/title hidden
+    form.querySelector('.tst-anon-input').checked = trigger.dataset.anonymous === '1';
+    initAnonymousSwitch(form);
+
+    const deleteBtn = fragment.querySelector('.tst-form-delete-btn');
+    deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
+    deleteBtn.dataset.personName = trigger.dataset.personName || '';
+
+    // "Save changes" posts this form with fetch (no page reload before the response)
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      testimonialSubmit(form, {
+        button: form.querySelector('.tst-form-save-btn'),
+        spinner: form.querySelector('.tst-form-save-spinner'),
+        label: form.querySelector('.tst-form-save-label'),
+        busyText: 'Saving...',
+        idleText: 'Save changes',
+        successFallback: 'Testimonial updated.',
+      });
+    });
+
+    cell.appendChild(fragment);
+    manageRow.classList.remove('hidden');
+
+    // Pin the panel to the left edge of the visible scroll area and size it
+    // to match, so it never extends past the screen.
+    const panel = cell.firstElementChild;
+    const scrollWrapper = document.getElementById('testimonialTableScroll');
+    panel.style.position = 'sticky';
+    panel.style.left = '0px';
+    panel.style.width = scrollWrapper.clientWidth + 'px';
+
+    function syncPanelWidth() {
+      if (!document.body.contains(panel)) {
+        window.removeEventListener('resize', syncPanelWidth);
+        return;
+      }
+      panel.style.width = scrollWrapper.clientWidth + 'px';
+    }
+    window.addEventListener('resize', syncPanelWidth);
+  }
+
+  // ---- Delete confirmation modal ----
+
+  function openTestimonialDeleteConfirm(el) {
+    const modal = document.getElementById('deleteTestimonialModal');
+    const form = document.getElementById('deleteTestimonialForm');
+    const who = document.getElementById('deleteTestimonialWho');
+
+    form.action = el.dataset.deleteUrl;
+    who.textContent = el.dataset.personName
+      ? 'the testimonial from \u201C' + el.dataset.personName + '\u201D'
+      : 'this anonymous testimonial';
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeTestimonialDeleteConfirm() {
+    const modal = document.getElementById('deleteTestimonialModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Delete posts with fetch too (the form only carries the CSRF token; the
+  // testimonial is identified by the URL set in openTestimonialDeleteConfirm)
+  document.getElementById('deleteTestimonialForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    testimonialSubmit(event.currentTarget, {
+      button: document.getElementById('deleteTestimonialSubmitBtn'),
+      spinner: document.getElementById('deleteTestimonialSpinner'),
+      label: document.getElementById('deleteTestimonialLabel'),
+      busyText: 'Deleting...',
+      idleText: 'Delete testimonial',
+      successFallback: 'Testimonial deleted.',
+    });
+  });
+
+  // ---- Add testimonial modal ----
+
+  const addTestimonialForm = document.getElementById('addTestimonialForm');
+
+  // Wire the Add modal's controls once, on load
+  (function initAddTestimonialForm() {
+    const select = addTestimonialForm.querySelector('.tst-service-select');
+    fillTestimonialServiceOptions(select);
+    linkTestimonialServiceSelect(select, document.getElementById('addTestimonialService'));
+    initAnonymousSwitch(addTestimonialForm, updateAddTestimonialSaveState);
+  })();
+
+  function openAddTestimonialModal() {
+    const modal = document.getElementById('addTestimonialModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeAddTestimonialModal() {
+    const modal = document.getElementById('addTestimonialModal');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+
+    // Reset so a re-open starts clean (not mid-"Creating..." state).
+    // This also puts the hidden service field and the dropdown back to General.
+    addTestimonialForm.reset();
+    addTestimonialForm.querySelectorAll('.field-error').forEach((el) => el.remove());
+    addTestimonialForm.querySelectorAll('[data-has-error]').forEach((el) => {
+      el.style.borderColor = '';
+      el.removeAttribute('data-has-error');
+    });
+    const identity = addTestimonialForm.querySelector('.tst-identity');
+    delete identity.dataset.stashName;
+    delete identity.dataset.stashTitle;
+    applyAnonymous(addTestimonialForm);
+
+    document.getElementById('addTestimonialSpinner').classList.add('hidden');
+    document.getElementById('addTestimonialSaveLabel').textContent = 'Create testimonial';
+
+    updateAddTestimonialSaveState();
+  }
+
+  // Save is enabled once the quote is filled and the person is either named or
+  // anonymous. Title and service are optional.
+  function updateAddTestimonialSaveState() {
+    const saveBtn = document.getElementById('addTestimonialSaveBtn');
+    const quote = addTestimonialForm.querySelector('.tst-quote');
+    const name = addTestimonialForm.querySelector('.tst-name');
+    const anonymous = addTestimonialForm.querySelector('.tst-anon-input').checked;
+
+    const hasQuote = !!(quote.value && quote.value.trim());
+    const hasName = !!(name.value && name.value.trim());
+    saveBtn.disabled = !(hasQuote && (anonymous || hasName));
+  }
+
+  addTestimonialForm.addEventListener('input', updateAddTestimonialSaveState);
+
+  // Create posts with fetch (only reachable once the required fields are
+  // filled, since the button is disabled until then)
+  addTestimonialForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    testimonialSubmit(event.currentTarget, {
+      button: document.getElementById('addTestimonialSaveBtn'),
+      spinner: document.getElementById('addTestimonialSpinner'),
+      label: document.getElementById('addTestimonialSaveLabel'),
+      busyText: 'Creating...',
+      idleText: 'Create testimonial',
+      successFallback: 'Testimonial added.',
+    });
+  });
+
+  // ---- Service filter (client side only) ----
+  // Checkbox dropdown. Everything is selected by default; unchecking a
+  // service hides the testimonials of that service in real time. The unchecked
+  // services are remembered for this browser tab, because every save
+  // reloads the page and the filter should survive that.
+
+  (function initTestimonialFilter() {
+    const FILTER_KEY = 'testimonialFilterExcluded';
+
+    const wrapper = document.getElementById('testimonialFilter');
+    const button = document.getElementById('testimonialFilterBtn');
+    const panel = document.getElementById('testimonialFilterPanel');
+    const label = document.getElementById('testimonialFilterLabel');
+    const allBox = document.getElementById('testimonialFilterAll');
+    const optionsEl = document.getElementById('testimonialFilterOptions');
+    const emptyBody = document.getElementById('testimonialFilterEmpty');
+    const badge = document.getElementById('testimonialCountBadge');
+    if (!wrapper) return;
+
+    const groups = Array.from(document.querySelectorAll('#testimonialTableScroll tbody.tst-group'));
+
+    function serviceOf(group) {
+      return group.querySelector('[data-update-url]').dataset.service || '';
+    }
+
+    // How many testimonials each service has (shown next to its checkbox)
+    const counts = {};
+    groups.forEach((group) => {
+      const value = serviceOf(group);
+      counts[value] = (counts[value] || 0) + 1;
+    });
+
+    function addOption(value, title) {
+      const row = document.createElement('label');
+      row.className = 'tst-filter-row';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = value;
+      box.checked = true;
+      box.dataset.title = title;
+      box.className = 'tst-filter-option';
+
+      const name = document.createElement('span');
+      name.className = 'tst-filter-name';
+      name.textContent = title;
+
+      const count = document.createElement('span');
+      count.className = 'tst-filter-count';
+      count.textContent = counts[value] || 0;
+
+      row.append(box, name, count);
+      optionsEl.appendChild(row);
+    }
+
+    addOption('', 'General');
+    TESTIMONIAL_SERVICES.forEach((service) => addOption(String(service.id), service.title));
+
+    const boxes = Array.from(optionsEl.querySelectorAll('.tst-filter-option'));
+
+    // Restore what was unchecked before the last reload
+    try {
+      const excluded = JSON.parse(sessionStorage.getItem(FILTER_KEY) || '[]');
+      boxes.forEach((box) => {
+        if (excluded.includes(box.value)) box.checked = false;
+      });
+    } catch (e) { /* storage unavailable: start with everything selected */ }
+
+    function applyFilter() {
+      const selected = boxes.filter((box) => box.checked);
+      const everything = selected.length === boxes.length;
+      const values = new Set(selected.map((box) => box.value));
+
+      let visible = 0;
+      groups.forEach((group) => {
+        const show = everything || values.has(serviceOf(group));
+        group.classList.toggle('hidden', !show);
+        if (show) {
+          visible += 1;
+        } else {
+          // Don't leave an open edit panel behind a hidden row
+          const manageRow = group.querySelector('.tst-manage-row');
+          if (manageRow && !manageRow.classList.contains('hidden')) {
+            manageRow.classList.add('hidden');
+            manageRow.querySelector('td').innerHTML = '';
+          }
+        }
+      });
+
+      // "All services" checkbox mirrors the options
+      allBox.checked = everything;
+      allBox.indeterminate = !everything && selected.length > 0;
+
+      // Button label
+      if (everything) label.textContent = 'All services';
+      else if (selected.length === 0) label.textContent = 'None selected';
+      else if (selected.length === 1) label.textContent = selected[0].dataset.title;
+      else label.textContent = selected.length + ' of ' + boxes.length + ' services';
+
+      // "No match" row and the count badge
+      emptyBody.classList.toggle('hidden', !(groups.length > 0 && visible === 0));
+      const total = groups.length;
+      const noun = total === 1 ? ' testimonial' : ' testimonials';
+      badge.textContent = visible === total ? total + noun : visible + ' of ' + total + noun;
+
+      // Remember the unchecked services (new services default to selected)
+      try {
+        const excluded = boxes.filter((box) => !box.checked).map((box) => box.value);
+        if (excluded.length === 0) sessionStorage.removeItem(FILTER_KEY);
+        else sessionStorage.setItem(FILTER_KEY, JSON.stringify(excluded));
+      } catch (e) { /* ignore */ }
+    }
+
+    allBox.addEventListener('change', function () {
+      boxes.forEach((box) => { box.checked = allBox.checked; });
+      applyFilter();
+    });
+
+    optionsEl.addEventListener('change', applyFilter);
+
+    function setPanelOpen(open) {
+      panel.classList.toggle('hidden', !open);
+      button.setAttribute('aria-expanded', String(open));
+    }
+
+    button.addEventListener('click', function () {
+      setPanelOpen(panel.classList.contains('hidden'));
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!wrapper.contains(event.target)) setPanelOpen(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.classList.contains('hidden')) {
+        setPanelOpen(false);
+        button.focus();
+      }
+    });
+
+    applyFilter();
+  })();
+
+  // ---- Close modals on backdrop click / Escape ----
+
+  document.addEventListener('click', function (event) {
+    if (event.target === document.getElementById('deleteTestimonialModal')) closeTestimonialDeleteConfirm();
+    if (event.target === document.getElementById('addTestimonialModal')) closeAddTestimonialModal();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    if (!document.getElementById('deleteTestimonialModal').classList.contains('hidden')) {
+      closeTestimonialDeleteConfirm();
+    } else if (!document.getElementById('addTestimonialModal').classList.contains('hidden')) {
+      closeAddTestimonialModal();
+    }
+  });
+</script>

@@ -1,7 +1,7 @@
 from django.http import Http404
 from django.shortcuts import (render, get_object_or_404,)
 from django.forms.models  import model_to_dict
-from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel,)
+from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel, TestimonialModel)
 from django.http import (JsonResponse, Http404)
 
 
@@ -53,8 +53,8 @@ def services_view(request):
 
 def service_detail_view(request, service_slug):
     # site_info_instance = SiteModel.objects.select_related("about",).first()
-    service = ServiceModel.objects.prefetch_related("related_services", "faqs",).filter(slug=service_slug).first()
-
+    service = ServiceModel.objects.prefetch_related("related_services", "faqs", "testimonials",).filter(slug=service_slug).first()
+    testimonials = service.testimonials.filter()
     if not service:
         raise Http404()
     
@@ -65,7 +65,7 @@ def service_detail_view(request, service_slug):
         "related_services": service.related_services.filter(is_active=True),
         "faqs": service_faqs[:4],
         "more_faqs": len(service_faqs) == 5,
-
+        "testimonials": testimonials,
         "current": "services"
     }
 
@@ -104,3 +104,12 @@ def get_faqs_batch(request, service_slug, faqs_batch_point):
         return JsonResponse(context)
 
     raise Http404
+
+
+
+def testimonials_view(request):
+    context = {
+        "current": "testimonials"
+    }
+
+    return render(request, "main/testimonials.html", context)

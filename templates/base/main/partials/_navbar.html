@@ -24,9 +24,9 @@
         Services
         {% if current == "services" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>
-      <a href="#" {% if current == "projects" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
-        Projects
-        {% if current == "projects" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
+      <a href="{% url "main_testimonials" %}" {% if current == "testimonials" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
+        Testimonials
+        {% if current == "testimonials" %} <span class="absolute top-5 left-1/4 h-1 w-1/2 bg-brand-200 mx-auto rounded"></span> {% endif %}
       </a>
       <a href="#" {% if current == "contact" %} class="relative font-bold text-brand-500 transition" {% else %} class="hover:text-brand-500 transition-colors" {% endif %}>
         Contact
@@ -55,13 +55,13 @@
     </div>
   </div>
 
-  {# ---- Mobile nav panel (same destinations as the desktop links; Projects and Contact stay "#" until those pages exist) ---- #}
+
   <nav id="mobileNav" class="lg:hidden hidden flex-col gap-1 mt-4 px-4 pb-4 text-sm font-medium text-gray-600">
 
     <a href="{% url "main_home" %}" {% if current == "home" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Home</a>
     <a href="{% url "main_about" %}" {% if current == "about" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>About</a>
     <a href="{% url "main_services" %}" {% if current == "services" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Services</a>
-    <a href="#" {% if current == "projects" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Projects</a>
+    <a href="{% url "main_testimonials" %}" {% if current == "testimonials" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Testimonials</a>
     <a href="#" {% if current == "contact" %} aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>Contact</a>
   </nav>
 </header>

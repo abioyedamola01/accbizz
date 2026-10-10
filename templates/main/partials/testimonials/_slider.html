@@ -1,0 +1,315 @@
+{# ===================================================================== #}
+{# Testimonials slider (public). Reusable: include it on any page.        #}
+{# Expects `testimonials`: list/queryset with name, title, quote.         #}
+{# name and title can be empty (anonymous). Renders nothing if empty.     #}
+{# Optional: all_testimonials_url adds a "View all testimonials" link.    #}
+{# ===================================================================== #}
+{% if testimonials|length %}
+
+<style>
+  /* Plain CSS for the slide mechanics so it never depends on the Tailwind build */
+  /* The viewport clips the sliding cards; its padding keeps the card shadow from being cut off */
+  .tst-viewport { overflow: hidden; padding: 1.25rem 0.75rem; margin: -1.25rem -0.75rem; touch-action: pan-y; }
+
+  /* All slides sit in one grid cell, so the box is as tall as the tallest quote and never jumps */
+  .tst-stage { display: grid; }
+  .tst-slide {
+    grid-area: 1 / 1; margin: 0;
+    opacity: 0; visibility: hidden; transform: translateX(100%);
+    transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.55s ease;
+  }
+  .tst-slide.is-prev { transform: translateX(-100%); }
+  .tst-slide.is-active { opacity: 1; visibility: visible; transform: none; }
+  .tst-slide.tst-instant { transition: none !important; }
+
+  .tst-dot { padding: 0.375rem; background: none; border: 0; cursor: pointer; }
+  .tst-dot-bar { display: block; width: 0.5rem; height: 0.5rem; border-radius: 9999px; transition: width 0.25s ease, background-color 0.25s ease; }
+  .tst-dot[aria-current="true"] .tst-dot-bar { width: 1.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tst-slide, .tst-dot-bar { transition: none; }
+  }
+</style>
+
+<section class="px-4 lg:px-6 py-10">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="max-w-2xl mx-auto text-center mb-10">
+      <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block">
+        Testimonials
+      </span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+        What people say
+      </h2>
+    </div>
+
+    <div class="max-w-3xl mx-auto" data-tst-slider data-interval="6500"
+         role="region" aria-roledescription="carousel" aria-label="Testimonials">
+
+      <div class="tst-viewport">
+        <div class="tst-stage" aria-live="off">
+
+          {% for testimonial in testimonials %}
+          <figure class="tst-slide{% if forloop.first %} is-active{% endif %}"
+                  role="group" aria-roledescription="slide"
+                  aria-label="{{ forloop.counter }} of {{ testimonials|length }}"
+                  {% if not forloop.first %}aria-hidden="true"{% endif %}>
+
+            <div class="bg-white rounded-3xl shadow-card border border-gray-100 px-6 sm:px-12 py-10 sm:py-12 text-center">
+
+              <svg class="w-6 h-6 text-brand-200 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7.17 6C4.87 8.05 3.5 10.66 3.5 13.5c0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L10.4 4C9.3 4.5 8.1 5.1 7.17 6zm10 0c-2.3 2.05-3.67 4.66-3.67 7.5 0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L20.4 4c-1.1.5-2.3 1.1-3.23 2z"/>
+              </svg>
+
+              <blockquote class="text-base sm:text-lg text-gray-700 leading-relaxed">
+                {{ testimonial.quote|linebreaksbr }}
+              </blockquote>
+
+              <figcaption class="mt-8 flex items-center justify-center gap-3">
+                <span class="w-11 h-11 shrink-0 rounded-full bg-brand-50 text-brand-500 text-base font-bold flex items-center justify-center" aria-hidden="true">
+                  {% if testimonial.name %}
+                    {{ testimonial.name|slice:":1"|upper }}
+                  {% else %}
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="12" cy="8" r="3.5"/>
+                      <path stroke-linecap="round" d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>
+                    </svg>
+                  {% endif %}
+                </span>
+                <span class="text-left">
+                  <span class="block text-sm font-semibold text-dark-900">{{ testimonial.name|default:"Anonymous" }}</span>
+                  {% if testimonial.title %}
+                    <span class="block text-xs text-gray-500">{{ testimonial.title }}</span>
+                  {% endif %}
+                </span>
+              </figcaption>
+
+            </div>
+          </figure>
+          {% endfor %}
+
+        </div>
+      </div>
+
+      {# ---- Controls: only when there is more than one testimonial ---- #}
+      {% if testimonials|length > 1 %}
+      <div class="mt-6 flex items-center justify-center gap-2 sm:gap-3">
+
+        <button type="button" class="tst-prev w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-cream hover:text-brand-500 transition-colors cursor-pointer" aria-label="Previous testimonial">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <div class="flex flex-wrap items-center justify-center">
+          {% for testimonial in testimonials %}
+            <button type="button" class="tst-dot" aria-label="Go to testimonial {{ forloop.counter }}"
+                    {% if forloop.first %}aria-current="true"{% else %}aria-current="false"{% endif %}>
+              <span class="tst-dot-bar {% if forloop.first %}bg-brand-500{% else %}bg-gray-300{% endif %}"></span>
+            </button>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="tst-next w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:bg-cream hover:text-brand-500 transition-colors cursor-pointer" aria-label="Next testimonial">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        {# Pause / play for the automatic sliding #}
+        <button type="button" class="tst-toggle w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full text-gray-400 hover:text-brand-500 transition-colors cursor-pointer" aria-label="Pause automatic sliding">
+          <svg class="tst-icon-pause w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" d="M9 5v14M15 5v14"/>
+          </svg>
+          <svg class="tst-icon-play hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 5l11 7-11 7V5z"/>
+          </svg>
+        </button>
+
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# Link to the page with every testimonial (shown only when the page passes all_testimonials_url) #}
+    {% if all_testimonials_url %}
+    <div class="mt-6 text-center">
+      <a href="{{ all_testimonials_url }}"
+         class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 transition-colors">
+        View all testimonials
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/>
+        </svg>
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<script>
+  (function () {
+    function initSlider(root) {
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.tst-slide'));
+      if (slides.length < 2) return; // one testimonial: nothing to slide
+      if (root.dataset.tstReady) return; // already set up (partial included twice)
+      root.dataset.tstReady = '1';
+
+      var stage = root.querySelector('.tst-stage');
+      var viewport = root.querySelector('.tst-viewport');
+      var dots = Array.prototype.slice.call(root.querySelectorAll('.tst-dot'));
+      var prevBtn = root.querySelector('.tst-prev');
+      var nextBtn = root.querySelector('.tst-next');
+      var toggleBtn = root.querySelector('.tst-toggle');
+
+      var interval = parseInt(root.dataset.interval, 10) || 6500;
+      var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      var DURATION = reduced ? 0 : 550;
+
+      var current = 0;
+      var settleTimer = null;
+      var playTimer = null;
+      var hovering = false;   // pointer over the slider
+      var keyboard = false;   // keyboard focus inside the slider
+      var inView = true;      // slider is on screen
+      var userPaused = false; // paused with the pause button
+
+      // ---- Sliding ----
+
+      // Ends the current animation: only the active slide stays visible
+      function finish() {
+        if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
+        slides.forEach(function (slide) { slide.style.visibility = ''; });
+      }
+
+      // dir: 1 = next (new slide enters from the right), -1 = previous (from the left)
+      function show(index, dir) {
+        if (index === current) return;
+        finish();
+
+        var from = slides[current];
+        var to = slides[index];
+
+        // Park the incoming slide on the side it enters from, without animating
+        to.classList.add('tst-instant');
+        to.classList.toggle('is-prev', dir < 0);
+        to.style.visibility = 'visible';
+        void to.offsetWidth; // force a reflow so the parked position applies
+        to.classList.remove('tst-instant');
+
+        // The old slide leaves toward the opposite side while the new one comes to the centre
+        from.style.visibility = 'visible';
+        from.classList.remove('is-active');
+        from.classList.toggle('is-prev', dir > 0);
+        from.setAttribute('aria-hidden', 'true');
+
+        to.classList.remove('is-prev');
+        to.classList.add('is-active');
+        to.removeAttribute('aria-hidden');
+
+        current = index;
+        updateDots();
+        settleTimer = setTimeout(finish, DURATION + 30);
+      }
+
+      function step(dir) {
+        show((current + dir + slides.length) % slides.length, dir);
+      }
+
+      function updateDots() {
+        dots.forEach(function (dot, i) {
+          var active = i === current;
+          var bar = dot.querySelector('.tst-dot-bar');
+          dot.setAttribute('aria-current', active ? 'true' : 'false');
+          bar.classList.toggle('bg-brand-500', active);
+          bar.classList.toggle('bg-gray-300', !active);
+        });
+      }
+
+      // ---- Automatic sliding ----
+
+      function shouldPlay() {
+        return !reduced && !userPaused && !hovering && !keyboard && inView && !document.hidden;
+      }
+
+      // (Re)starts the countdown to the next slide. A manual move restarts it too.
+      function schedule() {
+        if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+        // Screen readers hear changes only when the slider is not moving by itself
+        stage.setAttribute('aria-live', shouldPlay() ? 'off' : 'polite');
+        if (!shouldPlay()) return;
+        playTimer = setTimeout(function () {
+          step(1);
+          schedule();
+        }, interval);
+      }
+
+      function manual(dir) {
+        step(dir);
+        schedule();
+      }
+
+      // ---- Controls ----
+
+      prevBtn.addEventListener('click', function () { manual(-1); });
+      nextBtn.addEventListener('click', function () { manual(1); });
+
+      dots.forEach(function (dot, i) {
+        dot.addEventListener('click', function () {
+          show(i, i > current ? 1 : -1);
+          schedule();
+        });
+      });
+
+      toggleBtn.addEventListener('click', function () {
+        userPaused = !userPaused;
+        toggleBtn.setAttribute('aria-label', userPaused ? 'Start automatic sliding' : 'Pause automatic sliding');
+        toggleBtn.querySelector('.tst-icon-pause').classList.toggle('hidden', userPaused);
+        toggleBtn.querySelector('.tst-icon-play').classList.toggle('hidden', !userPaused);
+        schedule();
+      });
+
+      // Pause while the pointer is over the slider, or the keyboard is being used in it
+      root.addEventListener('mouseenter', function () { hovering = true; schedule(); });
+      root.addEventListener('mouseleave', function () { hovering = false; schedule(); });
+
+      root.addEventListener('keydown', function (event) {
+        keyboard = true;
+        schedule();
+        if (event.key === 'ArrowLeft') { event.preventDefault(); manual(-1); }
+        if (event.key === 'ArrowRight') { event.preventDefault(); manual(1); }
+      });
+      root.addEventListener('focusout', function (event) {
+        if (root.contains(event.relatedTarget)) return;
+        keyboard = false;
+        schedule();
+      });
+
+      // Swipe on touch screens (and drag with a mouse)
+      var startX = null;
+      viewport.addEventListener('pointerdown', function (event) { startX = event.clientX; });
+      viewport.addEventListener('pointerup', function (event) {
+        if (startX === null) return;
+        var dx = event.clientX - startX;
+        startX = null;
+        if (Math.abs(dx) > 50) manual(dx < 0 ? 1 : -1);
+      });
+      viewport.addEventListener('pointercancel', function () { startX = null; });
+
+      // Don't slide while the tab is hidden or the slider is off screen
+      document.addEventListener('visibilitychange', schedule);
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          inView = entries[0].isIntersecting;
+          schedule();
+        }, { threshold: 0.35 }).observe(root);
+      }
+
+      schedule();
+    }
+
+    document.querySelectorAll('[data-tst-slider]').forEach(initSlider);
+  })();
+</script>
+
+{% endif %}

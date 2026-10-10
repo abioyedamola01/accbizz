@@ -6,6 +6,8 @@
     {% include "main/partials/service_detail/_hero.html" %}
     {% include "main/partials/service_detail/_overview.html" %}
     {% include "main/partials/service_detail/_expect.html" %}
+    {% url "main_testimonials" as all_url %}
+    {% if testimonials|length %}{% include "main/partials/testimonials/_slider.html" with all_testimonials_url=all_url %}{% endif %}
     {% include "main/partials/service_detail/_related.html" %}
     {% if faqs|length %}
         {% include "main/partials/faqs/sect.html" %}

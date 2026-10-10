@@ -2,8 +2,8 @@ from django.shortcuts import (render, redirect,)
 from django.urls import reverse
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.forms.models import model_to_dict
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm,)
-from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel)
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
+from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel,)
 from .utils import (toast_json_ok, toast_json_error,)
 
 
@@ -129,7 +129,7 @@ def update_site_home_sections_view(request):
 @permission_required(("staffs.manage_contents"), raise_exception=True)
 def contents_view(request):
     tab = str(request.GET.get("tab")).lower()
-    tab = tab if tab in ["home", "about", "services", "faqs", "contacts"] else "home"
+    tab = tab if tab in ["home", "about", "services", "faqs", "testimonials"] else "home"
 
     context = {}
 
@@ -177,6 +177,16 @@ def contents_view(request):
             "faqs": faqs,
             "services": services,
             "faq_form": faq_form
+        }
+
+    elif tab == "testimonials":
+        testmonials = TestimonialModel.objects.filter().order_by("-id")
+        services = list(ServiceModel.objects.filter().values("id", "title"))
+        testmonial_form = TestimonialForm()
+        context = {
+            "testimonials": testmonials,
+            "services": services,
+            "testimonial_form": testmonial_form
         }
 
 
@@ -341,3 +351,44 @@ def add_faq_view(request):
         return toast_json_ok("FAQ added successfully.")
 
     return toast_json_error("Can't add FAQ.")
+
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_testimonials", "staffs.update_testimonial"), raise_exception=True)
+def update_testimonial_view(request, testimonial):
+    testimonial_inst = TestimonialModel.objects.filter(slug=testimonial).first()
+    testimonial_form = TestimonialForm(request.POST or None, instance=testimonial_inst)
+
+    if request.POST and testimonial_form.is_valid():
+        testimonial_form.save()
+
+        return toast_json_ok("Testimonial updated successfully.")
+    return toast_json_error("Can't update testimonial.")
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_testimonials", "staffs.add_testimonial"), raise_exception=True)
+def add_testimonial_view(request):
+    testimonial_form = TestimonialForm(request.POST or None)
+
+    if request.POST and testimonial_form.is_valid():
+        testimonial_form.save()
+
+        return toast_json_ok("Testimonial added successfully.")
+    return toast_json_error("Can't add testimonial.")
+
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_testimonials", "staffs.update_testimonial"), raise_exception=True)
+def delete_testimonial_view(request, testimonial):
+    testimonial_inst = TestimonialModel.objects.filter(slug=testimonial).first()
+    
+    if testimonial_inst:
+        testimonial_inst.delete()
+
+        return toast_json_ok("Testimonial deleted successfully.")
+    return toast_json_error("Can't delete testimonial.")

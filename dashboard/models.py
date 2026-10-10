@@ -140,3 +140,20 @@ class FAQsModel(models.Model):
             self.slug = f"{self.id}-{slugify(self.question[:10])}"
             return super().save(update_fields=("slug",))
         return super().save(*args, **kwargs)
+
+
+
+class TestimonialModel(models.Model):
+    name = models.CharField(max_length=120, null=True, blank=True) # allow blank for anonymous testimonials
+    title = models.CharField(max_length=36, null=True, blank=True)
+    quote = models.TextField()
+    slug = models.SlugField(null=True)
+    service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.SET_NULL, null=True, blank=True, related_name="testimonials")
+
+
+    def save(self, *args, **kwargs):
+        if not self.id or not self.slug:
+            super().save(*args, **kwargs)
+            self.slug = f"{self.id}-{slugify(self.quote[:10])}"
+            return super().save(update_fields=("slug",))
+        return super().save(*args, **kwargs)

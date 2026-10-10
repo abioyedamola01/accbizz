@@ -196,10 +196,10 @@ admin_permissions = [
     ("publish_blog", "Can publish blog posts"),
 
     # Testimonials
-    ("view_testimonials", "Can view testimonials"),
-    ("add_testimonials", "Can add testimonials"),
-    ("change_testimonials", "Can change testimonials"),
-    ("delete_testimonials", "Can delete testimonials"),
+    ("manage_testimonials", "Can manage testimonials"),
+    ("add_testimonial", "Can add testimonials"),
+    ("update_testimonial", "Can update testimonials"),
+    ("delete_testimonial", "Can delete testimonials"),
 
 
     # Media Library
