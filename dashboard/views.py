@@ -2,7 +2,7 @@ from django.shortcuts import (render, redirect,)
 from django.urls import reverse
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.forms.models import model_to_dict
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm)
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm,)
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel)
 from .utils import (toast_json_ok, toast_json_error,)
 
@@ -159,6 +159,14 @@ def contents_view(request):
             "team": team_members,
             "team_form":  team_form,
         }
+    elif tab== "services":
+        services = ServiceModel.objects.filter().order_by("-id")
+        service_form = ServiceForm()
+        context = {
+            "services": services,
+            "service_form": service_form
+        }
+
     elif tab == "faqs":
         faqs = FAQsModel.objects.select_related("service").filter().order_by("-id")
         services = list(ServiceModel.objects.filter().values("id", "title"))
@@ -253,11 +261,51 @@ def add_team_member_view(request):
 
 
 
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_services", "staffs.update_service"), raise_exception=True)
+def update_service_view(request, service):
+    service_inst = ServiceModel.objects.filter(slug=service).first()
+    service_form = ServiceForm(request.POST or None, instance=service_inst)
+
+    if request.POST and service_form.is_valid():
+        print(service_inst)
+        service_form.save()
+
+        return toast_json_ok(f"{service_inst.title} was updated successfully.")
+    return toast_json_error(f"can't update {service_inst.title}")
+
 
 
 
 @login_required
-@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.update_faq")
+@permission_required(("staffs.manage_contents", "staffs.manage_services", "staffs.delete_service"), raise_exception=True)
+def delete_service_view(request, service):
+    service_inst = ServiceModel.objects.filter(slug=service).first()
+
+    if service_inst:
+        service_inst.delete()
+
+        return toast_json_ok(f"{service_inst.title} has been deleted successfully.")
+    return toast_json_error("Can't delete service.")
+
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_services", "staffs.add_service"), raise_exception=True)
+def add_service_view(request):
+    service_form = ServiceForm(request.POST or None)
+
+    if request.POST or service_form.is_valid():
+        service_form.save()
+
+        return toast_json_ok("Service added successfully.")
+    return toast_json_error("Can't add service")
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_contents", "staffs.manage_faqs", "staffs.update_faq"), raise_exception=True)
 def update_faq_view(request, faq):
     faq_inst = FAQsModel.objects.filter(slug=faq).first()
     faqs_form = FAQForm(request.POST or None, instance=faq_inst)
@@ -272,7 +320,7 @@ def update_faq_view(request, faq):
 
 
 @login_required
-@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.delete_faq")
+@permission_required(("staffs.manage_contents", "staffs.manage_faqs", "staffs.delete_faq"), raise_exception=True)
 def delete_faq_view(request, faq):
     faq_inst = FAQsModel.objects.filter(slug=faq).first()
 
@@ -284,7 +332,7 @@ def delete_faq_view(request, faq):
 
 
 @login_required
-@permission_required("staffs.manage_contents", "staffs.manage_faqs", "staffs.add_faq")
+@permission_required(("staffs.manage_contents", "staffs.manage_faqs", "staffs.add_faq"), raise_exception=True)
 def add_faq_view(request):
     faq = FAQForm(request.POST or None)
 

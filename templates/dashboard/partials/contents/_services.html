@@ -1,0 +1,741 @@
+{% load widget_tweaks %}
+
+{# ===================================================================== #}
+{# Dashboard > Contents > Services                                       #}
+{#                                                                       #}
+{# Expects from the view:                                                #}
+{#   services      queryset of Service (use prefetch_related              #}
+{#                 ("related_services") so the manage buttons do not      #}
+{#                 run one query per row)                                 #}
+{#   service_form  the ServiceForm used for add and edit                  #}
+{# URL names used (rename here if yours differ):                          #}
+{#   dashboard_add_service                                                #}
+{#   dashboard_update_service  <slug>                                     #}
+{#   dashboard_delete_service  <slug>                                     #}
+{# ===================================================================== #}
+
+<style>
+  /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */
+
+  /* Search box (same behaviour as the public services search) */
+  .svc-search { position: relative; width: 16rem; max-width: 100%; }
+  .svc-search-icon {
+    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
+    width: 1rem; height: 1rem; color: #9ca3af; pointer-events: none;
+  }
+  .svc-search-input {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 2.25rem; padding: 0 2.25rem 0 2.25rem;
+    font-size: 0.875rem; color: #111827; background: #fff;
+    border: 1px solid #e5e7eb; border-radius: 0.5rem;
+    transition: border-color 0.15s ease;
+  }
+  .svc-search-input::-webkit-search-cancel-button { display: none; }
+  .svc-search-clear {
+    position: absolute; right: 0.625rem; top: 50%; transform: translateY(-50%);
+    padding: 0.125rem; color: #9ca3af; background: none; border: 0; cursor: pointer;
+  }
+  .svc-search-clear:hover { color: #374151; }
+  .svc-search-clear.hidden { display: none; }
+
+  /* Active switch. The real checkbox stays in the DOM (it posts); JS paints the track. */
+  .svc-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
+  .svc-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .svc-switch-track { position: relative; flex: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; transition: background-color 0.15s ease; }
+  .svc-switch-knob {
+    position: absolute; top: 0.125rem; left: 0.125rem; width: 1rem; height: 1rem;
+    background: #fff; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease;
+  }
+  .svc-switch.is-on .svc-switch-knob { transform: translateX(1rem); }
+  .svc-switch-input:focus-visible + .svc-switch-track { outline: 2px solid #9ca3af; outline-offset: 2px; }
+  .svc-switch-text { font-size: 0.875rem; color: #374151; }
+
+  /* Related services: a checklist that drives the real <select multiple> */
+  .svc-related-box {
+    max-height: 11rem; overflow-y: auto; padding: 0.25rem;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem;
+  }
+  .svc-related-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+  .svc-related-row {
+    display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.625rem;
+    font-size: 0.875rem; color: #374151; border-radius: 0.375rem; cursor: pointer;
+  }
+  .svc-related-row:hover { background: #f9fafb; }
+  .svc-related-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
+  .svc-related-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .svc-related-empty { padding: 0.5rem 0.625rem; font-size: 0.875rem; color: #9ca3af; }
+</style>
+
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+
+  {# ---- Header ---- #}
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+    <div class="flex items-center gap-2">
+      <h2 class="text-base font-bold text-dark-900">Services</h2>
+      <span id="serviceCountBadge" data-total="{{ services|length }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ services|length }} service{{ services|length|pluralize }}</span>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+
+      {# ---- Search (client side only): matches title and blurb ---- #}
+      <div class="svc-search">
+        <label for="serviceSearch" class="sr-only">Search services</label>
+        <svg class="svc-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/>
+          <path stroke-linecap="round" d="M20 20l-3.5-3.5"/>
+        </svg>
+        <input id="serviceSearch" type="search" autocomplete="off" placeholder="Search services"
+          class="svc-search-input placeholder:text-gray-400 focus:outline-none focus:border-brand-400" />
+        <button id="serviceSearchClear" type="button" aria-label="Clear search" class="svc-search-clear hidden">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <button type="button" onclick="openAddServiceModal()"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
+        </svg>
+        Add service
+      </button>
+    </div>
+  </div>
+
+  {# ---- Table (this scrolls horizontally; the manage panel below deliberately does not) ---- #}
+  <div id="serviceTableScroll" class="overflow-x-auto">
+    <table class="w-full min-w-[480px] text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Title</th>
+          <th class="w-24 py-3 pr-5"></th>
+        </tr>
+      </thead>
+
+      {% for service in services %}
+      <tbody class="svc-group divide-y divide-gray-100 border-b border-gray-100"
+        data-title="{{ service.title }}"
+        data-blurb="{{ service.blurb }}">
+        <tr>
+          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ service.title }}</span></td>
+          <td class="py-3 pr-5">
+            <button type="button" onclick="toggleServiceRow(this)"
+              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+              data-update-url="{% url "dashboard_update_service" service.slug %}"
+              data-delete-url="{% url "dashboard_delete_service" service.slug %}"
+              data-service-id="{{ service.id }}"
+              data-title="{{ service.title }}"
+              data-blurb="{{ service.blurb }}"
+              data-description="{{ service.description }}"
+              data-active="{% if service.is_active %}1{% else %}0{% endif %}"
+              data-related="{% for related in service.related_services.all %}{{ related.id }}{% if not forloop.last %},{% endif %}{% endfor %}">Manage</button>
+          </td>
+        </tr>
+        {# Manage panel is built by JS from #serviceFormTemplate when "Manage" is clicked #}
+        <tr class="svc-manage-row hidden"><td colspan="2" class="p-0"></td></tr>
+      </tbody>
+      {% empty %}
+      <tbody>
+        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services yet. Use "Add service" to create the first one.</td></tr>
+      </tbody>
+      {% endfor %}
+
+      {# Shown by the search when no service matches #}
+      <tbody id="serviceSearchEmpty" class="hidden">
+        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services match your search. Try a different word, or clear the search.</td></tr>
+      </tbody>
+
+    </table>
+  </div>
+
+  {# ---- Shared delete confirmation modal ---- #}
+  <div id="deleteServiceModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+      <button type="button" onclick="closeServiceDeleteConfirm()"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </div>
+
+      <h3 class="text-base font-bold text-dark-900 mb-1">Delete service</h3>
+      <p class="text-sm text-gray-500 mb-6">
+        Are you sure you want to delete <span id="deleteServiceTitle" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      </p>
+
+      <form method="post" id="deleteServiceForm" action="" novalidate>
+        {% csrf_token %}
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" onclick="closeServiceDeleteConfirm()"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit" id="deleteServiceSubmitBtn"
+            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg id="deleteServiceSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span id="deleteServiceLabel">Delete service</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Add service modal ---- #}
+  <div id="addServiceModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+
+      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
+        <h3 class="text-base font-bold text-dark-900">Add service</h3>
+        <button type="button" onclick="closeAddServiceModal()"
+          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-6 py-5">
+        {# novalidate: related_services is hidden, so the server's field errors are shown inline instead of the browser's #}
+        <form method="post" id="addServiceForm" action="{% url "dashboard_add_service" %}" class="space-y-4" novalidate>
+          {% csrf_token %}
+
+          <div class="svc-field">
+            <div class="flex items-center justify-between mb-1">
+              <label for="addServiceTitle" class="text-xs font-medium text-gray-500">Title</label>
+              <span class="svc-counter text-xs text-gray-400"></span>
+            </div>
+            {% render_field service_form.title id="addServiceTitle" class="svc-limited svc-required w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          </div>
+
+          <div class="svc-field">
+            <div class="flex items-center justify-between mb-1">
+              <label for="addServiceBlurb" class="text-xs font-medium text-gray-500">Blurb</label>
+              <span class="svc-counter text-xs text-gray-400"></span>
+            </div>
+            {% render_field service_form.blurb id="addServiceBlurb" class="svc-limited svc-required w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          </div>
+
+          <div class="svc-field">
+            <label for="addServiceDescription" class="text-xs font-medium text-gray-500 block mb-1">Description</label>
+            {% render_field service_form.description id="addServiceDescription" rows="5" class="svc-required w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-medium text-gray-500">Related services</span>
+              <span class="svc-related-count text-xs text-gray-400"></span>
+            </div>
+            {# The real field stays in the DOM (so it posts) but is hidden; the checklist below drives it #}
+            <div class="hidden">{% render_field service_form.related_services id="addServiceRelated" %}</div>
+            <div class="svc-related-box"><div class="svc-related-list"></div></div>
+          </div>
+
+          <div>
+            <label class="svc-switch">
+              {% render_field service_form.is_active id="addServiceActive" class="svc-switch-input" %}
+              <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+              <span class="svc-switch-text">Active</span>
+            </label>
+          </div>
+        </form>
+      </div>
+
+      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+        <button type="button" onclick="closeAddServiceModal()"
+          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          Cancel
+        </button>
+        <button type="submit" form="addServiceForm" id="addServiceSaveBtn" disabled
+          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          <svg id="addServiceSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="addServiceSaveLabel">Create service</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ---- Single reusable edit form: rendered once, cloned per service by JS ---- #}
+<template id="serviceFormTemplate">
+  <div class="bg-gray-50 border-t border-gray-100 p-5">
+    <form method="post" class="svc-manage-form space-y-4" novalidate>
+      {% csrf_token %}
+
+      <div class="grid grid-cols-1 gap-4">
+        <div class="svc-field min-w-0">
+          <div class="flex items-center justify-between mb-1">
+            <label for="editServiceTitle" class="text-xs font-medium text-gray-500">Title</label>
+            <span class="svc-counter text-xs text-gray-400"></span>
+          </div>
+          {% render_field service_form.title id="editServiceTitle" class="svc-limited w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+        </div>
+
+        <div class="svc-field min-w-0">
+          <div class="flex items-center justify-between mb-1">
+            <label for="editServiceBlurb" class="text-xs font-medium text-gray-500">Blurb</label>
+            <span class="svc-counter text-xs text-gray-400"></span>
+          </div>
+          {% render_field service_form.blurb id="editServiceBlurb" class="svc-limited w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+        </div>
+
+        <div class="svc-field min-w-0">
+          <label for="editServiceDescription" class="text-xs font-medium text-gray-500 block mb-1">Description</label>
+          {% render_field service_form.description id="editServiceDescription" rows="6" class="w-full min-h-[130px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+        </div>
+
+        <div class="min-w-0">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-medium text-gray-500">Related services</span>
+            <span class="svc-related-count text-xs text-gray-400"></span>
+          </div>
+          {# Hidden real field: preselected from the trigger's data-related, then kept in sync by the checklist #}
+          <div class="hidden">{% render_field service_form.related_services id="editServiceRelated" %}</div>
+          <div class="svc-related-box"><div class="svc-related-list"></div></div>
+        </div>
+
+        <div>
+          <label class="svc-switch">
+            {% render_field service_form.is_active id="editServiceActive" class="svc-switch-input" %}
+            <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+            <span class="svc-switch-text">Active</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <button type="button" class="svc-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openServiceDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
+          </svg>
+          Delete service
+        </button>
+
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleServiceRow(this)"
+            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            Cancel
+          </button>
+          <button type="submit"
+            class="svc-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            <svg class="svc-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span class="svc-form-save-label">Save changes</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+
+<script>
+  // submitForm / showToast come from base/dashboard/partials/_toast.html.
+  // On success it reloads the page (toast shows after the reload).
+
+  // ---- Form controls ----
+
+  // Field errors for the hidden / custom controls go under the visible control
+  function serviceFieldTarget(name, form) {
+    if (name === 'related_services') return form.querySelector('.svc-related-box');
+    if (name === 'is_active') return form.querySelector('.svc-switch');
+    return null;
+  }
+
+  function serviceSubmit(form, opts) {
+    return submitForm(form, Object.assign({ fieldTarget: serviceFieldTarget }, opts));
+  }
+
+  // "12/65" next to the title and blurb labels (the inputs stop typing at maxlength)
+  function initCounters(root) {
+    root.querySelectorAll('.svc-field').forEach(function (wrap) {
+      const counter = wrap.querySelector('.svc-counter');
+      const input = wrap.querySelector('.svc-limited');
+      if (!counter || !input) return;
+
+      const update = function () {
+        counter.textContent = input.maxLength > 0 ? input.value.length + '/' + input.maxLength : '';
+      };
+      if (!input.dataset.counterBound) {
+        input.addEventListener('input', update);
+        input.dataset.counterBound = '1';
+      }
+      update();
+    });
+  }
+
+  // Paints the Active switch from its real checkbox
+  function syncSwitch(input) {
+    const wrap = input.closest('.svc-switch');
+    const track = wrap.querySelector('.svc-switch-track');
+    const text = wrap.querySelector('.svc-switch-text');
+    wrap.classList.toggle('is-on', input.checked);
+    track.classList.toggle('bg-brand-500', input.checked);
+    track.classList.toggle('bg-gray-300', !input.checked);
+    if (text) text.textContent = input.checked ? 'Active' : 'Inactive';
+  }
+
+  function initSwitch(root) {
+    const input = root.querySelector('.svc-switch-input');
+    if (!input) return;
+    if (!input.dataset.switchBound) {
+      input.addEventListener('change', function () { syncSwitch(input); });
+      input.dataset.switchBound = '1';
+    }
+    syncSwitch(input);
+  }
+
+  // Builds the related-services checklist from the real <select multiple>.
+  // Ticking a row selects the matching option, so the form still posts
+  // `related_services` exactly as before. excludeId removes the service being
+  // edited from its own list (a service can't be related to itself).
+  function initRelatedPicker(form, excludeId) {
+    const select = form.querySelector('select[name="related_services"]');
+    const list = form.querySelector('.svc-related-list');
+    const countEl = form.querySelector('.svc-related-count');
+
+    if (excludeId) {
+      Array.from(select.options).forEach(function (option) {
+        if (option.value === String(excludeId)) option.remove();
+      });
+    }
+
+    function updateCount() {
+      const n = select.selectedOptions.length;
+      countEl.textContent = n === 0 ? 'None selected' : n + ' selected';
+    }
+
+    // Re-reads the real select (after a preselect or a form reset)
+    function sync() {
+      list.querySelectorAll('input[type="checkbox"]').forEach(function (box) {
+        const option = select.querySelector('option[value="' + box.value + '"]');
+        box.checked = !!(option && option.selected);
+      });
+      updateCount();
+    }
+
+    list.innerHTML = '';
+    const options = Array.from(select.options).sort(function (a, b) {
+      return a.text.localeCompare(b.text);
+    });
+
+    if (options.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'svc-related-empty';
+      empty.textContent = 'No other services to relate yet.';
+      list.appendChild(empty);
+    }
+
+    options.forEach(function (option) {
+      const row = document.createElement('label');
+      row.className = 'svc-related-row';
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.value = option.value;
+      box.checked = option.selected;
+      box.addEventListener('change', function () {
+        option.selected = box.checked;
+        updateCount();
+      });
+
+      const name = document.createElement('span');
+      name.className = 'svc-related-name';
+      name.textContent = option.text;
+
+      row.append(box, name);
+      list.appendChild(row);
+    });
+
+    updateCount();
+    return { select: select, sync: sync };
+  }
+
+  // ---- Manage row (edit) ----
+
+  // Toggles the hidden manage row for a service: builds the edit form from the
+  // shared <template> on open, tears it down on close. Only one row is open
+  // at a time. The built panel is pinned to the visible edge of the
+  // horizontal scroll area so it never overflows the screen.
+  function toggleServiceRow(el) {
+    const tbody = el.closest('tbody');
+    if (!tbody) return;
+
+    const manageRow = tbody.querySelector('.svc-manage-row');
+    const cell = manageRow.querySelector('td');
+    const isOpen = !manageRow.classList.contains('hidden');
+
+    if (isOpen) {
+      manageRow.classList.add('hidden');
+      cell.innerHTML = ''; // tear down so edits don't linger stale
+      return;
+    }
+
+    // Close + clear any other open manage row first
+    document.querySelectorAll('.svc-manage-row').forEach((row) => {
+      if (!row.classList.contains('hidden')) {
+        row.classList.add('hidden');
+        row.querySelector('td').innerHTML = '';
+      }
+    });
+
+    // The "Manage" trigger carries this service's data via data-*
+    const trigger = tbody.querySelector('[data-update-url]');
+
+    const template = document.getElementById('serviceFormTemplate');
+    const fragment = template.content.cloneNode(true);
+
+    const form = fragment.querySelector('form');
+    form.action = trigger.dataset.updateUrl;
+
+    form.querySelector('[name="title"]').value = trigger.dataset.title || '';
+    form.querySelector('[name="blurb"]').value = trigger.dataset.blurb || '';
+    form.querySelector('[name="description"]').value = trigger.dataset.description || '';
+    form.querySelector('[name="is_active"]').checked = trigger.dataset.active === '1';
+
+    // Related checklist: preselect this service's related ids
+    const picker = initRelatedPicker(form, trigger.dataset.serviceId);
+    (trigger.dataset.related || '').split(',').filter(Boolean).forEach((id) => {
+      const option = picker.select.querySelector('option[value="' + id + '"]');
+      if (option) option.selected = true;
+    });
+    picker.sync();
+
+    initSwitch(form);
+    initCounters(form);
+
+    const deleteBtn = fragment.querySelector('.svc-form-delete-btn');
+    deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
+    deleteBtn.dataset.serviceTitle = trigger.dataset.title;
+
+    // "Save changes" posts this form with fetch (no page reload before the response)
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      serviceSubmit(form, {
+        button: form.querySelector('.svc-form-save-btn'),
+        spinner: form.querySelector('.svc-form-save-spinner'),
+        label: form.querySelector('.svc-form-save-label'),
+        busyText: 'Saving...',
+        idleText: 'Save changes',
+        successFallback: 'Service updated.',
+      });
+    });
+
+    cell.appendChild(fragment);
+    manageRow.classList.remove('hidden');
+
+    // Pin the panel to the left edge of the visible scroll area and size it
+    // to match, so it never extends past the screen.
+    const panel = cell.firstElementChild;
+    const scrollWrapper = document.getElementById('serviceTableScroll');
+    panel.style.position = 'sticky';
+    panel.style.left = '0px';
+    panel.style.width = scrollWrapper.clientWidth + 'px';
+
+    function syncPanelWidth() {
+      if (!document.body.contains(panel)) {
+        window.removeEventListener('resize', syncPanelWidth);
+        return;
+      }
+      panel.style.width = scrollWrapper.clientWidth + 'px';
+    }
+    window.addEventListener('resize', syncPanelWidth);
+  }
+
+  // ---- Delete confirmation modal ----
+
+  function openServiceDeleteConfirm(el) {
+    const modal = document.getElementById('deleteServiceModal');
+    const form = document.getElementById('deleteServiceForm');
+    const titleEl = document.getElementById('deleteServiceTitle');
+
+    form.action = el.dataset.deleteUrl;
+    titleEl.textContent = '\u201C' + el.dataset.serviceTitle + '\u201D';
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeServiceDeleteConfirm() {
+    const modal = document.getElementById('deleteServiceModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Delete posts with fetch too (the form only carries the CSRF token; the
+  // service is identified by the URL set in openServiceDeleteConfirm)
+  document.getElementById('deleteServiceForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    serviceSubmit(event.currentTarget, {
+      button: document.getElementById('deleteServiceSubmitBtn'),
+      spinner: document.getElementById('deleteServiceSpinner'),
+      label: document.getElementById('deleteServiceLabel'),
+      busyText: 'Deleting...',
+      idleText: 'Delete service',
+      successFallback: 'Service deleted.',
+    });
+  });
+
+  // ---- Add service modal ----
+
+  // Wire the Add modal's controls once, on load
+  const addServiceForm = document.getElementById('addServiceForm');
+  const addServicePicker = initRelatedPicker(addServiceForm, null);
+  initSwitch(addServiceForm);
+  initCounters(addServiceForm);
+
+  function openAddServiceModal() {
+    const modal = document.getElementById('addServiceModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeAddServiceModal() {
+    const modal = document.getElementById('addServiceModal');
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+
+    // Reset so a re-open starts clean (not mid-"Creating..." state)
+    addServiceForm.reset();
+    addServiceForm.querySelectorAll('.field-error').forEach((el) => el.remove());
+    addServiceForm.querySelectorAll('[data-has-error]').forEach((el) => {
+      el.style.borderColor = '';
+      el.removeAttribute('data-has-error');
+    });
+    document.getElementById('addServiceSpinner').classList.add('hidden');
+    document.getElementById('addServiceSaveLabel').textContent = 'Create service';
+
+    addServicePicker.sync();
+    initSwitch(addServiceForm);
+    initCounters(addServiceForm);
+    updateAddServiceSaveState();
+  }
+
+  // Save is enabled once title, blurb and description are filled.
+  // Related services and Active are not required to enable it.
+  function updateAddServiceSaveState() {
+    const saveBtn = document.getElementById('addServiceSaveBtn');
+    let allFilled = true;
+    addServiceForm.querySelectorAll('.svc-required').forEach((field) => {
+      if (!field.value || !field.value.trim()) allFilled = false;
+    });
+    saveBtn.disabled = !allFilled;
+  }
+
+  document.addEventListener('input', function (event) {
+    if (event.target.classList.contains('svc-required')) {
+      updateAddServiceSaveState();
+    }
+  });
+
+  // Create posts with fetch (only reachable once the required fields are
+  // filled, since the button is disabled until then)
+  addServiceForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    serviceSubmit(event.currentTarget, {
+      button: document.getElementById('addServiceSaveBtn'),
+      spinner: document.getElementById('addServiceSpinner'),
+      label: document.getElementById('addServiceSaveLabel'),
+      busyText: 'Creating...',
+      idleText: 'Create service',
+      successFallback: 'Service added.',
+    });
+  });
+
+  // ---- Search (client side only) ----
+  // Same idea as the public services search: match the typed text against
+  // each service's title and blurb, hide the rest, update the count.
+
+  (function initServiceSearch() {
+    const input = document.getElementById('serviceSearch');
+    const clearBtn = document.getElementById('serviceSearchClear');
+    const emptyBody = document.getElementById('serviceSearchEmpty');
+    const badge = document.getElementById('serviceCountBadge');
+    if (!input) return;
+
+    const groups = Array.from(document.querySelectorAll('#serviceTableScroll tbody.svc-group'));
+    const total = groups.length;
+
+    function applyFilter() {
+      const term = input.value.trim().toLowerCase();
+      let visible = 0;
+
+      groups.forEach((group) => {
+        const haystack = ((group.dataset.title || '') + ' ' + (group.dataset.blurb || '')).toLowerCase();
+        const match = !term || haystack.indexOf(term) !== -1;
+        group.classList.toggle('hidden', !match);
+
+        if (match) {
+          visible += 1;
+        } else {
+          // Don't leave an open edit panel behind a hidden row
+          const manageRow = group.querySelector('.svc-manage-row');
+          if (manageRow && !manageRow.classList.contains('hidden')) {
+            manageRow.classList.add('hidden');
+            manageRow.querySelector('td').innerHTML = '';
+          }
+        }
+      });
+
+      clearBtn.classList.toggle('hidden', !term);
+      emptyBody.classList.toggle('hidden', !(term && total > 0 && visible === 0));
+
+      if (!term) {
+        badge.textContent = total + (total === 1 ? ' service' : ' services');
+      } else {
+        badge.textContent = visible + ' of ' + total + (total === 1 ? ' service' : ' services');
+      }
+    }
+
+    input.addEventListener('input', applyFilter);
+
+    clearBtn.addEventListener('click', function () {
+      input.value = '';
+      applyFilter();
+      input.focus();
+    });
+
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && input.value) {
+        input.value = '';
+        applyFilter();
+      }
+    });
+  })();
+
+  // ---- Close modals on backdrop click / Escape ----
+
+  document.addEventListener('click', function (event) {
+    if (event.target === document.getElementById('deleteServiceModal')) closeServiceDeleteConfirm();
+    if (event.target === document.getElementById('addServiceModal')) closeAddServiceModal();
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    if (!document.getElementById('deleteServiceModal').classList.contains('hidden')) {
+      closeServiceDeleteConfirm();
+    } else if (!document.getElementById('addServiceModal').classList.contains('hidden')) {
+      closeAddServiceModal();
+    }
+  });
+</script>

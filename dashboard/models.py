@@ -86,12 +86,13 @@ class HomeSectionModel(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.id or not self.site:
+        if not self.site:
             self.site = SiteModel.objects.first()
 
-        if self.id and not self.slug:
+        if not self.id:
+            super().save(*args, **kwargs)
             self.slug = f"{self.id}-{slugify(self.name)}"
-
+            return super().save(update_fields=("slug",))
         return super().save(*args, **kwargs)
 
 
@@ -105,27 +106,21 @@ class ServiceModel(models.Model):
     description = models.TextField()
     is_active = models.BooleanField(default=True)
     site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="services", null=True)
-    related_services = models.ManyToManyField("self", symmetrical=True)
+    related_services = models.ManyToManyField("self", symmetrical=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.id:
             self.site = SiteModel.objects.first()
             super().save(*args, **kwargs)
-        self.slug = f"{self.id}-{slugify(self.title)}"
+            self.slug = f"{self.id}-{slugify(self.title)}"
 
-        return super().save(update_fields=("slug",))
+            return super().save(update_fields=("slug",))
+        return super().save(*args, **kwargs)
+
+
 
     def __str__(self):
         return self.title
-
-
-
-class ServicePackageModel(models.Model):
-    title = models.CharField(max_length=65)
-    blurb = models.CharField(max_length=125)
-    is_removed = models.BooleanField(default=False)
-    service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.CASCADE, related_name="packages")
-
 
 
 
@@ -141,6 +136,7 @@ class FAQsModel(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
+            super().save(*args, **kwargs)
             self.slug = f"{self.id}-{slugify(self.question[:10])}"
-
-        super().save(*args, **kwargs)
+            return super().save(update_fields=("slug",))
+        return super().save(*args, **kwargs)

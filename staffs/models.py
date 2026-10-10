@@ -176,11 +176,10 @@ admin_permissions = [
     ("delete_faq", "Can delete FAQs"),
 
     # Services
-    ("view_services", "Can view services"),
-    ("add_services", "Can add services"),
-    ("change_services", "Can change services"),
-    ("delete_services", "Can delete services"),
-    ("publish_services", "Can publish services"),
+    ("manage_services", "Can manage services"),
+    ("add_service", "Can add services"),
+    ("update_service", "Can update services"),
+    ("delete_service", "Can delete services"),
 
     # Projects
     ("view_projects", "Can view projects"),

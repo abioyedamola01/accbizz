@@ -5,9 +5,7 @@
 {% block content %}
     {% include "main/partials/service_detail/_hero.html" %}
     {% include "main/partials/service_detail/_overview.html" %}
-    {% if packages|length %}
-        {% include "main/partials/service_detail/_packages.html" %}
-    {% endif %}
+    {% include "main/partials/service_detail/_expect.html" %}
     {% include "main/partials/service_detail/_related.html" %}
     {% if faqs|length %}
         {% include "main/partials/faqs/sect.html" %}

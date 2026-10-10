@@ -1,4 +1,4 @@
-import json
+from django.http import Http404
 from django.shortcuts import (render, get_object_or_404,)
 from django.forms.models  import model_to_dict
 from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel,)
@@ -53,12 +53,15 @@ def services_view(request):
 
 def service_detail_view(request, service_slug):
     # site_info_instance = SiteModel.objects.select_related("about",).first()
-    service = ServiceModel.objects.prefetch_related("packages", "related_services", "faqs",).filter(slug=service_slug).first()
+    service = ServiceModel.objects.prefetch_related("related_services", "faqs",).filter(slug=service_slug).first()
+
+    if not service:
+        raise Http404()
+    
     service_faqs = list(service.faqs.filter().order_by("-id")[:5]) # latest 5 faqs
 
     context = {
         "service": service,
-        "packages": service.packages.filter(is_removed=False),
         "related_services": service.related_services.filter(is_active=True),
         "faqs": service_faqs[:4],
         "more_faqs": len(service_faqs) == 5,

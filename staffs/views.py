@@ -31,7 +31,6 @@ def staff_login_view(request):
         elif not user.is_active:
             form.add_error(None, "Staff is not active at the moment.")
         elif user.is_active and user.is_staff_member:
-            print("WD")
             purpose = "staff_login"
             username = user.profile.get_username()
             otp, otp_id = create_otp(user, purpose)

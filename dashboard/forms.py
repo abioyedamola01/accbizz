@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel,)
 
 
 class EditProfileForm(forms.ModelForm):
@@ -58,3 +58,9 @@ class FAQForm(forms.ModelForm):
     class Meta:
         model = FAQsModel
         fields = ("question", "answer", "service",)
+
+
+class ServiceForm(forms.ModelForm):
+    class Meta:
+        model = ServiceModel
+        fields = ("title", "blurb", "description", "is_active", "related_services",)
