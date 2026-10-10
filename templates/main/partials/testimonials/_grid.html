@@ -1,0 +1,258 @@
+{# ===================================================================== #}
+{# Testimonials page: the approved testimonials, loaded in batches.        #}
+{# Expects:                                                               #}
+{#   testimonials  the first batch (name, title, quote, service)          #}
+{#   batch_point   what to ask for next, or None when there is no more    #}
+{# "Load more" requests {% url "get_testimonials_batch" batch_point %}     #}
+{# and expects JSON:                                                      #}
+{#   { "testimonials": [{"name","title","quote","service"}, ...],         #}
+{#     "more_testimonials": true/false, "batch_point": <next> }           #}
+{# name/title empty = anonymous. service = service title, empty = general. #}
+{# ===================================================================== #}
+<style>
+  /* Plain CSS so the card layout never depends on the Tailwind build.
+     A real grid (not CSS columns): cards already on screen never jump
+     between columns when more are added. */
+  .tst-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+  @media (min-width: 768px) { .tst-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .tst-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .tst-card { display: flex; flex-direction: column; margin: 0; }
+  .tst-card figcaption { margin-top: auto; padding-top: 1.25rem; }
+  .tst-card:focus { outline: none; }
+
+  .tst-card-new { animation: tstIn 0.35s ease both; }
+  @keyframes tstIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tst-card-new { animation: none; } }
+
+  .tst-more:disabled { opacity: 0.6; cursor: not-allowed; }
+</style>
+
+<section class="px-4 lg:px-6 py-10">
+  <div class="max-w-6xl mx-auto">
+
+    {% if testimonials|length %}
+    <div id="tstGrid" class="tst-grid">
+      {% for testimonial in testimonials %}
+      <figure class="tst-card bg-white rounded-2xl shadow-card border border-gray-100 p-6">
+
+        <svg class="w-5 h-5 text-brand-200 mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.17 6C4.87 8.05 3.5 10.66 3.5 13.5c0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L10.4 4C9.3 4.5 8.1 5.1 7.17 6zm10 0c-2.3 2.05-3.67 4.66-3.67 7.5 0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L20.4 4c-1.1.5-2.3 1.1-3.23 2z"/>
+        </svg>
+
+        <blockquote class="text-sm sm:text-base text-gray-700 leading-relaxed">
+          {{ testimonial.quote|linebreaksbr }}
+        </blockquote>
+
+        {% if testimonial.service %}
+        <p class="mt-4">
+          <span class="inline-block text-xs font-medium text-brand-500 bg-brand-50 rounded-full px-2.5 py-1">{{ testimonial.service.title }}</span>
+        </p>
+        {% endif %}
+
+        <figcaption class="flex items-center gap-3">
+          <span class="w-10 h-10 shrink-0 rounded-full bg-brand-50 text-brand-500 text-sm font-bold flex items-center justify-center" aria-hidden="true">
+            {% if testimonial.name %}
+              {{ testimonial.name|slice:":1"|upper }}
+            {% else %}
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="8" r="3.5"/>
+                <path stroke-linecap="round" d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>
+              </svg>
+            {% endif %}
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-semibold text-dark-900">{{ testimonial.name|default:"Anonymous" }}</span>
+            {% if testimonial.title %}
+              <span class="block text-xs text-gray-500">{{ testimonial.title }}</span>
+            {% endif %}
+          </span>
+        </figcaption>
+
+      </figure>
+      {% endfor %}
+    </div>
+
+    {# ---- Load more: only when the server says there is more (batch_point is not None; 0 still counts) ---- #}
+    {% if batch_point is not None %}
+    <div id="tstMoreWrap" class="mt-10 text-center">
+      {# The URL is built with a placeholder number that the script swaps for the current batch_point #}
+      <button type="button" id="tstLoadMore" class="tst-more inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-200 bg-white text-sm font-semibold text-dark-900 hover:text-brand-500 cursor-pointer transition"
+        data-url-template="{% url "get_testimonials_batch" 123456789 %}"
+        data-batch-point="{{ batch_point }}">
+        <svg id="tstMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span id="tstMoreLabel">Load more testimonials</span>
+      </button>
+      <p id="tstMoreError" role="alert" class="hidden mt-3 text-sm text-red-500"></p>
+    </div>
+    {% endif %}
+
+    {# Screen readers hear how many were added #}
+    <p id="tstMoreStatus" class="sr-only" aria-live="polite"></p>
+
+    {# Blueprint for the cards added by "Load more": same markup as the cards above #}
+    <template id="tstCardTemplate">
+      <figure class="tst-card tst-card-new bg-white rounded-2xl shadow-card border border-gray-100 p-6" tabindex="-1">
+        <svg class="w-5 h-5 text-brand-200 mb-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.17 6C4.87 8.05 3.5 10.66 3.5 13.5c0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L10.4 4C9.3 4.5 8.1 5.1 7.17 6zm10 0c-2.3 2.05-3.67 4.66-3.67 7.5 0 2.9 1.9 4.9 4.4 4.9 2.1 0 3.6-1.5 3.6-3.5 0-1.9-1.3-3.3-3.1-3.5-.2 0-.4 0-.5-.1.4-2.1 2.1-4.3 4-5.6L20.4 4c-1.1.5-2.3 1.1-3.23 2z"/>
+        </svg>
+        <blockquote class="tst-q text-sm sm:text-base text-gray-700 leading-relaxed"></blockquote>
+        <p class="tst-service-wrap hidden mt-4">
+          <span class="tst-service inline-block text-xs font-medium text-brand-500 bg-brand-50 rounded-full px-2.5 py-1"></span>
+        </p>
+        <figcaption class="flex items-center gap-3">
+          <span class="w-10 h-10 shrink-0 rounded-full bg-brand-50 text-brand-500 text-sm font-bold flex items-center justify-center" aria-hidden="true">
+            <span class="tst-initial"></span>
+            <svg class="tst-person hidden w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="8" r="3.5"/>
+              <path stroke-linecap="round" d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>
+            </svg>
+          </span>
+          <span class="tst-who min-w-0">
+            <span class="tst-name block text-sm font-semibold text-dark-900"></span>
+          </span>
+        </figcaption>
+      </figure>
+    </template>
+
+    {% else %}
+    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-card border border-gray-100 px-6 py-10 text-center">
+      <p class="text-base font-semibold text-dark-900">No testimonials yet</p>
+      <p class="mt-1 text-sm text-gray-500">Be the first to share your experience.</p>
+      <a href="#share-testimonial" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 transition-colors">
+        Share your experience
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<script>
+  (function () {
+    var grid = document.getElementById('tstGrid');
+    var btn = document.getElementById('tstLoadMore');
+    if (!grid || !btn) return; // nothing more to load
+
+    var wrap = document.getElementById('tstMoreWrap');
+    var label = document.getElementById('tstMoreLabel');
+    var spinner = document.getElementById('tstMoreSpinner');
+    var errorEl = document.getElementById('tstMoreError');
+    var statusEl = document.getElementById('tstMoreStatus');
+    var blueprint = document.getElementById('tstCardTemplate');
+
+    var PLACEHOLDER = '123456789'; // the number the url tag was rendered with
+    var batchPoint = btn.dataset.batchPoint;
+    var loading = false;
+
+    function urlFor(point) {
+      return btn.dataset.urlTemplate.replace(PLACEHOLDER, encodeURIComponent(point));
+    }
+
+    // One testimonial from the JSON -> one card. Everything goes in as text,
+    // never as HTML, so a testimonial cannot inject markup.
+    function buildCard(item) {
+      var card = blueprint.content.firstElementChild.cloneNode(true);
+
+      // Line breaks in the quote become <br>, like the cards rendered by Django
+      var quote = card.querySelector('.tst-q');
+      String(item.quote || '').split(/\r\n|\r|\n/).forEach(function (line, i) {
+        if (i > 0) quote.appendChild(document.createElement('br'));
+        quote.appendChild(document.createTextNode(line));
+      });
+
+      var wrapEl = card.querySelector('.tst-service-wrap');
+      if (item.service) {
+        card.querySelector('.tst-service').textContent = item.service;
+        wrapEl.classList.remove('hidden');
+      } else {
+        wrapEl.remove();
+      }
+
+      var name = String(item.name || '').trim();
+      if (name) {
+        card.querySelector('.tst-initial').textContent = name.charAt(0).toUpperCase();
+        card.querySelector('.tst-person').remove();
+        card.querySelector('.tst-name').textContent = name;
+      } else {
+        // Anonymous: person icon and "Anonymous"
+        card.querySelector('.tst-initial').remove();
+        card.querySelector('.tst-person').classList.remove('hidden');
+        card.querySelector('.tst-name').textContent = 'Anonymous';
+      }
+
+      if (item.title) {
+        var title = document.createElement('span');
+        title.className = 'block text-xs text-gray-500';
+        title.textContent = item.title;
+        card.querySelector('.tst-who').appendChild(title);
+      }
+      return card;
+    }
+
+    function setLoading(on, retry) {
+      loading = on;
+      btn.disabled = on;
+      spinner.classList.toggle('hidden', !on);
+      label.textContent = on ? 'Loading...' : (retry ? 'Try again' : 'Load more testimonials');
+    }
+
+    function showError() {
+      errorEl.textContent = 'We could not load more testimonials. Please check your connection and try again.';
+      errorEl.classList.remove('hidden');
+    }
+
+    btn.addEventListener('click', function () {
+      if (loading) return;
+      errorEl.classList.add('hidden');
+      setLoading(true);
+
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 15000);
+
+      fetch(urlFor(batchPoint), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        signal: controller.signal,
+      })
+        .then(function (response) {
+          return response.json().then(
+            function (data) { return { ok: response.ok, data: data }; },
+            function () { return { ok: response.ok, data: null }; }
+          );
+        })
+        .then(function (result) {
+          var data = result.data;
+          if (!result.ok || !data || !Array.isArray(data.testimonials)) throw new Error('Unexpected response');
+
+          var firstNew = null;
+          data.testimonials.forEach(function (item) {
+            var card = buildCard(item);
+            if (!firstNew) firstNew = card;
+            grid.appendChild(card);
+          });
+
+          var more = data.more_testimonials === true && data.batch_point !== null && data.batch_point !== undefined;
+          var count = data.testimonials.length;
+          statusEl.textContent = count + (count === 1 ? ' more testimonial loaded' : ' more testimonials loaded') + (more ? '' : '. That is all of them.');
+
+          if (more) {
+            batchPoint = data.batch_point;
+            setLoading(false);
+          } else {
+            // Nothing left: remove the button and keep keyboard users in place
+            wrap.remove();
+            if (firstNew) firstNew.focus({ preventScroll: true });
+          }
+        })
+        .catch(function () {
+          showError();
+          setLoading(false, true);
+        })
+        .finally(function () { clearTimeout(timer); });
+    });
+  })();
+</script>

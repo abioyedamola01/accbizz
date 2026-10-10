@@ -69,4 +69,4 @@ class ServiceForm(forms.ModelForm):
 class TestimonialForm(forms.ModelForm):
     class Meta:
         model = TestimonialModel
-        fields = ("name", "title", "quote", "service",)
+        fields = ("name", "title", "quote", "service", "is_approved",)

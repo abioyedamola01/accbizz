@@ -1,9 +1,12 @@
 {% extends "base/main/base.html" %}
 
-{% block title %}Testimonial{% endblock title %}
+{% block title %}Testimonials · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 
-   
+{# Expects: testimonials (first batch of approved ones), batch_point (int, or None when there is no more), testimonial_form (name, title, quote, service) #}
+{% include "main/partials/testimonials/_intro.html" %}
+{% include "main/partials/testimonials/_grid.html" %}
+{% include "main/partials/testimonials/_share.html" %}
 
 {% endblock content %}

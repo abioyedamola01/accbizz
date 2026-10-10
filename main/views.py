@@ -1,8 +1,9 @@
-from django.http import Http404
+from django.http import (Http404, JsonResponse,)
 from django.shortcuts import (render, get_object_or_404,)
 from django.forms.models  import model_to_dict
 from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel, TestimonialModel)
-from django.http import (JsonResponse, Http404)
+from dashboard.forms import TestimonialForm
+from dashboard.utils import (toast_json_ok, toast_json_error,)
 
 
 def home_view(request):
@@ -77,7 +78,7 @@ def service_detail_view(request, service_slug):
 
 
 
-def get_faqs_batch(request, service_slug, faqs_batch_point):
+def get_faqs_batch_view(request, service_slug, faqs_batch_point):
     service = ServiceModel.objects.prefetch_related("faqs").filter(slug=service_slug).first()
 
     if service:
@@ -108,8 +109,58 @@ def get_faqs_batch(request, service_slug, faqs_batch_point):
 
 
 def testimonials_view(request):
+    testimonials = list(TestimonialModel.objects.filter(is_approved=True).order_by("-id")[:7])
+    testimonial_form = TestimonialForm()
     context = {
+        "testimonials": testimonials[:6],
+        "testimonial_form": testimonial_form,
         "current": "testimonials"
     }
 
+    batch_point = testimonials[5].id if len(testimonials) == 7 else None
+    context["batch_point"] = batch_point
+    print(batch_point)
     return render(request, "main/testimonials.html", context)
+
+
+
+
+def get_testimonials_batch_view(request, batch_point):
+    testimonials = list(TestimonialModel.objects.filter(is_approved=True, id__lt=batch_point).order_by("-id")[:7])
+
+    items = list()
+
+    for t in testimonials[:6]:
+        service = t.service.title if t.service else None
+
+        item = {
+            "name": t.name,
+            "title": t.title,
+            "quote": t.quote,
+            "service": service
+        }
+
+        items.append(item)
+
+    
+    context = {
+        "testimonials": items
+    }
+
+    context["more_testimonials"] = True if len(testimonials) == 7 else False
+    context["batch_point"] = testimonials[5].id if len(testimonials) == 7 else None
+
+    print(context)
+
+    return JsonResponse(context)
+
+
+
+def submit_testimonial_view(request):
+    testimonials_form = TestimonialForm(request.POST or None)
+
+    if request.POST and testimonials_form.is_valid:
+        testimonials_form.save()
+
+        return toast_json_ok("Testimonial submitted successfully.")
+    return toast_json_error("Can't submit testimonial.")

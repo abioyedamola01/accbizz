@@ -1,0 +1,316 @@
+{% load widget_tweaks %}
+
+{# ===================================================================== #}
+{# Share your experience: public submission form.                         #}
+{# Expects `testimonial_form` with name, title, quote, service.           #}
+{# Posts with fetch to main_submit_testimonial and expects JSON:           #}
+{#   { "ok": true }                                                       #}
+{#   { "ok": false, "message": "...", "errors": { "quote": ["..."] } }    #}
+{# The server saves it as NOT approved (pending) and ignores the form if  #}
+{# the hidden "website" field (a spam trap) is filled.                    #}
+{# "Stay anonymous" is only a switch in the page: name and title are      #}
+{# posted blank, so the server stores them as null.                       #}
+{# ===================================================================== #}
+
+<style>
+  /* Plain CSS so the custom controls never depend on the Tailwind build */
+  .shr-section { scroll-margin-top: 6rem; }
+
+  .shr-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
+  .shr-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+  .shr-switch-track { position: relative; flex: none; width: 2.5rem; height: 1.375rem; border-radius: 9999px; transition: background-color 0.15s ease; }
+  .shr-switch-knob {
+    position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1rem; height: 1rem;
+    background: #fff; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s ease;
+  }
+  .shr-switch.is-on .shr-switch-knob { transform: translateX(1.125rem); }
+  .shr-switch-input:focus-visible + .shr-switch-track { outline: 2px solid #9ca3af; outline-offset: 2px; }
+  .shr-switch-text { font-size: 0.875rem; font-weight: 500; color: #374151; }
+
+  /* Spam trap: off screen, not display:none, so simple bots still fill it */
+  .shr-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shr-switch-track, .shr-switch-knob { transition: none; }
+  }
+</style>
+
+<section id="share-testimonial" class="shr-section px-4 lg:px-6 py-10">
+  <div class="max-w-2xl mx-auto">
+
+    <div class="text-center mb-8">
+      <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block">
+        Share your experience
+      </span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+        Tell us how we did
+      </h2>
+      <p class="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">
+        It only takes a minute. We review every testimonial before it is published.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-6 sm:p-10">
+
+      <form id="shareForm" method="post" action="{% url "main_submit_testimonial" %}" class="space-y-5" novalidate>
+        {% csrf_token %}
+
+        {# Spam trap: people never see or fill this #}
+        <div class="shr-hp" aria-hidden="true">
+          <label>Leave this field empty
+            <input type="text" name="website" tabindex="-1" autocomplete="off" />
+          </label>
+        </div>
+
+        <div>
+          <label class="shr-switch">
+            <input type="checkbox" class="shr-switch-input shr-anon-input" id="shareAnon" />
+            <span class="shr-switch-track bg-gray-300"><span class="shr-switch-knob"></span></span>
+            <span class="shr-switch-text">Stay anonymous</span>
+          </label>
+          <p class="mt-1.5 text-xs text-gray-500">Your name and title will not be shown.</p>
+        </div>
+
+        {# Name and title: hidden (and cleared) while Stay anonymous is on #}
+        <div class="shr-identity grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="min-w-0">
+            <label for="shareName" class="block text-sm font-medium text-dark-900 mb-1.5">Your name</label>
+            {% render_field testimonial_form.name id="shareName" autocomplete="name" class="shr-name w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+          </div>
+          <div class="min-w-0">
+            <label for="shareTitle" class="block text-sm font-medium text-dark-900 mb-1.5">Title or role <span class="font-normal text-gray-400">(optional)</span></label>
+            {% render_field testimonial_form.title id="shareTitle" placeholder="e.g. Final-year student" class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+          </div>
+        </div>
+
+        <div>
+          <label for="shareService" class="block text-sm font-medium text-dark-900 mb-1.5">Which service was it about? <span class="font-normal text-gray-400">(optional)</span></label>
+          {% render_field testimonial_form.service id="shareService" class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+        </div>
+
+        <div>
+          <label for="shareQuote" class="block text-sm font-medium text-dark-900 mb-1.5">Your testimonial</label>
+          {% render_field testimonial_form.quote id="shareQuote" rows="5" placeholder="What did we help you with, and how did it go?" class="shr-quote w-full min-h-[130px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition resize-y" %}
+        </div>
+
+        {# Form-level problems (network, server, spam check) #}
+        <p id="shareError" role="alert" class="hidden text-sm text-red-500"></p>
+
+        <button type="submit" id="shareSubmit"
+          class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer transition">
+          <svg id="shareSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="shareSubmitLabel">Submit testimonial</span>
+        </button>
+      </form>
+
+      {# Shown instead of the form once it has been submitted #}
+      <div id="shareSuccess" class="hidden text-center py-4" role="status" tabindex="-1">
+        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-dark-900">Thank you! Your testimonial is being processed.</h3>
+        <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+          We review every testimonial before it appears on the site. Yours will show up here once it has been approved.
+        </p>
+        <button type="button" id="shareAnother"
+          class="mt-5 text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer transition-colors">
+          Share another testimonial
+        </button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var form = document.getElementById('shareForm');
+    if (!form) return;
+
+    var anon = document.getElementById('shareAnon');
+    var identity = form.querySelector('.shr-identity');
+    var nameInput = form.querySelector('[name="name"]');
+    var titleInput = form.querySelector('[name="title"]');
+    var quoteInput = form.querySelector('[name="quote"]');
+    var errorEl = document.getElementById('shareError');
+    var submitBtn = document.getElementById('shareSubmit');
+    var spinner = document.getElementById('shareSpinner');
+    var submitLabel = document.getElementById('shareSubmitLabel');
+    var successEl = document.getElementById('shareSuccess');
+
+    // ---- Stay anonymous ----
+
+    function paintSwitch() {
+      var wrap = anon.closest('.shr-switch');
+      var track = wrap.querySelector('.shr-switch-track');
+      wrap.classList.toggle('is-on', anon.checked);
+      track.classList.toggle('bg-brand-500', anon.checked);
+      track.classList.toggle('bg-gray-300', !anon.checked);
+    }
+
+    // On: hide name and title and clear them (they post blank, so the server stores
+    // null). What was typed is remembered, so switching back off does not lose it.
+    function applyAnonymous() {
+      if (anon.checked) {
+        if (nameInput.value || titleInput.value) {
+          identity.dataset.stashName = nameInput.value;
+          identity.dataset.stashTitle = titleInput.value;
+        }
+        nameInput.value = '';
+        titleInput.value = '';
+        identity.classList.add('hidden');
+      } else {
+        if (!nameInput.value && !titleInput.value) {
+          nameInput.value = identity.dataset.stashName || '';
+          titleInput.value = identity.dataset.stashTitle || '';
+        }
+        identity.classList.remove('hidden');
+      }
+      paintSwitch();
+    }
+
+    anon.addEventListener('change', applyAnonymous);
+    applyAnonymous();
+
+    // ---- Messages ----
+
+    function clearErrors() {
+      form.querySelectorAll('.field-error').forEach(function (el) { el.remove(); });
+      form.querySelectorAll('[data-has-error]').forEach(function (el) {
+        el.style.borderColor = '';
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('data-has-error');
+      });
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+
+    function showFieldError(control, message) {
+      var p = document.createElement('p');
+      p.className = 'field-error mt-1.5 text-xs text-red-500';
+      p.textContent = message; // textContent, never innerHTML
+      control.insertAdjacentElement('afterend', p);
+      control.style.borderColor = '#f87171';
+      control.setAttribute('aria-invalid', 'true');
+      control.dataset.hasError = '1';
+    }
+
+    function showBanner(message) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
+
+    function firstMessage(value) {
+      var first = Array.isArray(value) ? value[0] : value;
+      return typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
+    }
+
+    // errors looks like { quote: ["This field is required."], __all__: ["..."] }
+    // Returns true if at least one message was placed under a visible field.
+    function showServerErrors(errors) {
+      var placed = false;
+      Object.keys(errors).forEach(function (key) {
+        var message = firstMessage(errors[key]);
+        var control = key === '__all__' ? null : form.querySelector('[name="' + key + '"]');
+        if (control && !control.closest('.hidden')) {
+          showFieldError(control, message);
+          placed = true;
+        } else if (!errorEl.textContent) {
+          showBanner(message); // non-field error, or the field is hidden (anonymous)
+        }
+      });
+      return placed;
+    }
+
+    function setBusy(busy) {
+      submitBtn.disabled = busy;
+      spinner.classList.toggle('hidden', !busy);
+      submitLabel.textContent = busy ? 'Submitting...' : 'Submit testimonial';
+    }
+
+    // ---- Submit ----
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearErrors();
+
+      // Quick checks first; the server checks again
+      var firstBad = null;
+      if (!quoteInput.value.trim()) {
+        showFieldError(quoteInput, 'Please write your testimonial.');
+        firstBad = quoteInput;
+      }
+      if (!anon.checked && !nameInput.value.trim()) {
+        showFieldError(nameInput, 'Please enter your name, or choose to stay anonymous.');
+        firstBad = nameInput; // name comes first on the page
+      }
+      if (firstBad) { firstBad.focus(); return; }
+
+      setBusy(true);
+
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 15000);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        signal: controller.signal,
+      })
+        .then(function (response) {
+          return response.json().then(
+            function (data) { return { response: response, data: data }; },
+            function () { return { response: response, data: null }; }
+          );
+        })
+        .then(function (result) {
+          var data = result.data;
+          if (result.response.ok && data && data.ok !== false) {
+            showSuccess();
+            return;
+          }
+          if (!data) {
+            showBanner('Something went wrong on our side. Please try again in a moment.');
+            return;
+          }
+          var placed = data.errors ? showServerErrors(data.errors) : false;
+          if (data.message) showBanner(data.message);
+          else if (!placed && !errorEl.textContent) showBanner('Something went wrong. Please try again.');
+        })
+        .catch(function (error) {
+          showBanner(error && error.name === 'AbortError'
+            ? 'This is taking too long. Please check your connection and try again.'
+            : 'We could not reach the server. Please check your connection and try again.');
+        })
+        .finally(function () {
+          clearTimeout(timer);
+          setBusy(false);
+        });
+    });
+
+    // ---- Success / share another ----
+
+    function showSuccess() {
+      form.classList.add('hidden');
+      successEl.classList.remove('hidden');
+      successEl.focus();
+    }
+
+    document.getElementById('shareAnother').addEventListener('click', function () {
+      form.reset();
+      delete identity.dataset.stashName;
+      delete identity.dataset.stashTitle;
+      clearErrors();
+      applyAnonymous();
+      successEl.classList.add('hidden');
+      form.classList.remove('hidden');
+      (anon.checked ? quoteInput : nameInput).focus();
+    });
+  })();
+</script>

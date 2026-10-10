@@ -362,8 +362,13 @@ def update_testimonial_view(request, testimonial):
     testimonial_inst = TestimonialModel.objects.filter(slug=testimonial).first()
     testimonial_form = TestimonialForm(request.POST or None, instance=testimonial_inst)
 
+    is_not_approved = not testimonial_inst.is_approved
+
     if request.POST and testimonial_form.is_valid():
         testimonial_form.save()
+
+        if is_not_approved and "is_approved" in testimonial_form.changed_data:
+            return toast_json_ok("Testimonial approved successfully.")
 
         return toast_json_ok("Testimonial updated successfully.")
     return toast_json_error("Can't update testimonial.")

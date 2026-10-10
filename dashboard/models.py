@@ -118,7 +118,6 @@ class ServiceModel(models.Model):
         return super().save(*args, **kwargs)
 
 
-
     def __str__(self):
         return self.title
 
@@ -148,6 +147,7 @@ class TestimonialModel(models.Model):
     title = models.CharField(max_length=36, null=True, blank=True)
     quote = models.TextField()
     slug = models.SlugField(null=True)
+    is_approved = models.BooleanField(default=False)
     service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.SET_NULL, null=True, blank=True, related_name="testimonials")
 
 
