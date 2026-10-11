@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'widget_tweaks',
+    'phonenumber_field',
     'staffs',
     'dashboard',
     'main',
@@ -142,7 +143,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 465))
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
 EMAIL_USE_TLS = str(os.getenv("EMAIL_USE_TLS")) in ["1", "True", "true"]
 EMAIL_USE_SSL = str(os.getenv("EMAIL_USE_SSL")) in ["1", "True", "true"]
 

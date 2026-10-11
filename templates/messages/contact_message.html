@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New enquiry from {{ name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0; background-color:#f4eee3de; font-family:'Inter', Arial, Helvetica, sans-serif; color:#181523; -webkit-text-size-adjust:100%;">
+
+  {# Preview text shown beside the subject in the inbox #}
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f4eee3de;">
+    {{ name }} sent a message through the website contact form.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4eee3de;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background-color:#ffffff; border:1px solid #f3f4f6; border-radius:24px;">
+          <tr>
+            <td style="padding:36px 32px;">
+
+              {# Heading, same eyebrow + title pattern as the site #}
+              <p style="margin:0 0 8px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#EF6B2E;">
+                New website enquiry
+              </p>
+              <h1 style="margin:0; font-size:24px; line-height:32px; font-weight:800; letter-spacing:-0.01em; color:#181523;">
+                {{ name }} sent a message
+              </h1>
+              <p style="margin:8px 0 0 0; font-size:14px; line-height:22px; color:#4b5563;">
+                Sent through the contact form on your website.
+              </p>
+
+              <div style="height:1px; line-height:1px; font-size:1px; background-color:#e5e7eb; margin:24px 0;">&nbsp;</div>
+
+              {# Details #}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:0 0 16px 0;">
+                    <p style="margin:0 0 4px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#9ca3af;">Name</p>
+                    <p style="margin:0; font-size:15px; line-height:22px; font-weight:500; color:#181523;">{{ name }}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:0 0 16px 0;">
+                    <p style="margin:0 0 4px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#9ca3af;">Email</p>
+                    <p style="margin:0; font-size:15px; line-height:22px; font-weight:500;">
+                      <a href="mailto:{{ email }}" style="color:#EF6B2E; text-decoration:none;">{{ email }}</a>
+                    </p>
+                  </td>
+                </tr>
+                {% if phone %}
+                <tr>
+                  <td style="padding:0 0 16px 0;">
+                    <p style="margin:0 0 4px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#9ca3af;">Phone or WhatsApp</p>
+                    <p style="margin:0; font-size:15px; line-height:22px; font-weight:500;">
+                      <a href="tel:{{ phone }}" style="color:#181523; text-decoration:none;">{{ phone }}</a>
+                    </p>
+                  </td>
+                </tr>
+                {% endif %}
+                <tr>
+                  <td style="padding:0 0 8px 0;">
+                    <p style="margin:0 0 6px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#9ca3af;">Needs help with</p>
+                    {% if service %}
+                    <span style="display:inline-block; background-color:#FDE8DE; color:#EF6B2E; padding:5px 14px; border-radius:999px; font-size:13px; line-height:18px; font-weight:600;">{{ service }}</span>
+                    {% else %}
+                    <span style="display:inline-block; background-color:#f3f4f6; color:#4b5563; padding:5px 14px; border-radius:999px; font-size:13px; line-height:18px; font-weight:600;">General</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+
+              {# Message #}
+              <p style="margin:24px 0 8px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#9ca3af;">Message</p>
+              {# {{ message }} sits right against its tags on purpose: pre-wrap would show any extra spaces or blank lines #}
+              <div style="background-color:#f9fafb; border:1px solid #f3f4f6; border-left:4px solid #EF6B2E; border-radius:12px; padding:16px 18px; font-size:15px; line-height:24px; color:#374151; white-space:pre-wrap; word-wrap:break-word;">{{ message }}</div>
+
+              {# Reply button, same pill shape as the site buttons #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;">
+                <tr>
+                  <td style="border-radius:999px; background-color:#EF6B2E;">
+                    <a href="mailto:{{ email }}?subject=Re:%20Your%20enquiry" style="display:inline-block; padding:12px 24px; font-size:14px; line-height:20px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">Reply to {{ name }}</a>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:20px 0 0 0; font-size:12px; line-height:18px; color:#9ca3af; text-align:center;">
+          You are receiving this because someone used the contact form on your website.
+        </p>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

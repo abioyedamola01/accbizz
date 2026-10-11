@@ -1,0 +1,10 @@
+{% extends "base/main/base.html" %}
+
+{% block title %}Contact us · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
+{% block content %}
+    {% include "main/partials/contacts/_intro.html" %}
+    {% include "main/partials/contacts/_form.html" %}
+    {% include "main/partials/contacts/_details.html" %}
+    {% include "main/partials/contacts/_faqs.html" %}
+{% endblock content %}

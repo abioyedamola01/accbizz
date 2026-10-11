@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel,)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel)
 
 
 class EditProfileForm(forms.ModelForm):
@@ -70,3 +70,9 @@ class TestimonialForm(forms.ModelForm):
     class Meta:
         model = TestimonialModel
         fields = ("name", "title", "quote", "service", "is_approved",)
+
+
+class ContactMessageForm(forms.ModelForm):
+    class Meta:
+        model = ContactMessageModel
+        fields = ("name", "email", "phone", "service", "message",)

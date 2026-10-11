@@ -1,9 +1,11 @@
 from django.http import (Http404, JsonResponse,)
 from django.shortcuts import (render, get_object_or_404,)
 from django.forms.models  import model_to_dict
-from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel, TestimonialModel)
-from dashboard.forms import TestimonialForm
+from dashboard.models import (SiteModel, HeroSectionModel, ServiceModel, TestimonialModel, FAQsModel,)
+from dashboard.forms import (TestimonialForm, ContactMessageForm,)
 from dashboard.utils import (toast_json_ok, toast_json_error,)
+from .utils import send_contact_message
+
 
 
 def home_view(request):
@@ -55,7 +57,7 @@ def services_view(request):
 def service_detail_view(request, service_slug):
     # site_info_instance = SiteModel.objects.select_related("about",).first()
     service = ServiceModel.objects.prefetch_related("related_services", "faqs", "testimonials",).filter(slug=service_slug).first()
-    testimonials = service.testimonials.filter()
+    testimonials = service.testimonials.filter(is_approved=True)
     if not service:
         raise Http404()
     
@@ -119,7 +121,6 @@ def testimonials_view(request):
 
     batch_point = testimonials[5].id if len(testimonials) == 7 else None
     context["batch_point"] = batch_point
-    print(batch_point)
     return render(request, "main/testimonials.html", context)
 
 
@@ -140,6 +141,7 @@ def get_testimonials_batch_view(request, batch_point):
             "service": service
         }
 
+
         items.append(item)
 
     
@@ -149,8 +151,6 @@ def get_testimonials_batch_view(request, batch_point):
 
     context["more_testimonials"] = True if len(testimonials) == 7 else False
     context["batch_point"] = testimonials[5].id if len(testimonials) == 7 else None
-
-    print(context)
 
     return JsonResponse(context)
 
@@ -164,3 +164,65 @@ def submit_testimonial_view(request):
 
         return toast_json_ok("Testimonial submitted successfully.")
     return toast_json_error("Can't submit testimonial.")
+
+
+
+
+
+def contacts_view(request):
+    contact_form = ContactMessageForm()
+    service_titles = list()
+    for title in list(ServiceModel.objects.filter(is_active=True).values_list("title",)):
+        service_titles.extend(title)
+    site_info = SiteModel.objects.filter().first()
+
+    faqs = list(FAQsModel.objects.filter().order_by("-id")[:7])
+
+    context = {
+        "contact_form": contact_form,
+        "service_titles": service_titles,
+        "site_info": site_info,
+        "faqs": faqs[:6],
+        "more_faqs": True if len(faqs) == 7 else False,
+        "faqs_batch_point": faqs[5].id if len(faqs) == 7 else None,
+        "current": "contacts"
+    }
+    
+    return render(request, "main/contacts.html", context)
+
+
+def submit_contact_view(request):
+    contact_form = ContactMessageForm(request.POST or None)
+
+    if request.POST and contact_form.is_valid():
+        data = contact_form.cleaned_data
+        site_info = SiteModel.objects.filter().first()
+        send_contact_message(site_info=site_info, name=data["name"], email=data["email"],message=data["message"], phone=data["phone"], service=data["service"])
+        
+        contact_form.save()
+
+        return toast_json_ok("Message sent successfully.")
+    return toast_json_error("Can't send message")
+
+
+
+def contacts_get_faqs_batch_view(request, batch_point):
+    faqs = list(FAQsModel.objects.filter(id__lt=batch_point).order_by("-id")[:7])
+
+    items = list()
+
+    for faq in faqs[:6]:
+        item = {
+            "question": faq.question,
+            "answer": faq.answer
+        }
+
+        items.append(item)
+
+    context = {
+        "faqs": items,
+        "faqs_batch_point": faqs[5].id if len(faqs) == 7 else None,
+        "more_faqs": True if len(faqs) == 7 else None
+    }
+
+    return JsonResponse(context)

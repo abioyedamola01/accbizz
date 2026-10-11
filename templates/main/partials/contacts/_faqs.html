@@ -1,0 +1,310 @@
+{# ===================================================================== #}
+{# Contact page FAQs: general questions, not tied to one service.         #}
+{# Expects:                                                               #}
+{#   faqs              first batch of FAQ objects (question, answer)      #}
+{#   more_faqs         True if there are more to load                     #}
+{#   faqs_batch_point  the batch point to pass to load the next batch     #}
+{# "Read more" fetches the URL contacts_get_faqs_batch with the batch point,#}
+{# and expects:                                                            #}
+{#   { "faqs": [{question, answer}], "faqs_batch_point": N, "more_faqs": bool } #}
+{# The whole section is hidden when there are no FAQs.                    #}
+{# ===================================================================== #}
+{% if faqs %}
+<section class="px-4 lg:px-6 py-6">
+  <div class="max-w-4xl mx-auto">
+
+    <div class="bg-white rounded-3xl shadow-card p-8 sm:p-12">
+
+      {# ---- Section heading ---- #}
+      <div class="flex items-end justify-between mb-10">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block">
+            FAQs
+          </span>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+            Frequently asked questions
+          </h2>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-500 -mt-6 mb-8">
+        Quick answers to the questions we hear most.
+        Can't find yours? <a href="#contact-form" class="text-brand-500 font-semibold hover:underline underline-offset-4">Send us a message</a>.
+      </p>
+
+      {# ---- FAQ list ---- #}
+      <div class="faq-list">
+        {% for faq in faqs %}
+            <div class="faq-item border-b border-gray-100">
+            <button type="button" class="faq-trigger w-full flex items-start gap-4 text-left cursor-pointer py-5">
+                <span class="flex-1 text-sm font-semibold text-dark-900">{{ faq.question }}</span>
+                <svg class="faq-chevron w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
+            <div class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out">
+                <div class="overflow-hidden">
+                <p class="text-sm text-gray-500 leading-relaxed pb-5">{{ faq.answer }}</p>
+                </div>
+            </div>
+            </div>
+        {% endfor %}
+      </div>
+
+      {% if more_faqs %}
+        {# ---- Read more (opens modal, loads via AJAX) — bottom right ---- #}
+        <div class="text-right mt-6">
+          <button type="button" id="faqReadMoreBtn"
+            data-batch-point="{{ faqs_batch_point }}"
+            class="faq-learn-more inline-flex items-center gap-2 text-sm font-semibold text-brand-500 hover:underline underline-offset-4 decoration-brand-500 hover:text-brand-600 hover:decoration-brand-600 cursor-pointer transition">
+            Read more
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+
+{# ---- FAQ Modal: additional questions, loaded via AJAX ---- #}
+<div id="faqModalOverlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-[80vw] h-[80vh] flex flex-col p-6 sm:p-8 relative">
+
+    <div class="flex-shrink-0 relative mb-4">
+      <button type="button" id="faqModalCloseBtn"
+        class="absolute top-0 right-0 text-gray-400 hover:text-gray-700 cursor-pointer transition"
+        aria-label="Close">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight text-dark-900 pr-8">
+        More questions
+      </h3>
+    </div>
+
+    {# Loading spinner — shown while the initial batch is being fetched #}
+    <div id="faqModalSpinner" class="flex-1 hidden items-center justify-center">
+      <svg class="w-10 h-10 animate-spin text-brand-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+    </div>
+
+    {# Error state #}
+    <div id="faqModalError" class="flex-1 hidden items-center justify-center text-center px-6">
+      <p class="text-sm text-gray-500">
+        Something went wrong loading these questions.
+        <button type="button" id="faqModalRetryBtn" class="text-brand-500 font-semibold hover:underline underline-offset-4 cursor-pointer">Try again</button>
+      </p>
+    </div>
+
+    <div id="faqModalBody" class="flex-1 overflow-y-auto pr-1 hidden">
+      <div id="faqModalList" class="faq-list"></div>
+
+      {# ---- Read more inside modal — shown/hidden dynamically based on more_faqs ---- #}
+      <div id="faqModalReadMoreWrap" class="text-right mt-6 hidden">
+        <button type="button" id="faqModalReadMoreBtn"
+          class="faq-learn-more inline-flex items-center gap-2 text-sm font-semibold text-brand-500 hover:underline underline-offset-4 decoration-brand-500 hover:text-brand-600 hover:decoration-brand-600 cursor-pointer transition">
+          <span class="faq-modal-more-label">Read more</span>
+          <svg class="faq-modal-more-icon w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+          <svg class="faq-modal-more-spinner w-4 h-4 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+    // ------------------------------------------------------------------
+    // Config — change this one line and every request updates with it
+    // ------------------------------------------------------------------
+    // Django needs a number to build the URL, so a placeholder is used here
+    // and swapped for the real batch point on each request.
+    var FAQ_ENDPOINT_TEMPLATE = "{% url "contacts_get_faqs_batch" 123456789 %}";
+
+    function buildFaqEndpoint(batchPoint) {
+      return FAQ_ENDPOINT_TEMPLATE.replace("123456789", batchPoint);
+    }
+
+    // ------------------------------------------------------------------
+    // Accordion toggle — shared by the static list and the modal list,
+    // including items injected into the modal via AJAX
+    // ------------------------------------------------------------------
+    function toggleFaqItem(trigger) {
+      var item = trigger.closest('.faq-item');
+      var list = item.closest('.faq-list');
+      var answer = item.querySelector('.faq-answer');
+      var chevron = trigger.querySelector('.faq-chevron');
+      var isOpening = answer.classList.contains('grid-rows-[0fr]');
+
+      list.querySelectorAll('.faq-item').forEach(function (otherItem) {
+        if (otherItem === item) return;
+        otherItem.querySelector('.faq-answer').classList.add('grid-rows-[0fr]');
+        otherItem.querySelector('.faq-answer').classList.remove('grid-rows-[1fr]');
+        otherItem.querySelector('.faq-chevron').classList.remove('rotate-180');
+      });
+
+      answer.classList.toggle('grid-rows-[1fr]', isOpening);
+      answer.classList.toggle('grid-rows-[0fr]', !isOpening);
+      chevron.classList.toggle('rotate-180', isOpening);
+    }
+
+    // Static, server-rendered list — direct listeners are fine here
+    document.querySelectorAll('.faq-list .faq-trigger').forEach(function (trigger) {
+      trigger.addEventListener('click', function () { toggleFaqItem(trigger); });
+    });
+
+    // Modal list is populated dynamically via AJAX, so use delegation
+    var faqModalList = document.getElementById('faqModalList');
+    faqModalList.addEventListener('click', function (e) {
+      var trigger = e.target.closest('.faq-trigger');
+      if (trigger) toggleFaqItem(trigger);
+    });
+
+    // ------------------------------------------------------------------
+    // Modal open / close + AJAX loading
+    // ------------------------------------------------------------------
+    var readMoreBtn = document.getElementById('faqReadMoreBtn');
+    var overlay = document.getElementById('faqModalOverlay');
+    var closeBtn = document.getElementById('faqModalCloseBtn');
+    var spinner = document.getElementById('faqModalSpinner');
+    var errorBox = document.getElementById('faqModalError');
+    var retryBtn = document.getElementById('faqModalRetryBtn');
+    var body = document.getElementById('faqModalBody');
+    var readMoreWrap = document.getElementById('faqModalReadMoreWrap');
+    var modalReadMoreBtn = document.getElementById('faqModalReadMoreBtn');
+
+    var currentBatchPoint = null;
+
+    function showState(state) {
+      // state: 'loading' | 'error' | 'ready'
+      spinner.classList.toggle('hidden', state !== 'loading');
+      spinner.classList.toggle('flex', state === 'loading');
+      errorBox.classList.toggle('hidden', state !== 'error');
+      errorBox.classList.toggle('flex', state === 'error');
+      body.classList.toggle('hidden', state !== 'ready');
+    }
+
+    function renderFaqItems(faqs) {
+      var fragment = document.createDocumentFragment();
+      faqs.forEach(function (faq) {
+        var item = document.createElement('div');
+        item.className = 'faq-item border-b border-gray-100';
+        item.innerHTML =
+          '<button type="button" class="faq-trigger w-full flex items-start gap-4 text-left cursor-pointer py-5">' +
+            '<span class="flex-1 text-sm font-semibold text-dark-900"></span>' +
+            '<svg class="faq-chevron w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
+              '<path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>' +
+            '</svg>' +
+          '</button>' +
+          '<div class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out">' +
+            '<div class="overflow-hidden">' +
+              '<p class="text-sm text-gray-500 leading-relaxed pb-5"></p>' +
+            '</div>' +
+          '</div>';
+        // textContent (not innerHTML) so API data can't inject markup
+        item.querySelector('.flex-1').textContent = faq.question;
+        item.querySelector('p').textContent = faq.answer;
+        fragment.appendChild(item);
+      });
+      faqModalList.appendChild(fragment);
+    }
+
+    function setModalReadMoreLoading(isLoading) {
+      modalReadMoreBtn.disabled = isLoading;
+      modalReadMoreBtn.classList.toggle('opacity-60', isLoading);
+      modalReadMoreBtn.querySelector('.faq-modal-more-label').classList.toggle('hidden', isLoading);
+      modalReadMoreBtn.querySelector('.faq-modal-more-icon').classList.toggle('hidden', isLoading);
+      modalReadMoreBtn.querySelector('.faq-modal-more-spinner').classList.toggle('hidden', !isLoading);
+    }
+
+    function fetchFaqBatch(batchPoint, isInitial) {
+      return fetch(buildFaqEndpoint(batchPoint))
+        .then(function (res) {
+          if (!res.ok) throw new Error('Request failed with status ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          renderFaqItems(data.faqs || []);
+          currentBatchPoint = data.faqs_batch_point;
+
+          if (data.more_faqs) {
+            readMoreWrap.classList.remove('hidden');
+          } else {
+            readMoreWrap.classList.add('hidden');
+          }
+
+          if (isInitial) showState('ready');
+        });
+    }
+
+    function openFaqModal() {
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+
+      // Fresh state every time the modal is opened
+      faqModalList.innerHTML = '';
+      readMoreWrap.classList.add('hidden');
+      showState('loading');
+
+      var initialBatchPoint = readMoreBtn.dataset.batchPoint;
+      fetchFaqBatch(initialBatchPoint, true).catch(function () {
+        showState('error');
+      });
+    }
+
+    function closeFaqModal() {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    if (readMoreBtn && overlay) {
+      readMoreBtn.addEventListener('click', openFaqModal);
+      closeBtn.addEventListener('click', closeFaqModal);
+
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeFaqModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeFaqModal();
+      });
+    }
+
+    retryBtn.addEventListener('click', function () {
+      showState('loading');
+      var batchPoint = readMoreBtn.dataset.batchPoint;
+      fetchFaqBatch(batchPoint, true).catch(function () {
+        showState('error');
+      });
+    });
+
+    modalReadMoreBtn.addEventListener('click', function () {
+      if (!currentBatchPoint) return;
+      setModalReadMoreLoading(true);
+      fetchFaqBatch(currentBatchPoint, false)
+        .catch(function () {
+          // Keep existing items visible so the user can just retry the click
+        })
+        .then(function () {
+          setModalReadMoreLoading(false);
+        });
+    });
+
+  });
+</script>
+{% endif %}

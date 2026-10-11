@@ -4,3 +4,4 @@ dj_database_url
 dotenv
 django-widget-tweaks
 pillow
+django-phonenumber-field[phonenumbers]

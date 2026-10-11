@@ -1,0 +1,284 @@
+{% load widget_tweaks %}
+{# ===================================================================== #}
+{# Contact form section: heading + card, same structure as the            #}
+{# testimonials share form. Include it on its own on the contact page.     #}
+{# Expects:                                                               #}
+{#   contact_form    with name, email, phone, service, message.          #}
+{#                   phone and service are optional.                     #}
+{#   service_titles  list of service names (strings) for the dropdown.   #}
+{# `service` is a plain text field. The dropdown below fills it: picking  #}
+{# "General" leaves it empty, so the server should store None.            #}
+{# Posts with fetch to main_submit_contact and expects JSON:               #}
+{#   { "ok": true }                                                       #}
+{#   { "ok": false, "message": "...", "errors": { "email": ["..."] } }    #}
+{# The server ignores the submission if the hidden "website" field        #}
+{# (a spam trap) is filled in.                                            #}
+{# ===================================================================== #}
+<style>
+  /* Spam trap: off screen, not display:none, so simple bots still fill it */
+  .ctc-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .ctc-section { scroll-margin-top: 6rem; }
+</style>
+
+<section id="contact-form" class="ctc-section px-4 lg:px-6 py-10">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+      <span class="text-xs font-semibold uppercase tracking-wide text-brand-500 mb-2 block">
+        Send a message
+      </span>
+      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
+        Tell us what you need
+      </h2>
+      <p class="mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">
+        It only takes a minute. We read every message and reply by email.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-card border border-gray-100 p-6 sm:p-10">
+  <form id="contactForm" method="post" action="{% url "main_submit_contact" %}" class="space-y-5" novalidate>
+    {% csrf_token %}
+
+    {# Spam trap: people never see or fill this #}
+    <div class="ctc-hp" aria-hidden="true">
+      <label>Leave this field empty
+        <input type="text" name="website" tabindex="-1" autocomplete="off" />
+      </label>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="min-w-0">
+        <label for="contactName" class="block text-sm font-medium text-dark-900 mb-1.5">Full name</label>
+        {% render_field contact_form.name id="contactName" autocomplete="name" class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+      </div>
+      <div class="min-w-0">
+        <label for="contactEmail" class="block text-sm font-medium text-dark-900 mb-1.5">Email address</label>
+        {% render_field contact_form.email id="contactEmail" type="email" autocomplete="email" placeholder="you@example.com" class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="min-w-0">
+        <label for="contactPhone" class="block text-sm font-medium text-dark-900 mb-1.5">Phone or WhatsApp <span class="font-normal text-gray-400">(optional)</span></label>
+        {% render_field contact_form.phone id="contactPhone" type="tel" autocomplete="tel" class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" %}
+      </div>
+      <div class="min-w-0">
+        <label for="contactServiceSelect" class="block text-sm font-medium text-dark-900 mb-1.5">What do you need help with? <span class="font-normal text-gray-400">(optional)</span></label>
+        {# The real `service` field stays in the DOM so it posts, but is hidden. The dropdown fills it. #}
+        <div class="hidden">{% render_field contact_form.service id="contactService" %}</div>
+        {# No name attribute, so the dropdown itself is never posted #}
+        <select id="contactServiceSelect"
+          class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
+          <option value="">General Enquiry</option>
+          {% for title in service_titles %}
+            <option value="{{ title }}">{{ title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label for="contactMessage" class="block text-sm font-medium text-dark-900 mb-1.5">Message</label>
+      {% render_field contact_form.message id="contactMessage" rows="5" placeholder="What do you need help with, and by when?" class="w-full min-h-[130px] rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition resize-y" %}
+    </div>
+
+    {# Form-level problems (network, server, spam check) #}
+    <p id="contactError" role="alert" class="hidden text-sm text-red-500"></p>
+
+    <button type="submit" id="contactSubmit"
+      class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer transition">
+      <svg id="contactSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      <span id="contactSubmitLabel">Send message</span>
+    </button>
+  </form>
+
+  {# Shown instead of the form once the message has been sent #}
+  <div id="contactSuccess" class="hidden text-center py-4" role="status" tabindex="-1">
+    <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <h3 class="text-lg font-bold text-dark-900">Message sent</h3>
+    <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+      We will reply to <span id="contactSuccessEmail" class="font-semibold text-dark-900 break-all"></span>, usually within 24 hours.
+    </p>
+    <button type="button" id="contactAnother"
+      class="mt-5 text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer transition-colors">
+      Send another message
+    </button>
+  </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var form = document.getElementById('contactForm');
+    if (!form) return;
+
+    var nameInput = form.querySelector('[name="name"]');
+    var emailInput = form.querySelector('[name="email"]');
+    var serviceField = form.querySelector('[name="service"]');
+    var serviceSelect = document.getElementById('contactServiceSelect');
+    var messageInput = form.querySelector('[name="message"]');
+    var errorEl = document.getElementById('contactError');
+    var submitBtn = document.getElementById('contactSubmit');
+    var spinner = document.getElementById('contactSpinner');
+    var submitLabel = document.getElementById('contactSubmitLabel');
+    var successEl = document.getElementById('contactSuccess');
+    var successEmail = document.getElementById('contactSuccessEmail');
+
+    // ---- Service dropdown -> hidden field ----
+    // "General" has the value "", so the field posts empty and the server stores None.
+    serviceField.value = serviceSelect.value;
+    serviceSelect.addEventListener('change', function () {
+      serviceField.value = serviceSelect.value;
+    });
+
+    // ---- Messages ----
+    function clearErrors() {
+      form.querySelectorAll('.field-error').forEach(function (el) { el.remove(); });
+      form.querySelectorAll('[data-has-error]').forEach(function (el) {
+        el.style.borderColor = '';
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('data-has-error');
+      });
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+
+    function showFieldError(control, message) {
+      var p = document.createElement('p');
+      p.className = 'field-error mt-1.5 text-xs text-red-500';
+      p.textContent = message; // textContent, never innerHTML
+      control.insertAdjacentElement('afterend', p);
+      control.style.borderColor = '#f87171';
+      control.setAttribute('aria-invalid', 'true');
+      control.dataset.hasError = '1';
+    }
+
+    function showBanner(message) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+    }
+
+    function firstMessage(value) {
+      var first = Array.isArray(value) ? value[0] : value;
+      return typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
+    }
+
+    // errors looks like { email: ["Enter a valid email address."], __all__: ["..."] }
+    // Returns true if at least one message was placed under a field.
+    function showServerErrors(errors) {
+      var placed = false;
+      Object.keys(errors).forEach(function (key) {
+        var message = firstMessage(errors[key]);
+        var control = key === '__all__' ? null
+          : key === 'service' ? serviceSelect // the real field is hidden, so show it under the dropdown
+          : form.querySelector('[name="' + key + '"]');
+        if (control && control.type !== 'hidden') {
+          showFieldError(control, message);
+          placed = true;
+        } else if (!errorEl.textContent) {
+          showBanner(message); // non-field error
+        }
+      });
+      return placed;
+    }
+
+    function setBusy(busy) {
+      submitBtn.disabled = busy;
+      spinner.classList.toggle('hidden', !busy);
+      submitLabel.textContent = busy ? 'Sending...' : 'Send message';
+    }
+
+    // ---- Submit ----
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearErrors();
+
+      // Quick checks first; the server checks again. Fields are checked
+      // bottom to top so the first one on the page ends up focused.
+      var firstBad = null;
+      if (!messageInput.value.trim()) {
+        showFieldError(messageInput, 'Write a short message about what you need.');
+        firstBad = messageInput;
+      }
+      if (!emailInput.value.trim()) {
+        showFieldError(emailInput, 'Enter your email address so we can reply.');
+        firstBad = emailInput;
+      } else if (!emailInput.checkValidity()) {
+        showFieldError(emailInput, 'Enter a valid email address, like you@example.com.');
+        firstBad = emailInput;
+      }
+      if (!nameInput.value.trim()) {
+        showFieldError(nameInput, 'Enter your name.');
+        firstBad = nameInput;
+      }
+      if (firstBad) { firstBad.focus(); return; }
+
+      setBusy(true);
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 15000);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        signal: controller.signal,
+      })
+        .then(function (response) {
+          return response.json().then(
+            function (data) { return { response: response, data: data }; },
+            function () { return { response: response, data: null }; }
+          );
+        })
+        .then(function (result) {
+          var data = result.data;
+          if (result.response.ok && data && data.ok !== false) {
+            showSuccess();
+            return;
+          }
+          if (!data) {
+            showBanner('The server could not process your message. Try again in a moment.');
+            return;
+          }
+          var placed = data.errors ? showServerErrors(data.errors) : false;
+          if (data.message) showBanner(data.message);
+          else if (!placed && !errorEl.textContent) showBanner('Your message was not sent. Check the details and try again.');
+        })
+        .catch(function (error) {
+          showBanner(error && error.name === 'AbortError'
+            ? 'The request timed out. Check your connection and try again.'
+            : 'Could not reach the server. Check your connection and try again.');
+        })
+        .finally(function () {
+          clearTimeout(timer);
+          setBusy(false);
+        });
+    });
+
+    // ---- Success / send another ----
+    function showSuccess() {
+      successEmail.textContent = emailInput.value.trim();
+      form.classList.add('hidden');
+      successEl.classList.remove('hidden');
+      successEl.focus();
+    }
+
+    document.getElementById('contactAnother').addEventListener('click', function () {
+      // Keep name, email and phone so a second message is quick; clear the rest
+      messageInput.value = '';
+      serviceSelect.selectedIndex = 0;
+      serviceField.value = '';
+      clearErrors();
+      successEl.classList.add('hidden');
+      form.classList.remove('hidden');
+      messageInput.focus();
+    });
+  })();
+</script>

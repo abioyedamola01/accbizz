@@ -135,5 +135,5 @@ def resend_staff_otp_view(request):
 def staff_logout_view(request):
     request.session.flush()
     logout(request)
-    return redirect("home")
+    return redirect("staff_login")
 

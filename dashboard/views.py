@@ -278,7 +278,6 @@ def update_service_view(request, service):
     service_form = ServiceForm(request.POST or None, instance=service_inst)
 
     if request.POST and service_form.is_valid():
-        print(service_inst)
         service_form.save()
 
         return toast_json_ok(f"{service_inst.title} was updated successfully.")

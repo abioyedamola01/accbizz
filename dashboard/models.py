@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from phonenumber_field.modelfields import PhoneNumberField
 
 # Create your models here.
 
@@ -58,6 +59,9 @@ class SiteModel(models.Model):
     company_name = models.CharField(max_length=50)
     display_name = models.CharField(max_length=10)
     domain_url = models.URLField(default="")
+    email = models.EmailField()
+    whatsapp = models.URLField()
+    location = models.URLField(max_length=500)
     last_updated = models.DateTimeField(auto_now=True, null=True)
     hero = models.OneToOneField("dashboard.HeroSectionModel", on_delete=models.SET_NULL, null=True)
     about = models.OneToOneField("dashboard.AboutSectionModel", on_delete=models.SET_NULL, null=True)
@@ -157,3 +161,12 @@ class TestimonialModel(models.Model):
             self.slug = f"{self.id}-{slugify(self.quote[:10])}"
             return super().save(update_fields=("slug",))
         return super().save(*args, **kwargs)
+
+
+
+class ContactMessageModel(models.Model):
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    phone = PhoneNumberField(blank=True, null=True)
+    service = models.CharField(max_length=70, blank=True, null=True)
+    message = models.TextField()
