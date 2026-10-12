@@ -14,15 +14,6 @@
 
 <script>
   (function () {
-    // ---- Django's |title filter, so a saved value looks like the server-rendered one ----
-    function djangoTitle(value) {
-      var t = String(value).toLowerCase().replace(/\p{L}+/gu, function (word) {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      });
-      t = t.replace(/([a-z])'([A-Z])/g, function (m) { return m.toLowerCase(); });
-      return t.replace(/\d([A-Z])/g, function (m) { return m.toLowerCase(); });
-    }
-
     // ---- Inline edit forms (.site-info-form) ----
 
     function setEditing(form, editing) {
@@ -67,14 +58,14 @@
 
     // After a successful save: put the new values into the read-only text and leave edit mode.
     // If the view returns { "values": { "<field name>": "<text to show>" } } that text is used,
-    // otherwise the typed value is shown the way |title would show it.
+    // otherwise the value is shown exactly as it was typed (no case changes).
     function commitSave(form, result) {
       var values = (result.data && result.data.values) || {};
 
       form.querySelectorAll('.site-edit-field').forEach(function (field) {
         var view = field.parentElement.querySelector('.site-view-value');
         if (view) {
-          view.textContent = values[field.name] !== undefined ? values[field.name] : djangoTitle(field.value);
+          view.textContent = values[field.name] !== undefined ? values[field.name] : field.value;
         }
         field.dataset.originalValue = field.value;
       });

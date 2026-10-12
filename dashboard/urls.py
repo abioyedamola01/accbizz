@@ -6,6 +6,7 @@ from .views import (dashboard_home_view,
                     update_faq_view, delete_faq_view, add_faq_view,
                     update_service_view, delete_service_view, add_service_view,
                     update_testimonial_view, delete_testimonial_view, add_testimonial_view,
+                    communication_view, get_messages_batch_view, attend_message_view, unattend_message_view, delete_message_view,
 )
 
 
@@ -32,4 +33,9 @@ urlpatterns = [
     path("contents/services/update-testimonials/<slug:testimonial>", update_testimonial_view, name="dashboard_update_testimonial"),
     path("contents/services/delete-testimonials/<slug:testimonial>", delete_testimonial_view, name="dashboard_delete_testimonial"),
     path("contents/services/add-testimonials", add_testimonial_view, name="dashboard_add_testimonial"),
+    path("communication", communication_view, name="dashboard_communication"),
+    path("communication/contact-messages/get-messages-batch/<int:batch_point>", get_messages_batch_view, name="dashboard_get_messages_batch"),
+    path("communication/contact-messages/attend-message/<int:message>", attend_message_view, name="dashboard_attend_message"),
+    path("communication/contact-messages/unatted-message/<int:message>", unattend_message_view, name="dashboard_unattend_message"),
+    path("communication/contact-messages/delete_message/<int:message>", delete_message_view, name="dashboard_delete_message"),
 ]

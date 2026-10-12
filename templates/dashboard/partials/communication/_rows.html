@@ -1,0 +1,52 @@
+{# ===================================================================== #}
+{# Message rows for the Communication table.                              #}
+{# Used by dashboard/communication.html AND by the load-more endpoint,    #}
+{# which renders this same file and returns it as the "html" string.      #}
+{# Expects `contact_messages` (each: pk, name, email, phone, service,     #}
+{#   message, created_at, is_attended, attended_by, attended_at) and      #}
+{#   `request` (to tell "attended by you" from "attended by someone").    #}
+{# The loop variable is `msg`, never `message`, so it cannot clash with   #}
+{# Django's own `messages` context variable.                              #}
+{# ===================================================================== #}
+{% for msg in contact_messages %}
+<tr class="msg-row cursor-pointer hover:bg-gray-50 transition" tabindex="0" role="button"
+  data-name="{{ msg.name }}"
+  data-email="{{ msg.email }}"
+  data-phone="{{ msg.phone|default:'' }}"
+  data-service="{{ msg.service|default:'' }}"
+  data-message="{{ msg.message }}"
+  data-received="{{ msg.created_at|date:'j M Y, g:i A' }}"
+  data-attended="{% if msg.is_attended %}1{% else %}0{% endif %}"
+  data-attended-by="{% if msg.attended_by %}{{ msg.attended_by.get_full_name|default:msg.attended_by.get_username }}{% endif %}"
+  data-mine="{% if msg.attended_by_id and msg.attended_by_id == request.user.id %}1{% else %}0{% endif %}"
+  data-attended-ago="{% if msg.attended_at %}{{ msg.attended_at|timesince }} ago{% endif %}"
+  data-attend-url="{% url "dashboard_attend_message" msg.pk %}"
+  data-unattend-url="{% url "dashboard_unattend_message" msg.pk %}"
+  data-delete-url="{% url "dashboard_delete_message" msg.pk %}">
+
+  <td class="py-3 pr-4">
+    <div class="flex items-center gap-2.5">
+      {# Unattended dot. The script adds or removes bg-brand-500 #}
+      <span class="msg-dot w-2 h-2 rounded-full shrink-0 {% if not msg.is_attended %}bg-brand-500{% endif %}"></span>
+      <div class="min-w-0">
+        <p class="msg-name text-sm text-dark-900 truncate {% if msg.is_attended %}font-medium{% else %}font-bold{% endif %}">{{ msg.name }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ msg.email }}</p>
+      </div>
+    </div>
+  </td>
+
+  <td class="py-3 pr-4"><span class="text-sm text-gray-600 whitespace-nowrap">{{ msg.service|default:"General" }}</span></td>
+
+  <td class="py-3 pr-4 max-w-[260px]"><p class="text-sm text-gray-600 truncate">{{ msg.message }}</p></td>
+
+  <td class="py-3 pr-4"><span class="text-xs text-gray-500 whitespace-nowrap">{{ msg.created_at|timesince }} ago</span></td>
+
+  <td class="py-3 pr-5">
+    {% if msg.is_attended %}
+    <span class="msg-status inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-gray-100 text-gray-500">Attended by {% if msg.attended_by_id == request.user.id %}you{% else %}{{ msg.attended_by.get_full_name|default:msg.attended_by.get_username|default:"someone" }}{% endif %}</span>
+    {% else %}
+    <span class="msg-status inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-brand-100 text-brand-600">Unattended</span>
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}

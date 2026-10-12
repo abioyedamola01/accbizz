@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -167,6 +168,26 @@ class TestimonialModel(models.Model):
 class ContactMessageModel(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
-    phone = PhoneNumberField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     service = models.CharField(max_length=70, blank=True, null=True)
     message = models.TextField()
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
+    attended_at = models.DateTimeField(auto_now=False, auto_now_add=False, null=True, blank=True)
+    is_attended = models.BooleanField(default=False)
+    attended_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.SET_NULL, null=True, blank=True)
+
+
+    def set_attended(self, request):
+        self.is_attended = True
+        self.attended_by = request.user
+        self.attended_at = timezone.now()
+
+        return super().save(update_fields=("is_attended", "attended_by", "attended_at",))
+
+
+    def set_unattended(self):
+        self.is_attended = False
+        self.attended_by = None
+        self.attended_at = None
+
+        return super().save(update_fields=("is_attended", "attended_by", "attended_at",))

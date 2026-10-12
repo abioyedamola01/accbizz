@@ -26,9 +26,6 @@ def send_contact_message(site_info, name, email, message, phone=None, service=No
     plain_message += f"Enquiry Type: {enquiry_type}\n\n"
     plain_message += f"Message:\n{message}"
 
-
-    print(plain_message)
-    print(html_message)
     
     
     send_mail(

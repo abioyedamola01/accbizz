@@ -209,9 +209,9 @@ admin_permissions = [
     ("delete_media", "Can delete media"),
 
     # Messages
-    ("view_messages", "Can view contact messages"),
-    ("reply_messages", "Can reply to contact messages"),
-    ("delete_messages", "Can delete contact messages"),
+    ("manage_messages", "Can manage contact messages"),
+    ("reply_message", "Can reply to contact messages"),
+    ("delete_message", "Can delete contact messages"),
 
     # Quote Requests
     ("view_quotes", "Can view quote requests"),

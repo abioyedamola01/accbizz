@@ -21,3 +21,6 @@ def toast_json_error(message, errors=None, status=400):
         load["errors"] = errors
 
     return JsonResponse(load, status=status)
+
+
+

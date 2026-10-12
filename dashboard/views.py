@@ -1,9 +1,13 @@
 from django.shortcuts import (render, redirect,)
 from django.urls import reverse
+from django.http import JsonResponse
 from django.contrib.auth.decorators import (login_required, permission_required,)
+from django.db.models import Q
 from django.forms.models import model_to_dict
+from django.template.loader import render_to_string
+from django.utils import timezone
 from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
-from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel,)
+from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel,)
 from .utils import (toast_json_ok, toast_json_error,)
 
 
@@ -396,3 +400,99 @@ def delete_testimonial_view(request, testimonial):
 
         return toast_json_ok("Testimonial deleted successfully.")
     return toast_json_error("Can't delete testimonial.")
+
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_messages"), raise_exception=True)
+def communication_view(request):
+    contact_messages = list(ContactMessageModel.objects.filter().order_by("-attended_at", "-created_at",)[:11])
+
+    
+    context = {
+        "contact_messages": contact_messages[:10],
+        "messages_batch_point": contact_messages[9].id if len(contact_messages) == 11 else None,
+        "more_messages": True if len(contact_messages) == 11 else None,
+        "current": "communication"
+    }
+
+    return render(request, "dashboard/communication.html", context)
+
+
+
+def get_messages_batch_view(request, batch_point):
+    batch_point_inst = ContactMessageModel.objects.filter(id=batch_point).first()
+
+    context = {}
+
+    if batch_point_inst:
+        batch_point_timestamp = batch_point_inst.attended_at if batch_point_inst.attended_at else batch_point_inst.created_at
+
+        contact_messages = list(ContactMessageModel.objects.filter(Q(created_at__lt=batch_point_timestamp) | Q(attended_at__lt=batch_point_timestamp)).order_by("-attended_at", "-created_at")[:7])
+
+
+        html = render_to_string("dashboard/partials/communication/_rows.html", {"contact_messages": contact_messages[:6]}, request=request)
+
+        context["html"] = html
+        context["messages_batch_point"] = contact_messages[5].id if len(contact_messages) == 7 else None
+        context["more_messages"] = True if len(contact_messages) == 7 else False
+
+        
+
+    return JsonResponse(context)
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_messages",), raise_exception=True)
+def attend_message_view(request, message):
+    message_inst = ContactMessageModel.objects.filter(id=message).first()
+
+    if message_inst:
+        if message_inst.is_attended:
+            return toast_json_error(f"Message from {message_inst.name} has been attended to already.")
+        
+        if not message_inst.is_attended:
+            message_inst.set_attended(request)
+
+            return toast_json_ok(f"Message from {message_inst.name} has been set to be attended by you.")
+
+    return toast_json_error("Can't update message status.")
+
+
+
+@login_required
+@permission_required(("staffs.manage_messages",), raise_exception=True)
+def unattend_message_view(request, message):
+    message_inst = ContactMessageModel.objects.filter(id=message).first()
+
+    if message_inst:
+        if not message_inst.is_attended:
+            return toast_json_error("Can't update message status, message is yet to be attended to.")
+
+        if not message_inst.attended_by == request.user:
+            return toast_json_error("Can't update message status, message was attended to by another staff.")
+
+        if message_inst.attended_by == request.user:
+            message_inst.set_unattended()
+
+            return toast_json_ok(f"Message from {message_inst.name} hase been set to not attended successfully.")
+
+    return toast_json_error("Can't update message status.")
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_messages", "staffs.delete_message"), raise_exception=True)
+def delete_message_view(request, message):
+    message_inst = ContactMessageModel.objects.filter(id=message).first()
+
+    if message_inst:
+        message_inst.delete()
+
+        return toast_json_ok(f"Message from {message_inst.name} has been deleted successfullt.")
+    return toast_json_error("Can't delete message.")

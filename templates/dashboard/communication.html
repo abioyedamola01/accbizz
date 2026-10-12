@@ -1,0 +1,618 @@
+{% extends "base/dashboard/base.html" %}
+
+{% block title %}Communication · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
+{% block content %}
+{# ===================================================================== #}
+{# Communication: messages sent through the website contact form.         #}
+{#                                                                        #}
+{# Context:                                                               #}
+{#   contact_messages      first batch (newest first)                     #}
+{#   total_count           ALL messages in the database, not just the     #}
+{#                         loaded batch. Sent once, with the page.        #}
+{#   unattended_count      ALL messages nobody has attended. Sent once.   #}
+{#                         After that the page does the maths itself.     #}
+{#   more_messages         True if another batch can be loaded            #}
+{#   messages_batch_point  the number to pass to load the next batch      #}
+{#                                                                        #}
+{# URLs: dashboard_attend_message, dashboard_unattend_message,            #}
+{#   dashboard_delete_message (each takes the message pk) and             #}
+{#   dashboard_get_messages_batch (takes the batch point).                #}
+{#                                                                        #}
+{# Attend / unattend responses (no counts needed):                        #}
+{#   { "ok": true, "message": "...",                                      #}
+{#     "state": { "is_attended": true, "attended_by": "Ada",              #}
+{#                "attended_by_is_you": false, "attended_ago": "2 hours ago" } } #}
+{# Send "state" on failures too (for example a 403 when someone else      #}
+{# attended it), so a stale modal can correct itself.                     #}
+{# Delete response: { "ok": true, "message": "..." }                      #}
+{# Load more: { "html": "<tr>...</tr>", "messages_batch_point": 3,        #}
+{#   "more_messages": true }  (html = _rows.html rendered for that batch)  #}
+{#                                                                        #}
+{# Optional: give the sidebar's Communication badge the attribute         #}
+{#   data-unattended-badge  and this page keeps its number up to date.    #}
+{# ===================================================================== #}
+
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+
+  {# ---- Header ---- #}
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+    <div class="flex flex-wrap items-center gap-2">
+      <h2 class="text-base font-bold text-dark-900">Communication</h2>
+      <span id="msgTotalBadge" data-count="{{ total_count }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ total_count }} message{{ total_count|pluralize }}</span>
+      <span id="msgUnattendedBadge" data-count="{{ unattended_count }}" class="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">{{ unattended_count }} unattended</span>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      {# Filter tabs #}
+      <div id="msgTabs" class="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Filter messages">
+        <button type="button" data-filter="all" class="msg-tab px-3.5 py-2 text-sm font-semibold cursor-pointer transition bg-dark-800 text-white">All</button>
+        <button type="button" data-filter="unattended" class="msg-tab px-3.5 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Unattended</button>
+        <button type="button" data-filter="attended" class="msg-tab px-3.5 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Attended</button>
+      </div>
+
+      {# Search #}
+      <div class="relative">
+        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+        </svg>
+        <input type="search" id="msgSearch" placeholder="Search messages" autocomplete="off"
+          class="w-56 max-w-full h-10 rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-dark-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition" />
+      </div>
+    </div>
+  </div>
+
+  {# ---- Table ---- #}
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[720px] text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Sender</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Service</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Message</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Received</th>
+          <th class="py-3 pr-5 text-xs font-medium text-gray-500">Status</th>
+        </tr>
+      </thead>
+
+      <tbody id="msgBody" class="divide-y divide-gray-100">
+        {% include "dashboard/partials/communication/_rows.html" %}
+      </tbody>
+
+      {# No messages at all. The script shows it again if the last one is deleted. #}
+      <tbody id="msgEmpty" class="{% if contact_messages %}hidden{% endif %}">
+        <tr><td colspan="5" class="py-10 text-center text-sm text-gray-500">No messages yet. Messages sent through the contact form will appear here.</td></tr>
+      </tbody>
+
+      {# A filter or search matched nothing #}
+      <tbody id="msgFilterEmpty" class="hidden">
+        <tr><td colspan="5" class="py-10 text-center text-sm text-gray-500">No messages match your filter or search.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  {# ---- Load more ---- #}
+  <div id="msgMoreWrap" class="pt-5 text-center {% if not more_messages %}hidden{% endif %}">
+    <button type="button" id="msgMoreBtn" data-next="{{ messages_batch_point }}"
+      class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+      <svg id="msgMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span id="msgMoreLabel">Load more</span>
+    </button>
+    <p class="mt-2 text-xs text-gray-400">Search and filters cover the messages loaded so far.</p>
+  </div>
+
+  {# Hidden form. Carries the CSRF token for every action; the script sets its action each time. #}
+  <form id="msgActionForm" method="post" action="" class="hidden">{% csrf_token %}</form>
+
+  {# ---- Message detail modal ---- #}
+  <div id="msgModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="msgModalName">
+      <button type="button" id="msgModalClose"
+        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <h3 id="msgModalName" class="text-base font-bold text-dark-900 pr-8"></h3>
+      <p id="msgModalReceived" class="text-xs text-gray-500 mt-0.5"></p>
+      <p id="msgModalStatus" class="mt-3 text-xs font-medium"></p>
+
+      <dl class="mt-5 space-y-3 text-sm">
+        <div>
+          <dt class="text-xs font-medium text-gray-500">Email</dt>
+          <dd class="mt-0.5"><a id="msgModalEmail" href="#" class="font-semibold text-brand-500 hover:text-brand-600 break-all transition"></a></dd>
+        </div>
+        <div id="msgModalPhoneRow">
+          <dt class="text-xs font-medium text-gray-500">Phone or WhatsApp</dt>
+          <dd class="mt-0.5"><a id="msgModalPhone" href="#" class="font-semibold text-dark-900 hover:text-brand-500 transition"></a></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500">Needs help with</dt>
+          <dd class="mt-1"><span id="msgModalService" class="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-100 text-brand-600"></span></dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500">Message</dt>
+          <dd id="msgModalBody" class="mt-1 rounded-xl bg-gray-50 border border-gray-100 p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words"></dd>
+        </div>
+      </dl>
+
+      {# Actions. Which ones show depends on who attended the message. #}
+      <div class="mt-6 flex flex-wrap items-center gap-2">
+        <a id="msgReplyEmail" href="#"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">Reply by email</a>
+        <a id="msgReplyWhatsapp" href="#" target="_blank" rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-3.5 py-2 hover:bg-gray-50 cursor-pointer transition">Message on WhatsApp</a>
+        <button type="button" id="msgBtnAttend"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-3.5 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+          <svg id="msgAttendSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="msgAttendLabel">Mark as attended</span>
+        </button>
+        <button type="button" id="msgBtnUnattend"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-3.5 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+          <svg id="msgUnattendSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="msgUnattendLabel">Mark as unattended</span>
+        </button>
+        <button type="button" id="msgBtnDelete"
+          class="ml-auto text-sm font-semibold text-red-500 hover:text-red-600 px-2 py-2 cursor-pointer transition">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Delete confirmation modal ---- #}
+  <div id="msgDeleteModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 px-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-dark-900 mb-1">Delete message</h3>
+      <p class="text-sm text-gray-500 mb-6">
+        Are you sure you want to delete the message from <span id="msgDeleteName" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      </p>
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" id="msgDeleteCancel"
+          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">Cancel</button>
+        <button type="button" id="msgDeleteConfirm"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+          <svg id="msgDeleteSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="msgDeleteLabel">Delete message</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+    // ------------------------------------------------------------------
+    // Config
+    // ------------------------------------------------------------------
+    // WhatsApp links need the number with its country code. Numbers that
+    // start with 0 are treated as local and get this code in front of them.
+    var DEFAULT_COUNTRY_CODE = '234';
+
+    // Django needs a number to build the URL, so a placeholder is swapped
+    // for the real batch point on each request.
+    var BATCH_URL_TEMPLATE = "{% url "dashboard_get_messages_batch" 123456789 %}";
+
+    // ------------------------------------------------------------------
+    // Elements and state
+    // ------------------------------------------------------------------
+    function $(id) { return document.getElementById(id); }
+
+    var body = $('msgBody');
+    var actionForm = $('msgActionForm');
+    var modal = $('msgModal');
+    var deleteModal = $('msgDeleteModal');
+    var current = null;          // the row open in the modal
+    var activeFilter = 'all';
+
+    var PILL = 'msg-status inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ';
+    var PILL_UNATTENDED = PILL + 'bg-brand-100 text-brand-600';
+    var PILL_ATTENDED = PILL + 'bg-gray-100 text-gray-500';
+
+    // Show or hide an element with an inline style. The "hidden" class is not
+    // used for the modal buttons because they also have "inline-flex", and in
+    // Tailwind 4 that rule is generated after "hidden" and wins, so the button
+    // would stay on screen. An inline style beats both.
+    function setVisible(el, visible) {
+      el.style.display = visible ? '' : 'none';
+    }
+
+    // ------------------------------------------------------------------
+    // Reading a row
+    // ------------------------------------------------------------------
+    function isAttended(row) { return row.dataset.attended === '1'; }
+    function isMine(row) { return row.dataset.mine === '1'; }
+    function attendedBy(row) { return isMine(row) ? 'you' : (row.dataset.attendedBy || 'someone'); }
+
+    // ------------------------------------------------------------------
+    // Painting a row (dot, name weight, status pill) from its data
+    // ------------------------------------------------------------------
+    function paintRow(row) {
+      var attended = isAttended(row);
+      var dot = row.querySelector('.msg-dot');
+      var name = row.querySelector('.msg-name');
+      var status = row.querySelector('.msg-status');
+
+      dot.classList.toggle('bg-brand-500', !attended);
+      name.classList.toggle('font-bold', !attended);
+      name.classList.toggle('font-medium', attended);
+      status.className = attended ? PILL_ATTENDED : PILL_UNATTENDED;
+      status.textContent = attended ? 'Attended by ' + attendedBy(row) : 'Unattended';
+    }
+
+    // Apply the server's "state" object to a row
+    function applyState(row, state) {
+      var wasAttended = isAttended(row);
+      row.dataset.attended = state.is_attended ? '1' : '0';
+      row.dataset.attendedBy = state.attended_by || '';
+      row.dataset.mine = state.attended_by_is_you ? '1' : '0';
+      row.dataset.attendedAgo = state.attended_ago || '';
+      paintRow(row);
+
+      // Only a real change moves the count, so repeating a state never double counts
+      if (wasAttended !== state.is_attended) {
+        counts.unattended += state.is_attended ? -1 : 1;
+        renderCounts();
+      }
+
+      if (current === row) fillModalStatus();
+      applyFilter();
+    }
+
+    // The overall counts arrive once, with the page. From then on the page keeps
+    // the maths itself: attend -1 unattended, unattend +1, delete -1 total (and
+    // -1 unattended too if the deleted message was unattended).
+    var counts = {
+      total: parseInt($('msgTotalBadge').dataset.count, 10) || 0,
+      unattended: parseInt($('msgUnattendedBadge').dataset.count, 10) || 0
+    };
+
+    function renderCounts() {
+      counts.total = Math.max(0, counts.total);
+      counts.unattended = Math.max(0, counts.unattended);
+      $('msgTotalBadge').textContent = counts.total + (counts.total === 1 ? ' message' : ' messages');
+      $('msgUnattendedBadge').textContent = counts.unattended + ' unattended';
+      var sidebar = document.querySelector('[data-unattended-badge]');
+      if (sidebar) {
+        sidebar.textContent = counts.unattended > 99 ? '99+' : counts.unattended;
+        setVisible(sidebar, counts.unattended !== 0);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Filter tabs and search (they work on the rows loaded so far)
+    // ------------------------------------------------------------------
+    function applyFilter() {
+      var q = $('msgSearch').value.trim().toLowerCase();
+      var rows = body.querySelectorAll('tr.msg-row');
+      var visible = 0;
+
+      rows.forEach(function (row) {
+        var attended = isAttended(row);
+        var matchesTab = activeFilter === 'all' ||
+          (activeFilter === 'attended' && attended) ||
+          (activeFilter === 'unattended' && !attended);
+        var haystack = (row.dataset.name + ' ' + row.dataset.email + ' ' + row.dataset.phone + ' ' +
+          row.dataset.service + ' ' + row.dataset.message).toLowerCase();
+        var show = matchesTab && (!q || haystack.indexOf(q) !== -1);
+        row.classList.toggle('hidden', !show);
+        if (show) visible++;
+      });
+
+      $('msgEmpty').classList.toggle('hidden', rows.length > 0);
+      $('msgFilterEmpty').classList.toggle('hidden', rows.length === 0 || visible > 0);
+    }
+
+    $('msgTabs').addEventListener('click', function (event) {
+      var tab = event.target.closest('.msg-tab');
+      if (!tab) return;
+      activeFilter = tab.dataset.filter;
+      document.querySelectorAll('.msg-tab').forEach(function (t) {
+        var on = t === tab;
+        t.classList.toggle('bg-dark-800', on);
+        t.classList.toggle('text-white', on);
+        t.classList.toggle('bg-white', !on);
+        t.classList.toggle('text-gray-600', !on);
+        t.classList.toggle('hover:bg-gray-50', !on);
+      });
+      applyFilter();
+    });
+    $('msgSearch').addEventListener('input', applyFilter);
+
+    // ------------------------------------------------------------------
+    // Server actions
+    // ------------------------------------------------------------------
+    function post(url) {
+      actionForm.action = url;
+      return window.ajaxPost(actionForm);
+    }
+
+    // One request at a time per message. A second click, or a reply click that
+    // races the button, is ignored while the first is still running.
+    function guarded(row, task) {
+      if (row.dataset.busy === '1') return Promise.resolve({ ok: false, skipped: true });
+      row.dataset.busy = '1';
+      return task().finally(function () { delete row.dataset.busy; });
+    }
+
+    // If the server says "ok" but sends no "state", work the row's state out here
+    // so the table still updates. A real "state" from the server always wins.
+    // Counts are never guessed: the badges only show the server's overall counts.
+    function withFallback(r, row, nowAttended) {
+      var d = r.data || (r.data = {});
+      if (!r.ok) return d;
+      if (!d.state) {
+        d.state = nowAttended
+          ? { is_attended: true, attended_by: '', attended_by_is_you: true, attended_ago: 'just now' }
+          : { is_attended: false, attended_by: '', attended_by_is_you: false, attended_ago: '' };
+      }
+      return d;
+    }
+
+    // quiet = true when triggered by a reply click: no success toast
+    function attend(row, quiet) {
+      return guarded(row, function () { return post(row.dataset.attendUrl).then(function (r) {
+        var d = withFallback(r, row, true);
+        if (d.state) applyState(row, d.state);
+        if (!r.ok) {
+          window.showToast(r.message, 'error');
+        } else if (!quiet) {
+          window.showToast(r.message || 'Marked as attended.', 'success');
+        } else if (d.state && !d.state.attended_by_is_you) {
+          // Someone got there first: tell them, but do not block the reply
+          window.showToast(r.message || ('Already attended by ' + d.state.attended_by + '.'), 'info');
+        }
+        return r;
+      }); });
+    }
+
+    function unattend(row) {
+      return guarded(row, function () { return post(row.dataset.unattendUrl).then(function (r) {
+        var d = withFallback(r, row, false);
+        if (d.state) applyState(row, d.state);
+        window.showToast(r.message || (r.ok ? 'Marked as unattended.' : 'Could not update the message.'), r.ok ? 'success' : 'error');
+        return r;
+      }); });
+    }
+
+    // ------------------------------------------------------------------
+    // Detail modal
+    // ------------------------------------------------------------------
+    function waNumber(phone) {
+      var digits = (phone || '').replace(/\D/g, '');
+      if (digits.indexOf('00') === 0) return digits.slice(2);
+      if (digits.charAt(0) === '0') return DEFAULT_COUNTRY_CODE + digits.slice(1);
+      return digits;
+    }
+
+    function fillModalStatus() {
+      if (!current) return;
+      var attended = isAttended(current);
+      var statusEl = $('msgModalStatus');
+      var ago = current.dataset.attendedAgo;
+
+      if (!attended) {
+        statusEl.textContent = 'Not attended yet';
+        statusEl.className = 'mt-3 text-xs font-medium text-brand-600';
+      } else {
+        statusEl.textContent = 'Attended by ' + attendedBy(current) + (ago ? ', ' + ago : '');
+        statusEl.className = 'mt-3 text-xs font-medium text-gray-500';
+      }
+
+      // Mark as attended: only while nobody has attended it.
+      // Mark as unattended: only for the person who attended it.
+      setVisible($('msgBtnAttend'), !attended);
+      setVisible($('msgBtnUnattend'), attended && isMine(current));
+    }
+
+    function openModal(row) {
+      current = row;
+      var d = row.dataset;
+
+      $('msgModalName').textContent = d.name;
+      $('msgModalReceived').textContent = 'Received ' + d.received;
+
+      var email = $('msgModalEmail');
+      email.textContent = d.email;
+      email.href = 'mailto:' + d.email;
+
+      var hasPhone = !!d.phone;
+      setVisible($('msgModalPhoneRow'), hasPhone);
+      if (hasPhone) {
+        $('msgModalPhone').textContent = d.phone;
+        $('msgModalPhone').href = 'tel:' + d.phone.replace(/[^\d+]/g, '');
+      }
+
+      $('msgModalService').textContent = d.service || 'General';
+      $('msgModalBody').textContent = d.message;   // textContent keeps it safe
+
+      $('msgReplyEmail').href = 'mailto:' + d.email + '?subject=' + encodeURIComponent('Re: Your enquiry');
+
+      var wa = hasPhone ? waNumber(d.phone) : '';
+      var waLink = $('msgReplyWhatsapp');
+      setVisible(waLink, !!wa);   // no phone number, no WhatsApp button
+      if (wa) waLink.href = 'https://wa.me/' + wa;
+      else waLink.removeAttribute('href');   // never leave the previous person's number behind
+
+      fillModalStatus();
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      current = null;
+    }
+
+    // Open from a row click or Enter/Space on a focused row
+    body.addEventListener('click', function (event) {
+      var row = event.target.closest('tr.msg-row');
+      if (row) openModal(row);
+    });
+    body.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var row = event.target.closest('tr.msg-row');
+      if (!row) return;
+      event.preventDefault();
+      openModal(row);
+    });
+
+    $('msgModalClose').addEventListener('click', closeModal);
+    modal.addEventListener('click', function (event) { if (event.target === modal) closeModal(); });
+
+    // Replying marks the message attended, then the link opens as normal.
+    // Nothing is cancelled: the mail app or WhatsApp opens either way.
+    function onReplyClick() {
+      if (current && !isAttended(current)) attend(current, true);
+    }
+    $('msgReplyEmail').addEventListener('click', onReplyClick);
+    $('msgReplyWhatsapp').addEventListener('click', onReplyClick);
+
+    // Disables the button and shows its spinner and busy text while `task` runs
+    function runBusy(button, spinner, label, idleText, busyText, task) {
+      button.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = busyText;
+      return task().finally(function () {
+        button.disabled = false;
+        spinner.classList.add('hidden');
+        label.textContent = idleText;
+      });
+    }
+
+    // On success the table row and counters are already updated (see applyState
+    // and renderCounts), so the modal closes, the same as after a delete. It stays
+    // open when the request failed, or when someone else had attended the
+    // message first, so the corrected status can be read.
+    $('msgBtnAttend').addEventListener('click', function () {
+      var row = current;
+      if (!row || this.disabled) return;
+      runBusy(this, $('msgAttendSpinner'), $('msgAttendLabel'), 'Mark as attended', 'Marking...', function () {
+        return attend(row, false).then(function (r) {
+          if (r.ok && r.data && r.data.state && r.data.state.attended_by_is_you) closeModal();
+          return r;
+        });
+      });
+    });
+
+    $('msgBtnUnattend').addEventListener('click', function () {
+      var row = current;
+      if (!row || this.disabled) return;
+      runBusy(this, $('msgUnattendSpinner'), $('msgUnattendLabel'), 'Mark as unattended', 'Updating...', function () {
+        return unattend(row).then(function (r) {
+          if (r.ok) closeModal();
+          return r;
+        });
+      });
+    });
+
+    // ------------------------------------------------------------------
+    // Delete
+    // ------------------------------------------------------------------
+    var deleteRow = null;
+
+    function closeDelete() {
+      deleteModal.classList.add('hidden');
+      deleteModal.classList.remove('flex');
+      deleteRow = null;
+    }
+
+    $('msgBtnDelete').addEventListener('click', function () {
+      if (!current) return;
+      deleteRow = current;
+      $('msgDeleteName').textContent = current.dataset.name;
+      deleteModal.classList.remove('hidden');
+      deleteModal.classList.add('flex');
+    });
+    $('msgDeleteCancel').addEventListener('click', closeDelete);
+    deleteModal.addEventListener('click', function (event) { if (event.target === deleteModal) closeDelete(); });
+
+    $('msgDeleteConfirm').addEventListener('click', function () {
+      var row = deleteRow;
+      if (!row) return;
+      var button = this;
+      button.disabled = true;
+      $('msgDeleteSpinner').classList.remove('hidden');
+      $('msgDeleteLabel').textContent = 'Deleting...';
+
+      post(row.dataset.deleteUrl).then(function (r) {
+        button.disabled = false;
+        $('msgDeleteSpinner').classList.add('hidden');
+        $('msgDeleteLabel').textContent = 'Delete message';
+
+        if (!r.ok) { window.showToast(r.message, 'error'); return; }
+        counts.total -= 1;
+        if (!isAttended(row)) counts.unattended -= 1;
+        renderCounts();
+        row.remove();
+        closeDelete();
+        closeModal();
+        applyFilter();
+        window.showToast(r.message || 'Message deleted.', 'success');
+      });
+    });
+
+    // Escape closes the top-most modal
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape') return;
+      if (!deleteModal.classList.contains('hidden')) closeDelete();
+      else if (!modal.classList.contains('hidden')) closeModal();
+    });
+
+    // ------------------------------------------------------------------
+    // Load more
+    // ------------------------------------------------------------------
+    var moreBtn = $('msgMoreBtn');
+    moreBtn.addEventListener('click', function () {
+      var spinner = $('msgMoreSpinner');
+      var label = $('msgMoreLabel');
+      moreBtn.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = 'Loading...';
+
+      fetch(BATCH_URL_TEMPLATE.replace('123456789', moreBtn.dataset.next), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error('bad status');
+          return response.json();
+        })
+        .then(function (data) {
+          body.insertAdjacentHTML('beforeend', data.html || '');
+          moreBtn.dataset.next = data.messages_batch_point;
+          $('msgMoreWrap').classList.toggle('hidden', !data.more_messages);
+          applyFilter();
+        })
+        .catch(function () {
+          window.showToast('Could not load more messages. Please try again.', 'error');
+        })
+        .finally(function () {
+          moreBtn.disabled = false;
+          spinner.classList.add('hidden');
+          label.textContent = 'Load more';
+        });
+    });
+  });
+</script>
+{% endblock extra_js %}
