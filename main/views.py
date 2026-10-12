@@ -169,7 +169,7 @@ def submit_testimonial_view(request):
 
 
 
-def contacts_view(request):
+def contact_view(request):
     contact_form = ContactMessageForm()
     service_titles = list()
     for title in list(ServiceModel.objects.filter(is_active=True).values_list("title",)):
@@ -185,10 +185,10 @@ def contacts_view(request):
         "faqs": faqs[:6],
         "more_faqs": True if len(faqs) == 7 else False,
         "faqs_batch_point": faqs[5].id if len(faqs) == 7 else None,
-        "current": "contacts"
+        "current": "contact"
     }
     
-    return render(request, "main/contacts.html", context)
+    return render(request, "main/contact.html", context)
 
 
 def submit_contact_view(request):
@@ -206,7 +206,7 @@ def submit_contact_view(request):
 
 
 
-def contacts_get_faqs_batch_view(request, batch_point):
+def contact_get_faqs_batch_view(request, batch_point):
     faqs = list(FAQsModel.objects.filter(id__lt=batch_point).order_by("-id")[:7])
 
     items = list()

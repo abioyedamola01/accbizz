@@ -1,6 +1,6 @@
 {% extends "base/main/base.html" %}
 
-{% block title %}Our services{% endblock title %}
+{% block title %}Our services · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 
@@ -8,7 +8,5 @@
     {% include "main/partials/services/_grid.html" %}
     {% include "main/partials/services/_process.html" %}
     {% include "main/partials/services/_why.html" %}
-    {% include "main/partials/_cta.html" with headings="Ready to get your project moving?" label1="Get Started" url1="" label2="Contact Us" url2="" %}
-
-
+    
 {% endblock content %}

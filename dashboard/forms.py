@@ -19,7 +19,7 @@ class UpdateAvatarForm(forms.ModelForm):
 class SiteInfoForm(forms.ModelForm): 
     class Meta:
         model = SiteModel
-        fields = ("company_name", "display_name", "email", "whatsapp", "location",)
+        fields = ("company_name", "display_name","tagline", "email", "whatsapp", "location",)
 
 
 class SiteHomeSectionUpdateForm(forms.ModelForm):

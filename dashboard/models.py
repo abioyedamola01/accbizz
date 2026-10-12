@@ -59,6 +59,7 @@ class TeamModel(models.Model):
 class SiteModel(models.Model):
     company_name = models.CharField(max_length=50)
     display_name = models.CharField(max_length=10)
+    tagline = models.CharField(max_length=150)
     domain_url = models.URLField(default="")
     email = models.EmailField()
     whatsapp = models.URLField()

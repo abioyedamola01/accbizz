@@ -4,7 +4,7 @@
 {#   faqs              first batch of FAQ objects (question, answer)      #}
 {#   more_faqs         True if there are more to load                     #}
 {#   faqs_batch_point  the batch point to pass to load the next batch     #}
-{# "Read more" fetches the URL contacts_get_faqs_batch with the batch point,#}
+{# "Read more" fetches the URL contact_get_faqs_batch with the batch point,#}
 {# and expects:                                                            #}
 {#   { "faqs": [{question, answer}], "faqs_batch_point": N, "more_faqs": bool } #}
 {# The whole section is hidden when there are no FAQs.                    #}
@@ -132,7 +132,7 @@
     // ------------------------------------------------------------------
     // Django needs a number to build the URL, so a placeholder is used here
     // and swapped for the real batch point on each request.
-    var FAQ_ENDPOINT_TEMPLATE = "{% url "contacts_get_faqs_batch" 123456789 %}";
+    var FAQ_ENDPOINT_TEMPLATE = "{% url "contact_get_faqs_batch" 123456789 %}";
 
     function buildFaqEndpoint(batchPoint) {
       return FAQ_ENDPOINT_TEMPLATE.replace("123456789", batchPoint);
