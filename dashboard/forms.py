@@ -22,6 +22,12 @@ class SiteInfoForm(forms.ModelForm):
         fields = ("company_name", "display_name","tagline", "email", "whatsapp", "location",)
 
 
+class SiteVisualIdentityForm(forms.ModelForm):
+    class Meta:
+        model = SiteModel
+        fields = ("logo", "favicon",)
+
+
 class SiteHomeSectionUpdateForm(forms.ModelForm):
     class Meta:
         model = HomeSectionModel

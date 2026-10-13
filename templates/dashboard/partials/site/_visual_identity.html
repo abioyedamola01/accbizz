@@ -1,0 +1,285 @@
+{# ===================================================================== #}
+{# Dashboard > Site > Site Visual Identity (logo and favicon)             #}
+{#                                                                        #}
+{# Expects from the view:                                                 #}
+{#   visual_identity_form  a ModelForm built with the instance, so        #}
+{#                         .logo.value / .favicon.value hold the saved    #}
+{#                         images (or are empty when nothing is saved)    #}
+{# URL used:                                                              #}
+{#   dashboard_update_visual_identity   (POST, multipart)                 #}
+{#                                                                        #}
+{# Choosing a file only previews it here. Nothing is sent until Update,   #}
+{# which posts both fields in one request. Expected replies:              #}
+{#   { "ok": true, "message": "Visual identity updated." }                #}
+{#   { "ok": false, "message": "...", "errors": { "logo": ["..."] } }     #}
+{# On success the page reloads, so the saved images come from the server  #}
+{# and the toast shows after the reload.                                  #}
+{# ===================================================================== #}
+
+<div class="bg-white rounded-2xl shadow-card mt-4 p-5">
+  <form method="post" enctype="multipart/form-data" id="visualIdentityForm" action="{% url "dashboard_update_visual_identity" %}" novalidate>
+    {% csrf_token %}
+
+    {# ---- Header ---- #}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 text-gray-500">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="15" rx="2"/>
+            <circle cx="8.5" cy="9.5" r="1.5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5.5-5-8.5 8"/>
+          </svg>
+        </span>
+        <div>
+          <p class="text-base text-dark-900 font-bold">Site Visual Identity</p>
+          <p class="text-sm text-gray-500 mt-0.5">Manage your logo and favicon.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        {# Only shown once a file has been chosen. Hidden with an inline style, see the script. #}
+        <button type="button" id="viDiscard" style="display:none"
+          class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+          Discard
+        </button>
+
+        <button type="submit" id="viSubmit" disabled
+          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+          <svg id="viSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <span id="viSubmitLabel">Update</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="divide-y divide-gray-100">
+
+      {# ---- Logo ---- #}
+      <div class="vi-item flex items-start gap-4 py-5 first:pt-0" data-name="logo">
+        <div class="relative shrink-0">
+          <div class="w-40 h-24 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden">
+            <img class="vi-img w-full h-full object-contain p-3" alt="Current logo"
+              {% if visual_identity_form.logo.value %}src="{{ visual_identity_form.logo.value.url }}"{% else %}style="display:none"{% endif %}>
+            <div class="vi-empty flex-col items-center gap-1 text-gray-400 text-xs"
+              {% if visual_identity_form.logo.value %}style="display:none"{% else %}style="display:flex"{% endif %}>
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="15" rx="2"/>
+                <circle cx="8.5" cy="9.5" r="1.5"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5.5-5-8.5 8"/>
+              </svg>
+              No logo
+            </div>
+          </div>
+          {# A plain input, not render_field: Django's default file widget would print "Currently: ... Clear / Change:" next to it #}
+          <input type="file" name="{{ visual_identity_form.logo.html_name }}" id="visualLogoInput" accept="image/*" class="hidden">
+          <label for="visualLogoInput" role="button" tabindex="0" aria-label="Change logo"
+            class="vi-pick absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
+            </svg>
+          </label>
+        </div>
+
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-dark-900">Logo</p>
+          <p class="text-xs text-gray-500 mt-0.5">Shown in the site header and footer. A PNG or SVG with a transparent background works best.</p>
+          <p class="vi-note mt-2 text-xs text-gray-500">{% if visual_identity_form.logo.value %}Current logo{% else %}No logo uploaded yet.{% endif %}</p>
+        </div>
+      </div>
+
+      {# ---- Favicon ---- #}
+      <div class="vi-item flex items-start gap-4 py-5 last:pb-0" data-name="favicon">
+        <div class="relative shrink-0">
+          {# Same width as the logo tile so the two rows line up; the image itself is small, like a favicon #}
+          <div class="w-40 h-24 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden">
+            <img class="vi-img w-16 h-16 object-contain" alt="Current favicon"
+              {% if visual_identity_form.favicon.value %}src="{{ visual_identity_form.favicon.value.url }}"{% else %}style="display:none"{% endif %}>
+            <div class="vi-empty flex-col items-center gap-1 text-gray-400 text-xs"
+              {% if visual_identity_form.favicon.value %}style="display:none"{% else %}style="display:flex"{% endif %}>
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="15" rx="2"/>
+                <circle cx="8.5" cy="9.5" r="1.5"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5.5-5-8.5 8"/>
+              </svg>
+              No favicon
+            </div>
+          </div>
+          <input type="file" name="{{ visual_identity_form.favicon.html_name }}" id="visualFaviconInput" accept="image/*" class="hidden">
+          <label for="visualFaviconInput" role="button" tabindex="0" aria-label="Change favicon"
+            class="vi-pick absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
+            </svg>
+          </label>
+        </div>
+
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-dark-900">Favicon</p>
+          <p class="text-xs text-gray-500 mt-0.5">The small icon in the browser tab. Use a square image, at least 64 x 64.</p>
+          <p class="vi-note mt-2 text-xs text-gray-500">{% if visual_identity_form.favicon.value %}Current favicon{% else %}No favicon uploaded yet.{% endif %}</p>
+        </div>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<script>
+  // submitForm and showToast come from base/dashboard/partials/_toast.html.
+  (function () {
+    var form = document.getElementById('visualIdentityForm');
+    if (!form) return;
+
+    // Size limits checked in the browser before anything is sent. The server
+    // should still enforce its own.
+    var MAX_BYTES = { logo: 5 * 1024 * 1024, favicon: 1024 * 1024 };
+
+    var updateBtn = document.getElementById('viSubmit');
+    var discardBtn = document.getElementById('viDiscard');
+    var items = {};
+
+    // Inline styles, not the "hidden" class: some of these elements also have
+    // flex classes, and in Tailwind 4 those would win over "hidden".
+    function setVisible(el, visible, display) {
+      el.style.display = visible ? (display || '') : 'none';
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    form.querySelectorAll('.vi-item').forEach(function (row) {
+      var name = row.dataset.name;
+      var img = row.querySelector('.vi-img');
+      items[name] = {
+        name: name,
+        row: row,
+        input: form.querySelector('input[name="' + name + '"]'),
+        img: img,
+        empty: row.querySelector('.vi-empty'),
+        note: row.querySelector('.vi-note'),
+        original: img.getAttribute('src') || '',
+        objectUrl: null,
+        chosen: false     // true while a new file is waiting to be uploaded
+      };
+    });
+
+    function anyChosen() {
+      return Object.keys(items).some(function (key) { return items[key].chosen; });
+    }
+
+    function refreshButtons() {
+      var chosen = anyChosen();
+      updateBtn.disabled = !chosen;
+      setVisible(discardBtn, chosen);
+    }
+
+    function setNote(item, text, tone) {
+      item.note.textContent = text;
+      item.note.className = 'vi-note mt-2 text-xs ' +
+        (tone === 'new' ? 'text-brand-600 font-medium' : tone === 'warn' ? 'text-amber-600' : 'text-gray-500');
+    }
+
+    function releaseObjectUrl(item) {
+      if (item.objectUrl) {
+        URL.revokeObjectURL(item.objectUrl);
+        item.objectUrl = null;
+      }
+    }
+
+    // Back to what is saved on the server (or the empty tile)
+    function resetItem(item) {
+      item.input.value = '';
+      item.chosen = false;
+      releaseObjectUrl(item);
+      if (item.original) {
+        item.img.src = item.original;
+        setVisible(item.img, true);
+        setVisible(item.empty, false);
+        setNote(item, 'Current ' + item.name, 'saved');
+      } else {
+        item.img.removeAttribute('src');
+        setVisible(item.img, false);
+        setVisible(item.empty, true, 'flex');
+        setNote(item, 'No ' + item.name + ' uploaded yet.', 'saved');
+      }
+    }
+
+    function onFileChosen(item) {
+      var file = item.input.files[0];
+      if (!file) { resetItem(item); refreshButtons(); return; }
+
+      if (!file.type || file.type.indexOf('image/') !== 0) {
+        window.showToast('Choose an image file for the ' + item.name + '.', 'error');
+        resetItem(item); refreshButtons(); return;
+      }
+      if (file.size > MAX_BYTES[item.name]) {
+        window.showToast('The ' + item.name + ' is too large (' + formatSize(file.size) + '). The limit is ' + formatSize(MAX_BYTES[item.name]) + '.', 'error');
+        resetItem(item); refreshButtons(); return;
+      }
+
+      // Preview only. Nothing is uploaded until Update.
+      item.chosen = true;
+      releaseObjectUrl(item);
+      item.objectUrl = URL.createObjectURL(file);
+      item.img.src = item.objectUrl;
+      setVisible(item.img, true);
+      setVisible(item.empty, false);
+      setNote(item, 'New file: ' + file.name + ' (' + formatSize(file.size) + '). Not saved yet.', 'new');
+
+      // A favicon that is not square gets squashed or cropped by browsers.
+      // SVGs are skipped: their reported size is unreliable, and they scale anyway.
+      if (item.name === 'favicon' && file.type !== 'image/svg+xml') {
+        var probe = new Image();
+        probe.onload = function () {
+          if (item.objectUrl && probe.naturalWidth !== probe.naturalHeight) {
+            setNote(item, 'New file: ' + file.name + '. This image is not square, so browsers may crop or stretch it.', 'warn');
+          }
+        };
+        probe.src = item.objectUrl;
+      }
+
+      refreshButtons();
+    }
+
+    Object.keys(items).forEach(function (key) {
+      var item = items[key];
+      item.input.addEventListener('change', function () { onFileChosen(item); });
+
+      // The pencil is a label, so give it keyboard access like a button
+      item.row.querySelector('.vi-pick').addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          item.input.click();
+        }
+      });
+    });
+
+    discardBtn.addEventListener('click', function () {
+      Object.keys(items).forEach(function (key) { resetItem(items[key]); });
+      refreshButtons();
+    });
+
+    // Update sends both files (or just the one that changed) in a single request.
+    // An empty file input means "keep the saved image", so only changed fields are replaced.
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (updateBtn.disabled) return;
+      submitForm(form, {
+        button: updateBtn,
+        spinner: document.getElementById('viSpinner'),
+        label: document.getElementById('viSubmitLabel'),
+        busyText: 'Updating...',
+        idleText: 'Update',
+        successFallback: 'Visual identity updated.',
+        timeoutMs: 60000,   // uploads can take longer than the 15 second default
+        // Server errors for logo / favicon show under that row's note
+        fieldTarget: function (name) { return items[name] ? items[name].note : null; }
+      });
+    });
+  })();
+</script>

@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
+  {% if site_info.favicon %}<link rel="icon" href="{{ site_info.favicon.url }}" />{% endif %}
 
   <!-- Tailwind compiled CSS -->
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />

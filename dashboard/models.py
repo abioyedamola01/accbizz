@@ -67,6 +67,10 @@ class SiteModel(models.Model):
     last_updated = models.DateTimeField(auto_now=True, null=True)
     hero = models.OneToOneField("dashboard.HeroSectionModel", on_delete=models.SET_NULL, null=True)
     about = models.OneToOneField("dashboard.AboutSectionModel", on_delete=models.SET_NULL, null=True)
+
+    # visual identity
+    logo = models.ImageField(upload_to="visual_identity/logo/%y/%m/%d/", blank=True, null=True)
+    favicon = models.ImageField(upload_to="visual_identity/favicon/%y/%m/%d/", blank=True, null=True)
     
     def __str__(self):
         return f"{self.company_name} ({self.display_name})"

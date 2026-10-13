@@ -18,10 +18,13 @@
 
   {# ---- Logo ---- #}
   <div class="flex items-center gap-2 px-2 pb-6 pt-1">
+    {% if site_info.logo %}
+    <img src="{{ site_info.logo.url }}" alt="{{ site_info.display_name|default:'Accbizz' }} logo" class="h-12 w-auto object-contain shrink-0" />
+    {% else %}
     <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shrink-0">
       <span class="text-white font-extrabold text-sm">A</span>
     </div>
-    <span class="font-bold text-lg tracking-tight text-dark-900">Accbizz</span>
+    {% endif %}
   </div>
 
   {# ---- Nav ---- #}

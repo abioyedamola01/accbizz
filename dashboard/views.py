@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualIdentityForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel,)
 from .utils import (toast_json_ok, toast_json_error,)
 
@@ -89,10 +89,14 @@ def update_profile_info_view(request):
 def site_view(request):
     site_info_instance = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info_instance)    
+    visual_identity_form = SiteVisualIdentityForm(request.POST or None, instance=site_info_instance)
+
+    print(site_info_instance.logo.url)
 
     context = {
         "current": "site",
         "site_form": site_info_form,
+        "visual_identity_form": visual_identity_form,
         "site_info": model_to_dict(site_info_instance),
         "site_info_last_updated": site_info_instance.last_updated,
     }
@@ -106,12 +110,26 @@ def site_view(request):
 def update_site_info_view(request):
     site_info = SiteModel.objects.first()
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info)
+    
     if request.POST and site_info_form.is_valid():
         site_info_form.save()
 
         return toast_json_ok("Site info updated successfully.")
     return toast_json_error("Can't update site info.")
 
+
+@login_required
+@permission_required(("staffs.view_dashboard", "staffs.manage_site", ), raise_exception=True)
+def update_site_visual_identity_view(request):
+    site_info_instance = SiteModel.objects.first()  
+    visual_identity_form = SiteVisualIdentityForm(request.POST or None, request.FILES or None, instance=site_info_instance)
+    
+    
+    if request.POST and visual_identity_form.is_valid():
+        visual_identity_form.save()
+
+        return toast_json_ok("Visual identity updated sucessfully.")
+    return toast_json_error("Can't update visual identity.")
 
 
 @login_required

@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (dashboard_home_view,
                     profile_view, update_profile_avatar_view, update_profile_info_view,
-                    site_view, update_site_info_view, update_site_home_sections_view,
+                    site_view, update_site_info_view, update_site_visual_identity_view, update_site_home_sections_view,
                     contents_view, update_hero_view, update_about_view, update_team_member_view, remove_team_member_view, add_team_member_view,
                     update_faq_view, delete_faq_view, add_faq_view,
                     update_service_view, delete_service_view, add_service_view,
@@ -17,6 +17,7 @@ urlpatterns = [
     path("pofile/update-profile-info", update_profile_info_view, name="update_profile_info"),
     path("site", site_view, name="dashboard_site"),
     path("site/update-site-info", update_site_info_view, name="dashboard_update_site_info"),
+    path("site/update-site-visual-identity", update_site_visual_identity_view, name="dashboard_update_visual_identity"),
     path("site/update-site-home-sections", update_site_home_sections_view, name="dashboard_update_home_sections"),
     path("contents", contents_view, name="dashboard_contents"),
     path("contents/home/update-hero/<slug:type>", update_hero_view, name="dashboard_update_hero"),

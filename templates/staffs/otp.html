@@ -31,8 +31,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M15 19l-7-7 7-7" />
             </svg>
           </a>
-          <a href="{% url 'dashboard_home' %}" class="text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
-            {{ site_info.display_name|title }}
+          <a href="{% url 'main_home' %}" class="inline-flex items-center gap-2 text-sm sm:text-base font-semibold tracking-wide text-dark-900 hover:text-brand-500 transition-colors">
+            {% if site_info.logo %}<img src="{{ site_info.logo.url }}" alt="" class="h-12 w-auto object-contain" />{% endif %}
           </a>
         </div>
 
