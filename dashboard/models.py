@@ -111,6 +111,7 @@ class ServiceModel(models.Model):
     blurb = models.CharField(max_length=125)
     description = models.TextField()
     is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
     site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="services", null=True)
     related_services = models.ManyToManyField("self", symmetrical=True, blank=True)
 

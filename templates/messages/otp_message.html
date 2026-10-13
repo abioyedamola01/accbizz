@@ -1,0 +1,77 @@
+{% comment %}
+  OTP verification email.
+  Context: user_name, raw_code, verify_purpose, expiry_minutes (optional, defaults to 5).
+
+  Same look as the contact enquiry email. Colours are written out as hex because
+  email clients ignore Tailwind and your theme file:
+    #EF6B2E  brand-500   #FDE8DE  brand-100   #f4eee3  cream   #181523  dark-900
+{% endcomment %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email verification for {{ verify_purpose }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0; background-color:#f4eee3; font-family:'Inter', Arial, Helvetica, sans-serif; color:#181523; -webkit-text-size-adjust:100%;">
+
+  {# Preview text shown beside the subject in the inbox #}
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f4eee3;">
+    Your verification code is {{ raw_code }}. It expires in {{ expiry_minutes|default:5 }} minutes.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4eee3;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background-color:#ffffff; border:1px solid #f3f4f6; border-radius:24px;">
+          <tr>
+            <td style="padding:36px 32px;">
+
+              {# Heading, same eyebrow + title pattern as the site #}
+              <p style="margin:0 0 8px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#EF6B2E;">
+                Email verification
+              </p>
+              <h1 style="margin:0; font-size:24px; line-height:32px; font-weight:800; letter-spacing:-0.01em; color:#181523;">
+                Your verification code
+              </h1>
+
+              <p style="margin:16px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
+                Dear {{ user_name }},
+              </p>
+              <p style="margin:8px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
+                Use the code below to verify your email for {{ verify_purpose }}.
+              </p>
+
+              {# The code. Kept as one plain text element so it can be selected and copied in one go #}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+                <tr>
+                  <td align="center" style="background-color:#FDE8DE; border-radius:16px; padding:22px 16px;">
+                    <p style="margin:0; font-family:'SFMono-Regular', Menlo, Consolas, 'Courier New', monospace; font-size:34px; line-height:40px; font-weight:700; letter-spacing:0.3em; color:#EF6B2E; padding-left:0.3em;">{{ raw_code }}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:16px 0 0 0; font-size:14px; line-height:22px; color:#4b5563; text-align:center;">
+                This code expires in <strong style="color:#181523;">{{ expiry_minutes|default:5 }} minutes</strong>.
+              </p>
+
+              <div style="height:1px; line-height:1px; font-size:1px; background-color:#e5e7eb; margin:28px 0 20px 0;">&nbsp;</div>
+
+              <p style="margin:0; font-size:13px; line-height:20px; color:#6b7280;">
+                Never share this code with anyone. Our team will never ask you for it. If you did not request it, you can ignore this email and nothing will change.
+              </p>
+
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:20px 0 0 0; font-size:12px; line-height:18px; color:#9ca3af; text-align:center;">
+          You are receiving this because this email address was used for a verification request.
+        </p>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

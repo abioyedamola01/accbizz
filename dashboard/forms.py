@@ -63,7 +63,7 @@ class FAQForm(forms.ModelForm):
 class ServiceForm(forms.ModelForm):
     class Meta:
         model = ServiceModel
-        fields = ("title", "blurb", "description", "is_active", "related_services",)
+        fields = ("title", "blurb", "description", "is_active", "related_services","is_featured",)
 
 
 class TestimonialForm(forms.ModelForm):

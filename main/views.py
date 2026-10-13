@@ -19,7 +19,7 @@ def home_view(request):
         "enabled_sections": enabled_home_sections,
         "hero_section": site_info_instance.hero,
         "about_description": site_info_instance.about.description,
-        "services": site_info_instance.services.filter(is_active=True).order_by("?")[:3],
+        "services": site_info_instance.services.filter(is_active=True, is_featured=True).order_by("?")[:3],
 
         "current": "home"
     }
@@ -44,7 +44,7 @@ def about_view(request):
 
 
 def services_view(request):
-    services = ServiceModel.objects.filter(is_active=True).order_by("?")
+    services = ServiceModel.objects.filter(is_active=True).order_by("-id")
 
     context = {
         "current": "services",

@@ -2,7 +2,7 @@ from dashboard.models import (SiteModel, ServiceModel,)
 
 def footer_info(request):
     site_info = SiteModel.objects.filter().first()
-    services = ServiceModel.objects.filter().order_by("?")[:5]
+    services = ServiceModel.objects.filter(is_active=True, is_featured=True).order_by("?")[:5]
 
     context = {
         "site_info": site_info,

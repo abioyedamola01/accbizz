@@ -2,6 +2,7 @@ import random
 from django.contrib.auth.hashers import (make_password, check_password)
 from django.core.mail import send_mail
 from .models import OTPVerifyModel
+from django.template.loader import render_to_string
 
 
 def generate_otp(length=6):
@@ -24,11 +25,22 @@ def create_otp(user, verify_purpose):
 
 
 def send_otp_mail(user_name, user_email, raw_code, verify_purpose):
+
+    context = {
+        "user_name": user_name,
+        "user_email": user_email,
+        "raw_code": raw_code,
+        "verify_purpose": verify_purpose
+    }
+
+    html_message = render_to_string("messages/otp_message.html", context=context)
+
     send_mail(
         subject=f"Email verification for {verify_purpose}",
         message=f"Dear {user_name},\nYour OTP code is: {raw_code}. It expires in 5 minutes.",
         from_email= None,
         recipient_list=[user_email],
+        html_message=html_message,
         fail_silently=False,
     )
 

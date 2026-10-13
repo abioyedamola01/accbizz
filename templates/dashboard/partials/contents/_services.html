@@ -8,6 +8,8 @@
 {#                 ("related_services") so the manage buttons do not      #}
 {#                 run one query per row)                                 #}
 {#   service_form  the ServiceForm used for add and edit                  #}
+{#                 (fields: title, blurb, description, related_services,  #}
+{#                 is_active, is_featured)                                #}
 {# URL names used (rename here if yours differ):                          #}
 {#   dashboard_add_service                                                #}
 {#   dashboard_update_service  <slug>                                     #}
@@ -38,7 +40,7 @@
   .svc-search-clear:hover { color: #374151; }
   .svc-search-clear.hidden { display: none; }
 
-  /* Active switch. The real checkbox stays in the DOM (it posts); JS paints the track. */
+  /* Switches (Active, Featured). The real checkbox stays in the DOM (it posts); JS paints the track. */
   .svc-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
   .svc-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
   .svc-switch-track { position: relative; flex: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; transition: background-color 0.15s ease; }
@@ -74,9 +76,18 @@
     <div class="flex items-center gap-2">
       <h2 class="text-base font-bold text-dark-900">Services</h2>
       <span id="serviceCountBadge" data-total="{{ services|length }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ services|length }} service{{ services|length|pluralize }}</span>
+      {# Filled in by the script (it counts the rows marked featured), so it is always the overall number #}
+      <span id="serviceFeaturedBadge" class="hidden text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full"></span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
+
+      {# ---- Featured filter (client side only) ---- #}
+      <div id="serviceTabs" class="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Filter services">
+        <button type="button" data-filter="all" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-dark-800 text-white">All</button>
+        <button type="button" data-filter="featured" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Featured</button>
+        <button type="button" data-filter="notfeatured" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Not featured</button>
+      </div>
 
       {# ---- Search (client side only): matches title and blurb ---- #}
       <div class="svc-search">
@@ -117,7 +128,8 @@
       {% for service in services %}
       <tbody class="svc-group divide-y divide-gray-100 border-b border-gray-100"
         data-title="{{ service.title }}"
-        data-blurb="{{ service.blurb }}">
+        data-blurb="{{ service.blurb }}"
+        data-featured="{% if service.is_featured %}1{% else %}0{% endif %}">
         <tr>
           <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ service.title }}</span></td>
           <td class="py-3 pr-5">
@@ -130,6 +142,7 @@
               data-blurb="{{ service.blurb }}"
               data-description="{{ service.description }}"
               data-active="{% if service.is_active %}1{% else %}0{% endif %}"
+              data-featured="{% if service.is_featured %}1{% else %}0{% endif %}"
               data-related="{% for related in service.related_services.all %}{{ related.id }}{% if not forloop.last %},{% endif %}{% endfor %}">Manage</button>
           </td>
         </tr>
@@ -142,9 +155,9 @@
       </tbody>
       {% endfor %}
 
-      {# Shown by the search when no service matches #}
+      {# Shown when the search and filter together match no service #}
       <tbody id="serviceSearchEmpty" class="hidden">
-        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services match your search. Try a different word, or clear the search.</td></tr>
+        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services match your search or filter. Try a different word, or change the filter.</td></tr>
       </tbody>
 
     </table>
@@ -241,11 +254,18 @@
             <div class="svc-related-box"><div class="svc-related-list"></div></div>
           </div>
 
-          <div>
+          {# Active and Featured side by side; they wrap onto two lines on a very narrow screen #}
+          <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
             <label class="svc-switch">
               {% render_field service_form.is_active id="addServiceActive" class="svc-switch-input" %}
               <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
-              <span class="svc-switch-text">Active</span>
+              <span class="svc-switch-text" data-on-text="Active" data-off-text="Inactive">Active</span>
+            </label>
+
+            <label class="svc-switch">
+              {% render_field service_form.is_featured id="addServiceFeatured" class="svc-switch-input" %}
+              <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+              <span class="svc-switch-text" data-on-text="Featured" data-off-text="Not featured">Not featured</span>
             </label>
           </div>
         </form>
@@ -308,11 +328,18 @@
           <div class="svc-related-box"><div class="svc-related-list"></div></div>
         </div>
 
-        <div>
+        {# Active and Featured side by side #}
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
           <label class="svc-switch">
             {% render_field service_form.is_active id="editServiceActive" class="svc-switch-input" %}
             <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
-            <span class="svc-switch-text">Active</span>
+            <span class="svc-switch-text" data-on-text="Active" data-off-text="Inactive">Active</span>
+          </label>
+
+          <label class="svc-switch">
+            {% render_field service_form.is_featured id="editServiceFeatured" class="svc-switch-input" %}
+            <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+            <span class="svc-switch-text" data-on-text="Featured" data-off-text="Not featured">Not featured</span>
           </label>
         </div>
       </div>
@@ -353,7 +380,10 @@
   // Field errors for the hidden / custom controls go under the visible control
   function serviceFieldTarget(name, form) {
     if (name === 'related_services') return form.querySelector('.svc-related-box');
-    if (name === 'is_active') return form.querySelector('.svc-switch');
+    if (name === 'is_active' || name === 'is_featured') {
+      const input = form.querySelector('[name="' + name + '"]');
+      return input ? input.closest('.svc-switch') : null;
+    }
     return null;
   }
 
@@ -379,7 +409,8 @@
     });
   }
 
-  // Paints the Active switch from its real checkbox
+  // Paints one switch (Active or Featured) from its real checkbox.
+  // The words come from the label's data-on-text / data-off-text.
   function syncSwitch(input) {
     const wrap = input.closest('.svc-switch');
     const track = wrap.querySelector('.svc-switch-track');
@@ -387,17 +418,22 @@
     wrap.classList.toggle('is-on', input.checked);
     track.classList.toggle('bg-brand-500', input.checked);
     track.classList.toggle('bg-gray-300', !input.checked);
-    if (text) text.textContent = input.checked ? 'Active' : 'Inactive';
+    if (text) {
+      text.textContent = input.checked
+        ? (text.dataset.onText || 'On')
+        : (text.dataset.offText || 'Off');
+    }
   }
 
+  // Wires every switch inside `root` (there are two: Active and Featured)
   function initSwitch(root) {
-    const input = root.querySelector('.svc-switch-input');
-    if (!input) return;
-    if (!input.dataset.switchBound) {
-      input.addEventListener('change', function () { syncSwitch(input); });
-      input.dataset.switchBound = '1';
-    }
-    syncSwitch(input);
+    root.querySelectorAll('.svc-switch-input').forEach(function (input) {
+      if (!input.dataset.switchBound) {
+        input.addEventListener('change', function () { syncSwitch(input); });
+        input.dataset.switchBound = '1';
+      }
+      syncSwitch(input);
+    });
   }
 
   // Builds the related-services checklist from the real <select multiple>.
@@ -507,6 +543,7 @@
     form.querySelector('[name="blurb"]').value = trigger.dataset.blurb || '';
     form.querySelector('[name="description"]').value = trigger.dataset.description || '';
     form.querySelector('[name="is_active"]').checked = trigger.dataset.active === '1';
+    form.querySelector('[name="is_featured"]').checked = trigger.dataset.featured === '1';
 
     // Related checklist: preselect this service's related ids
     const picker = initRelatedPicker(form, trigger.dataset.serviceId);
@@ -632,7 +669,7 @@
   }
 
   // Save is enabled once title, blurb and description are filled.
-  // Related services and Active are not required to enable it.
+  // Related services, Active and Featured are not required to enable it.
   function updateAddServiceSaveState() {
     const saveBtn = document.getElementById('addServiceSaveBtn');
     let allFilled = true;
@@ -662,19 +699,29 @@
     });
   });
 
-  // ---- Search (client side only) ----
-  // Same idea as the public services search: match the typed text against
-  // each service's title and blurb, hide the rest, update the count.
+  // ---- Search and featured filter (client side only) ----
+  // The typed text is matched against each service's title and blurb, and the
+  // Featured tabs against each row's data-featured. Both apply together. The
+  // rest are hidden and the "x of y" count follows. The "featured" badge always
+  // shows the overall number of featured services.
 
-  (function initServiceSearch() {
+  (function initServiceFilters() {
     const input = document.getElementById('serviceSearch');
     const clearBtn = document.getElementById('serviceSearchClear');
     const emptyBody = document.getElementById('serviceSearchEmpty');
     const badge = document.getElementById('serviceCountBadge');
+    const featuredBadge = document.getElementById('serviceFeaturedBadge');
+    const tabs = document.getElementById('serviceTabs');
     if (!input) return;
 
     const groups = Array.from(document.querySelectorAll('#serviceTableScroll tbody.svc-group'));
     const total = groups.length;
+    const featuredTotal = groups.filter((g) => g.dataset.featured === '1').length;
+    let activeFilter = 'all';
+
+    // Overall featured count, shown once (it does not change while filtering)
+    featuredBadge.textContent = featuredTotal + ' featured';
+    featuredBadge.classList.toggle('hidden', featuredTotal === 0);
 
     function applyFilter() {
       const term = input.value.trim().toLowerCase();
@@ -682,7 +729,12 @@
 
       groups.forEach((group) => {
         const haystack = ((group.dataset.title || '') + ' ' + (group.dataset.blurb || '')).toLowerCase();
-        const match = !term || haystack.indexOf(term) !== -1;
+        const isFeatured = group.dataset.featured === '1';
+        const matchesText = !term || haystack.indexOf(term) !== -1;
+        const matchesTab = activeFilter === 'all' ||
+          (activeFilter === 'featured' && isFeatured) ||
+          (activeFilter === 'notfeatured' && !isFeatured);
+        const match = matchesText && matchesTab;
         group.classList.toggle('hidden', !match);
 
         if (match) {
@@ -697,15 +749,28 @@
         }
       });
 
+      const narrowed = !!term || activeFilter !== 'all';
       clearBtn.classList.toggle('hidden', !term);
-      emptyBody.classList.toggle('hidden', !(term && total > 0 && visible === 0));
+      emptyBody.classList.toggle('hidden', !(narrowed && total > 0 && visible === 0));
 
-      if (!term) {
-        badge.textContent = total + (total === 1 ? ' service' : ' services');
-      } else {
-        badge.textContent = visible + ' of ' + total + (total === 1 ? ' service' : ' services');
-      }
+      const noun = total === 1 ? ' service' : ' services';
+      badge.textContent = narrowed ? visible + ' of ' + total + noun : total + noun;
     }
+
+    tabs.addEventListener('click', function (event) {
+      const tab = event.target.closest('.svc-tab');
+      if (!tab) return;
+      activeFilter = tab.dataset.filter;
+      tabs.querySelectorAll('.svc-tab').forEach((t) => {
+        const on = t === tab;
+        t.classList.toggle('bg-dark-800', on);
+        t.classList.toggle('text-white', on);
+        t.classList.toggle('bg-white', !on);
+        t.classList.toggle('text-gray-600', !on);
+        t.classList.toggle('hover:bg-gray-50', !on);
+      });
+      applyFilter();
+    });
 
     input.addEventListener('input', applyFilter);
 
@@ -721,6 +786,8 @@
         applyFilter();
       }
     });
+
+    applyFilter(); // sets the badges on load
   })();
 
   // ---- Close modals on backdrop click / Escape ----

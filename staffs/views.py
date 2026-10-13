@@ -65,7 +65,7 @@ def verify_staff_login_otp_view(request):
     otp_verify_info =  request.session.get("otp_verify_info", None)
     if not otp_verify_info:
         request.session.flush()
-        return redirect("home")
+        return redirect("main_home")
 
     form = VerifyOTPForm(request.POST or None)
 
@@ -73,7 +73,7 @@ def verify_staff_login_otp_view(request):
         otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
         if not otp_instance:
             request.session.flush()
-            return redirect("home")
+            return redirect("main_home")
 
         user = otp_instance.user
         
