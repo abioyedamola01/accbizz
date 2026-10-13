@@ -91,7 +91,6 @@ def site_view(request):
     site_info_form = SiteInfoForm(request.POST or None, instance=site_info_instance)    
     visual_identity_form = SiteVisualIdentityForm(request.POST or None, instance=site_info_instance)
 
-    print(site_info_instance.logo.url)
 
     context = {
         "current": "site",

@@ -86,10 +86,10 @@ class SiteModel(models.Model):
 class HomeSectionModel(models.Model):
     name = models.CharField(max_length=86)
     blurb = models.CharField(max_length=243, default="")
-    slug = models.SlugField(unique=True, null=True)
+    slug = models.SlugField(unique=True)
     order = models.PositiveIntegerField(null=True)
     is_enabled = models.BooleanField(default=True)
-    site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="sections")
+    site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="sections", null=True, blank=True)
     
 
     def __str__(self):

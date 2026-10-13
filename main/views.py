@@ -11,7 +11,7 @@ from .utils import send_contact_message
 def home_view(request):
     site_info_instance = SiteModel.objects.select_related("hero", "about",).prefetch_related("services",).first()
     enabled_home_sections = site_info_instance.sections.filter(is_enabled=True).order_by("order",)
-
+    testimonials = TestimonialModel.objects.filter(is_approved=True).order_by("?")[:10]
 
 
     context = {
@@ -20,11 +20,29 @@ def home_view(request):
         "hero_section": site_info_instance.hero,
         "about_description": site_info_instance.about.description,
         "services": site_info_instance.services.filter(is_active=True, is_featured=True).order_by("?")[:3],
-
+        "testimonials": testimonials,
         "current": "home"
     }
 
     return render(request, "main/home.html", context)
+
+
+def refresh_testimonials_view(request):
+    testimonials = TestimonialModel.objects.filter(is_approved=True).order_by("?")[:10]
+
+    items = list()
+
+    for testimonial in testimonials:
+        item = model_to_dict(testimonial, fields=("name", "title", "quote",))
+        item["service"] = testimonial.service.title if testimonial.service else None
+        items.append(item)
+
+    context = {
+        "testimonials": items
+    }
+
+    return JsonResponse(context, status=200)
+    
 
 
 
@@ -57,10 +75,11 @@ def services_view(request):
 def service_detail_view(request, service_slug):
     # site_info_instance = SiteModel.objects.select_related("about",).first()
     service = ServiceModel.objects.prefetch_related("related_services", "faqs", "testimonials",).filter(slug=service_slug).first()
-    testimonials = service.testimonials.filter(is_approved=True)
+    
     if not service:
         raise Http404()
-    
+
+    testimonials = service.testimonials.filter(is_approved=True)
     service_faqs = list(service.faqs.filter().order_by("-id")[:5]) # latest 5 faqs
 
     context = {

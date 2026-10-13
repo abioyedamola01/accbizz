@@ -3,11 +3,16 @@
 {% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
+
+  {% url "main_testimonials" as all_testimonials_page %}
+  {% url "main_refresh_testimonials" as refresh_testimonials_endpoint %}
+
+  
+
   {% for section in enabled_sections %}
     {% include "main/partials/home/_"|add:section.name|add:".html" %}
   {% endfor %}
 
 
-  {% comment %} {% include "main/partials/home/_services.html" %} {% endcomment %}
-  
+ 
 {% endblock content %}

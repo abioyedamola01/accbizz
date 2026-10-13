@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (about_view, get_faqs_batch_view, home_view, 
+from .views import (about_view, get_faqs_batch_view, home_view, refresh_testimonials_view,
     service_detail_view, services_view, 
     testimonials_view, submit_testimonial_view, get_testimonials_batch_view, 
     contact_view, submit_contact_view, contact_get_faqs_batch_view
@@ -8,6 +8,7 @@ from .views import (about_view, get_faqs_batch_view, home_view,
 
 urlpatterns = [
     path("", home_view, name="main_home"),
+    path("home-testimonials/refresh-testimonials", refresh_testimonials_view, name="main_refresh_testimonials"),
     path("about", about_view, name="main_about"),
     path("services", services_view, name="main_services"),
     path("services/<slug:service_slug>", service_detail_view, name="main_service_detail"),
