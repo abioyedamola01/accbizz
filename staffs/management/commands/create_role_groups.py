@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            roles = ("super_admin", "admin",)
+            roles = ("admin", "staff",)
 
             for role in roles:
                 _, is_created = Group.objects.get_or_create(name=f"{role}_group")

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import (Permission, Group)
-from staffs.models import (super_admin_permissions, admin_permissions)
+from staffs.models import (admin_permissions, staff_permissions)
 
 
 def get_perms(perms_list):
@@ -19,19 +19,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            super_admin_group = Group.objects.filter(name="super_admin_group").first()
             admin_group = Group.objects.filter(name="admin_group").first()
+            staff_group = Group.objects.filter(name="staff_group").first()
 
-            super_admin_perms_tuple_list = super_admin_permissions + admin_permissions
-            admin_perms_tuple_list = admin_permissions
+            admin_perms_tuple_list = admin_permissions + staff_permissions
+            staff_perms_tuple_list = staff_permissions
 
-            super_admin_perms = get_perms(super_admin_perms_tuple_list)
             admin_perms = get_perms(admin_perms_tuple_list)
+            staff_perms = get_perms(staff_perms_tuple_list)
 
 
             group_permissions_to_add = [
-                (super_admin_group, super_admin_perms),
                 (admin_group, admin_perms),
+                (staff_group, staff_perms),
             ]
 
 

@@ -35,6 +35,7 @@ class CustomUserModel(AbstractUser):
     last_name = None
     username = None
     is_staff_member = models.BooleanField(default=False)
+    is_admin = models.BooleanField(default=False)
     profile = models.OneToOneField("staffs.UserProfileModel", null=True, verbose_name="Profile", on_delete=models.CASCADE, related_name="user")
 
     USERNAME_FIELD = "email"
@@ -52,15 +53,22 @@ class CustomUserModel(AbstractUser):
         if not self.id:
             self.set_password(self.password)
         return super().save(*args, **kwargs)
+
+    def change_password(self, new_password, *args, **kwargs):
+        self.set_password(new_password)
+
+        return super().save(*args, **kwargs)
+        
     
         
     
 
 class UserProfileModel(models.Model):
     role_choices = [
-        ("super_admin", "Super Administrator"),
-        ("admin", "Administrator")
+        ("admin", "Administrator"),
+        ("staff", "Staff")
     ]
+
     gender_choices = [
         ("m", "Male"),
         ("f", "Female")
@@ -97,7 +105,8 @@ class OTPVerifyModel(models.Model):
     attempts = models.PositiveIntegerField(default=0) # max attemts is 5
     is_valid = models.BooleanField(default=True) # false if attempts > 5 or expired.
     verified = models.BooleanField(default=False) # true  if verified successfully
-    
+
+
     def is_expired(self):
         status = timezone.now() > self.expires_at
         return status
@@ -122,10 +131,8 @@ class OTPVerifyModel(models.Model):
 
 
 
-super_admin_permissions = [
+admin_permissions = [
     ("manage_roles", "Can manage roles"),
-    ("manage_permissions", "Can manage permissions"),
-    ("manage_super_admins", "Can manage super administrators"),
     ("view_users", "Can view users"),
     ("add_users", "Can add users"),
     ("change_users", "Can change users"),
@@ -140,7 +147,7 @@ super_admin_permissions = [
 ]
 
 
-admin_permissions = [
+staff_permissions = [
     # Dashboard
     ("view_dashboard", "Can view dashboard"),
     ("view_analytics", "Can view analytics"),
@@ -224,7 +231,7 @@ admin_permissions = [
 ]
 
 
-perms = super_admin_permissions + admin_permissions
+perms = admin_permissions + staff_permissions
 
 
 class StaffPermissions(models.Model):

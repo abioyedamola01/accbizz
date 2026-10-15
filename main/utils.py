@@ -27,7 +27,6 @@ def send_contact_message(site_info, name, email, message, phone=None, service=No
     plain_message += f"Message:\n{message}"
 
     
-    
     send_mail(
         subject = f"{site_info.display_name.capitalize()} · New Enquiry from {name}",
         message = plain_message,
@@ -36,3 +35,6 @@ def send_contact_message(site_info, name, email, message, phone=None, service=No
         html_message = html_message,
         fail_silently = False,
     )
+
+
+    print(site_info.email)

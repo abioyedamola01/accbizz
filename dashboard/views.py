@@ -80,10 +80,6 @@ def update_profile_info_view(request):
 
 
 
-
-
-
-
 @login_required
 @permission_required(("staffs.view_dashboard", "staffs.manage_site", "staffs.manage_homepage",), raise_exception=True)
 def site_view(request):

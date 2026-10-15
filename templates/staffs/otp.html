@@ -41,6 +41,12 @@
           We sent you a verification code on <span class="font-semibold text-dark-900">{{ user_email }}</span>
         </p>
 
+        {% if verify_purpose %}
+          <p class="mt-2 text-sm text-gray-500 max-w-[520px]">
+            You need to be verified before you can {{ verify_purpose }}
+          </p>
+        {% endif %}
+
         {% if messages %}
           <div class="mt-6 max-w-[430px] space-y-2">
             {% for message in messages %}
