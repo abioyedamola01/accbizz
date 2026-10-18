@@ -6,8 +6,8 @@ def toast_json_ok(message, status=200, *args, **kwargs):
         "message": message
     }
 
-    if "url" in kwargs.keys():
-        load["url"] = kwargs["url"]
+    for key, value in kwargs.items():
+        load[str(key)] = value
 
     return JsonResponse(load, status=status)
 

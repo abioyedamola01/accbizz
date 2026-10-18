@@ -1,12 +1,22 @@
+import os
 import uuid
+from django.http import Http404
+from django.urls import reverse
 from django.shortcuts import (render, redirect)
 from django.contrib.auth import (authenticate, login, logout,)
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import (login_required, permission_required,)
+from django.contrib.auth.tokens import (PasswordResetTokenGenerator, default_token_generator,)
 from django.forms.models import model_to_dict
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils import timezone
+from django.utils.encoding import force_bytes
+from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
+from django.utils.crypto import get_random_string
 from dashboard.models import SiteModel
-from .models import OTPVerifyModel, CustomUserModel
-from .forms import (StaffLoginForm, VerifyOTPForm, ChangePasswordForm)
-from .otp_utils import (create_otp, send_otp_mail, verify_otp,)
+from dashboard.utils import (toast_json_ok, toast_json_error,)
+from .models import (OTPVerifyModel, CustomUserModel, ChangeEmailTrackModel, RevertEmailChangeModel)
+from .forms import (StaffLoginForm, VerifyOTPForm, ChangePasswordForm, PasswordForm, ChangeEmailForm,)
+from .utils import (create_otp, send_otp_mail, verify_otp, send_password_reset_mail, change_email_token_generator, send_email_change_mails, delete_staff_sessions, delete_staff_other_sessions,)
 
 
 
@@ -90,6 +100,7 @@ def verify_staff_otp_view(request):
             if otp_verify_info["purpose"] == "staff_login":
                 request.session.flush()
                 login(request, user)
+                delete_staff_other_sessions(request=request, staff=user)
             return redirect(redirect_urls[otp_verify_info["purpose"]])
 
         form.add_error(None, verify_comment)
@@ -215,3 +226,221 @@ def staff_change_password_view(request):
         
 
     return render(request, "staffs/change_password.html", context)
+
+
+@login_required
+@permission_required(("staffs.manage_staffs", "staffs.reset_user_password",), raise_exception=True)
+def reset_staff_password_view(request, user):
+    staff = CustomUserModel.objects.select_related("profile",).filter(email=user).first()
+    staff.last_login = timezone.now() # to void all existing tokens
+    staff.save()
+
+    if staff:
+        idb64 = urlsafe_base64_encode(force_bytes(staff.id))
+        token = PasswordResetTokenGenerator().make_token(staff)
+
+        base_url = os.getenv("BASE_URL")
+        reset_link = f"{base_url}/users/staffs/accounts/auth/reset-password/use/{idb64}/{token}"
+
+        send_password_reset_mail(email=staff.email, name=staff.profile.get_username(), url=reset_link)
+
+        return toast_json_ok("Password reset link sent successfully.")
+
+    return toast_json_error("Can't send reset link.")
+
+
+
+def use_reset_staff_password_link_view(request, idb64, token):
+    id = urlsafe_base64_decode(idb64).decode()
+    staff = CustomUserModel.objects.filter(id=id).first()
+
+    if not (staff and PasswordResetTokenGenerator().check_token(staff, token)):
+        raise Http404()
+
+
+    reset_form = PasswordForm(request.POST or None)
+
+    context = {
+        "reset_form": reset_form
+    }
+
+
+    if request.POST and reset_form.is_valid():
+        new_password = reset_form.cleaned_data["password"]
+
+        staff.set_password(new_password)
+        staff.save()
+
+        return toast_json_ok("Password reset successfully.")
+
+    
+
+    return render(request, "staffs/reset_password.html", context)
+
+
+
+
+@login_required
+@permission_required(("staffs.manage_staffs", "staffs.change_email",), raise_exception=True)
+def change_email_view(request):
+    change_email_form = ChangeEmailForm(request.POST or None)
+
+    if request.POST and change_email_form.is_valid():
+        current_email = change_email_form.cleaned_data["current_email"]
+        new_email = change_email_form.cleaned_data["new_email"]
+
+        staff = CustomUserModel.objects.filter(email=current_email).first()
+
+        if not staff:
+            return toast_json_error("Can't initiate change, staff does not exist")
+
+        # void all existing change email tracks
+        existing_change_email_tracks = ChangeEmailTrackModel.objects.filter(staff=staff, is_valid=True)
+        for track in existing_change_email_tracks:
+            track.invalidate()
+
+        change_email_track = ChangeEmailTrackModel.objects.create(initiated_by=request.user, staff=staff, new_email=new_email, current_email=current_email)
+        change_token = change_email_token_generator.make_token(change_email_track)
+
+        staff_revert_email_change, is_created = RevertEmailChangeModel.objects.get_or_create(staff=staff)
+        
+        if not is_created:
+            staff_revert_email_change.save(update_fields=("last_updated",)) # invalidate any existing token
+
+        revert_token = change_email_token_generator.make_token(staff_revert_email_change)
+        
+        staff_idb64 = urlsafe_base64_encode(force_bytes(staff.id))
+        track_idb64 = urlsafe_base64_encode(force_bytes(change_email_track.id))
+
+        base_url = os.getenv("BASE_URL")
+        
+        change_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{change_token}"
+        revert_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{revert_token}/revert-change"
+
+        print(f"finish change: {change_url}")
+        print(f"revert change: {revert_url}")
+        # send_email_change_mails(user_name=staff.profile.get_username(), current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
+
+    return toast_json_ok("Email change process initiated successfully.")
+
+
+
+
+
+
+def finish_email_change_view(request, track_idb64, staff_idb64, token, *args, **kwargs):
+    try:
+        id = urlsafe_base64_decode(staff_idb64).decode("utf-8")
+        track_id = urlsafe_base64_decode(track_idb64).decode("utf-8")
+    except:
+        raise Http404
+
+    staff = CustomUserModel.objects.filter(id=id).first()
+    if not staff:
+        raise Http404 
+
+    change_email_track = staff.change_email_track.filter(id=track_id).first()
+    
+    if not change_email_track:
+        raise Http404
+    
+    if change_email_track.is_reverted:
+        context = {"status": "reverted"}
+        return render(request, "staffs/finish_change_email.html", context)
+    
+    if change_email_track.is_changed:
+        context = {"status": "changed"}
+        return render(request, "staffs/finish_change_email.html", context)
+
+    if change_email_track.is_expired:
+        context = {"status": "expired"}
+        return render(request, "staffs/finish_change_email.html", context)
+
+       
+
+    context = {
+        "current_email": change_email_track.current_email,
+        "new_email": change_email_track.new_email
+    }
+
+
+    if change_email_token_generator.check_token(change_email_track, token):
+        form = PasswordForm(request.POST or None)
+
+        context["form"] = form
+
+        
+        if request.POST and form.is_valid():
+            if authenticate(request, username=staff.email, password=form.cleaned_data["password"]):
+                staff.email = change_email_track.new_email
+                staff.save()
+                change_email_track.mark_changed()
+                delete_staff_sessions(staff=staff) # logout staff everywhere to force login with new email  
+
+                context["status"] = "success"
+
+            else:
+                form.add_error("password", "Invalid password")
+    else:
+        context = {"status": "invalid_token"}
+
+
+    return render(request, "staffs/finish_change_email.html", context)
+    
+    
+
+
+
+
+
+def revert_email_change_view(request, track_idb64, staff_idb64, token, *args, **kwargs):
+    try:
+        id = urlsafe_base64_decode(staff_idb64).decode("utf-8")
+        track_id = urlsafe_base64_decode(track_idb64).decode("utf-8")
+    except:
+        raise Http404
+    
+    staff = CustomUserModel.objects.filter(id=id).first()
+    if not staff:
+        raise Http404 
+
+    change_email_track = staff.change_email_track.filter(id=track_id).first()
+    
+    if not change_email_track:
+        raise Http404
+    
+    if change_email_track.is_reverted:
+        context = {"status": "reverted"}
+        return render(request, "staffs/revert_change_email.html", context)
+    
+    if change_email_track.is_expired:
+        context = {"status": "expired"}
+        return render(request, "staffs/revert_change_email.html", context)
+
+    context = {
+        "current_email": change_email_track.current_email,
+        "new_email": change_email_track.new_email
+    }
+
+
+    if change_email_token_generator.check_token(staff.revert_email_change, token):
+        form = PasswordForm(request.POST or None)
+        context["form"] = form
+
+        if request.POST and form.is_valid():
+            if authenticate(request, username=staff.email, password=form.cleaned_data["password"]):
+                staff.email = change_email_track.current_email
+                staff.save()
+                change_email_track.mark_reverted()
+                delete_staff_sessions(staff=staff)
+
+                context["status"] = "success"
+            else:
+                form.add_error("password", "Invalid password")
+
+    else:
+        context = {"status": "invalid_token"}
+        
+        
+    return render(request, "staffs/revert_change_email.html", context)
+            

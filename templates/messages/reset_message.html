@@ -1,0 +1,88 @@
+{% comment %}
+  Staff password reset email.
+  Context: user_name, reset_url.
+
+  Same look as the OTP and contact enquiry emails. Colours are written out as hex because
+  email clients ignore Tailwind and your theme file:
+    #EF6B2E  brand-500   #FDE8DE  brand-100   #f4eee3  cream   #181523  dark-900
+
+  The link is never printed: it sits only in the button's href.
+{% endcomment %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset your password</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0; padding:0; background-color:#f4eee3; font-family:'Inter', Arial, Helvetica, sans-serif; color:#181523; -webkit-text-size-adjust:100%;">
+
+  {# Preview text shown beside the subject in the inbox #}
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; font-size:1px; line-height:1px; color:#f4eee3;">
+    Use the button inside to choose a new password. The link expires in one hour.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4eee3;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; background-color:#ffffff; border:1px solid #f3f4f6; border-radius:24px;">
+          <tr>
+            <td style="padding:36px 32px;">
+
+              {# Heading, same eyebrow + title pattern as the site #}
+              <p style="margin:0 0 8px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#EF6B2E;">
+                Password reset
+              </p>
+              <h1 style="margin:0; font-size:24px; line-height:32px; font-weight:800; letter-spacing:-0.01em; color:#181523;">
+                Reset your password
+              </h1>
+
+              <p style="margin:16px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
+                Dear {{ user_name }},
+              </p>
+              <p style="margin:8px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
+                A password reset was requested for your staff account. Select the button below to choose a new password.
+              </p>
+
+              {# Button. A table cell carries the background so it still shows in Outlook #}
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:28px auto 0 auto;">
+                <tr>
+                  <td align="center" bgcolor="#181523" style="background-color:#181523; border-radius:999px;">
+                    <a href="{{ reset_url }}" target="_blank" style="display:inline-block; padding:14px 32px; font-family:'Inter', Arial, Helvetica, sans-serif; font-size:15px; line-height:20px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:999px;">
+                      Reset password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              {# Expiry notice #}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+                <tr>
+                  <td align="center" style="background-color:#FDE8DE; border-radius:16px; padding:14px 16px;">
+                    <p style="margin:0; font-size:14px; line-height:22px; color:#4b5563;">
+                      This link expires in <strong style="color:#181523;">one hour</strong> and can only be used once.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="height:1px; line-height:1px; font-size:1px; background-color:#e5e7eb; margin:28px 0 20px 0;">&nbsp;</div>
+
+              <p style="margin:0; font-size:13px; line-height:20px; color:#6b7280;">
+                If you did not expect this email, you can ignore it and your password will stay the same. Never forward this email to anyone, because the button gives access to your account.
+              </p>
+
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:20px 0 0 0; font-size:12px; line-height:18px; color:#9ca3af; text-align:center;">
+          You are receiving this because a password reset was requested for this email address.
+        </p>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -3,6 +3,9 @@ from django.contrib.auth.models import (AbstractUser, BaseUserManager,)
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.sessions.models import Session
+
+
 
 class CustomUserManager(BaseUserManager):
     use_in_migrations = True
@@ -60,7 +63,16 @@ class CustomUserModel(AbstractUser):
         return super().save(*args, **kwargs)
         
     
-        
+
+
+class UserSession(models.Model):
+    user = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE)
+    session = models.OneToOneField(Session, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return f"{self.user.profile.get_username()} - {self.session.session_key}"
+
+
     
 
 class UserProfileModel(models.Model):
@@ -130,14 +142,69 @@ class OTPVerifyModel(models.Model):
         return super().save(*args, **kwargs)
 
 
+class ChangeEmailTrackModel(models.Model):
+    initiated_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE, related_name="initiated_change_emails")
+    staff = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE, related_name="change_email_track")
+    is_valid = models.BooleanField(default=True)
+    is_changed = models.BooleanField(default=False)
+    is_reverted = models.BooleanField(default=False)
+    new_email = models.EmailField()
+    current_email = models.EmailField()
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+
+
+    @property
+    def is_expired(self):
+        elapsed_duration = timezone.now() - self.created_at
+
+        return (elapsed_duration.total_seconds()/60) > (60 * 24);
+
+
+    @property
+    def status(self):
+        status = not (self.is_pending and self.is_reverted)
+
+        return status
+
+
+    def mark_changed(self):
+        self.is_changed = True
+        self.is_valid = False
+
+        return super().save(update_fields=("is_changed", "is_valid", "last_updated",))
+
+
+    def mark_reverted(self):
+        self.is_reverted = True
+        self.is_valid = False
+
+        return super().save(update_fields=("is_reverted", "is_valid", "last_updated",))
+
+
+    def invalidate(self):
+        self.is_valid = False
+
+        return super().save(update_fields=("is_valid", "last_updated",))
+
+
+
+
+class RevertEmailChangeModel(models.Model):
+    staff = models.OneToOneField("staffs.CustomUserModel", on_delete=models.CASCADE, related_name="revert_email_change")
+    last_updated = models.DateTimeField(auto_now=True)
+
 
 admin_permissions = [
+    ("manage_staffs", "Can manage staffs"),
     ("manage_roles", "Can manage roles"),
     ("view_users", "Can view users"),
     ("add_users", "Can add users"),
     ("change_users", "Can change users"),
     ("deactivate_users", "Can deactivate users"),
     ("reset_user_password", "Can reset user passwords"),
+    ("change_email", "Can change user's email"),
     ("view_audit_logs", "Can view audit logs"),
     ("manage_security_settings", "Can manage security settings"),
     ("manage_system_settings", "Can manage system settings"),
@@ -217,6 +284,7 @@ staff_permissions = [
 
     # Messages
     ("manage_messages", "Can manage contact messages"),
+    ("view_messages", "Can view contact messages"),
     ("reply_message", "Can reply to contact messages"),
     ("delete_message", "Can delete contact messages"),
 

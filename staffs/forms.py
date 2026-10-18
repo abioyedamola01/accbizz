@@ -14,3 +14,11 @@ class VerifyOTPForm(forms.Form):
 class ChangePasswordForm(forms.Form):
     old_password = forms.CharField(required=True, widget=forms.PasswordInput())
     new_password = forms.CharField(required=True, widget=forms.PasswordInput())
+
+
+class PasswordForm(forms.Form):
+    password = forms.CharField(required=True, widget=forms.PasswordInput())
+
+class ChangeEmailForm(forms.Form):
+    current_email = forms.EmailField()
+    new_email = forms.EmailField()

@@ -118,6 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'staffs.CustomUserModel'
 LOGIN_URL = "staff_login"
+PASSWORD_RESET_TIMEOUT = 3600 * 24
 
 
 # Internationalization

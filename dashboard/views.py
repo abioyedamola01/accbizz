@@ -8,6 +8,8 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualIdentityForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel,)
+from staffs.models import (CustomUserModel, UserProfileModel,)
+from staffs.forms import ChangeEmailForm
 from .utils import (toast_json_ok, toast_json_error,)
 
 
@@ -435,6 +437,8 @@ def communication_view(request):
 
 
 
+@login_required
+@permission_required(("staffs.manage_messages", "staffs.view_messages"), raise_exception=True)
 def get_messages_batch_view(request, batch_point):
     batch_point_inst = ContactMessageModel.objects.filter(id=batch_point).first()
 
@@ -460,7 +464,7 @@ def get_messages_batch_view(request, batch_point):
 
 
 @login_required
-@permission_required(("staffs.manage_messages",), raise_exception=True)
+@permission_required(("staffs.manage_messages", "staffs.reply_message",), raise_exception=True)
 def attend_message_view(request, message):
     message_inst = ContactMessageModel.objects.filter(id=message).first()
 
@@ -478,7 +482,7 @@ def attend_message_view(request, message):
 
 
 @login_required
-@permission_required(("staffs.manage_messages",), raise_exception=True)
+@permission_required(("staffs.manage_messages", "staffs.reply_message",), raise_exception=True)
 def unattend_message_view(request, message):
     message_inst = ContactMessageModel.objects.filter(id=message).first()
 
@@ -509,3 +513,19 @@ def delete_message_view(request, message):
 
         return toast_json_ok(f"Message from {message_inst.name} has been deleted successfullt.")
     return toast_json_error("Can't delete message.")
+
+
+
+@login_required
+@permission_required(("staffs.manage_staffs",), raise_exception=True)
+def staffs_view(request):
+    staffs = CustomUserModel.objects.select_related("profile",).filter()
+    change_email_form = ChangeEmailForm(request.POST or None)
+
+    context = {
+        "staffs": staffs,
+        "change_email_form": change_email_form,
+        "current": "staffs"
+    }
+
+    return render(request, "dashboard/staffs.html", context)

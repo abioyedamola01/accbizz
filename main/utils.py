@@ -36,5 +36,3 @@ def send_contact_message(site_info, name, email, message, phone=None, service=No
         fail_silently = False,
     )
 
-
-    print(site_info.email)

@@ -1,0 +1,346 @@
+{% extends "base/dashboard/base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Staffs · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+
+{% block content %}
+{# ===================================================================== #}
+{# Staffs: everyone with access to the dashboard.                         #}
+{#                                                                        #}
+{# Context:                                                               #}
+{#   staffs     all staff profiles (see partials/staffs/_rows.html for    #}
+{#              the fields each one needs)                                #}
+{#   current    "users" keeps the sidebar's Users item highlighted        #}
+{#                                                                        #}
+{# Each row has a Manage dropdown: Reset password (modal, posts to        #}
+{# staff_reset_password), Change email (modal, posts to staff_change_email, #}
+{# needs `change_email_form` in the context) and Remove as staff, which has #}
+{# an empty link for now.                                                 #}
+{# ===================================================================== #}
+
+<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+
+  {# ---- Header ---- #}
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+    <div class="flex flex-wrap items-center gap-2">
+      <h2 class="text-base font-bold text-dark-900">Staffs</h2>
+      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ staffs|length }} staff member{{ staffs|length|pluralize }}</span>
+    </div>
+  </div>
+
+  {# ---- Table ---- #}
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[560px] text-left">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Staff</th>
+          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Role</th>
+          <th class="py-3 pr-1 text-xs font-medium text-gray-500 text-right">Manage</th>
+        </tr>
+      </thead>
+
+      <tbody id="staffBody" class="divide-y divide-gray-100">
+        {% include "dashboard/partials/staffs/_rows.html" %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+{# ---- Reset password modal ---- #}
+{# One modal for every row. The script fills in the name/email and sets the form action from the row's data-reset-url. #}
+<div id="resetModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div id="resetModalOverlay" class="absolute inset-0 bg-dark-900/70"></div>
+
+  <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-card p-6" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
+    <button type="button" id="resetModalClose"
+      class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-brand-50 flex items-center justify-center">
+      <svg class="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+      </svg>
+    </div>
+
+    <h2 id="resetModalTitle" class="text-lg font-bold text-center text-gray-900">Reset password?</h2>
+    <p class="text-sm text-gray-500 text-center mt-1.5 mb-6">
+      Are you sure you want to reset the password for <span id="resetModalName" class="font-semibold text-dark-900"></span>?
+      A password reset link will be sent to <span id="resetModalEmail" class="font-semibold text-dark-900 break-all"></span>.
+    </p>
+
+    <form id="resetForm" method="post" action="" class="flex items-center gap-3">
+      {% csrf_token %}
+      <button type="button" id="resetModalCancel"
+        class="flex-1 py-2.5 rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
+        Cancel
+      </button>
+      <button type="submit" id="resetSubmit"
+        class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:enabled:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer transition-colors">
+        <svg id="resetSpinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span id="resetSubmitLabel">Reset password</span>
+      </button>
+    </form>
+  </div>
+</div>
+
+{# ---- Change email modal ---- #}
+{# One modal for every row. The script fills in the name and old email, and puts the staff's email into the hidden current_email field. #}
+<div id="changeEmailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div id="changeEmailOverlay" class="absolute inset-0 bg-dark-900/70"></div>
+
+  <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-card p-6" role="dialog" aria-modal="true" aria-labelledby="changeEmailTitle">
+    <button type="button" id="changeEmailClose"
+      class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-brand-50 flex items-center justify-center">
+      <svg class="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
+      </svg>
+    </div>
+
+    <h2 id="changeEmailTitle" class="text-lg font-bold text-center text-gray-900">Change email?</h2>
+    <p class="text-sm text-gray-500 text-center mt-1.5 mb-5">
+      Enter the new email address for <span id="changeEmailName" class="font-semibold text-dark-900"></span>.
+      A link to confirm the change will be sent to the new email, and a notification will be sent to the current one,
+      <span id="changeEmailOld" class="font-semibold text-dark-900 break-all"></span>.
+    </p>
+
+    <form id="changeEmailForm" method="post" action="{% url "staff_change_email" %}" class="flex flex-col gap-5">
+      {% csrf_token %}
+
+      {# current_email is known, so it stays hidden; the script fills it with the staff's email #}
+      {{ change_email_form.current_email.as_hidden }}
+
+      <div>
+        <label for="{{ change_email_form.new_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">New email</label>
+        {% render_field change_email_form.new_email class="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-white text-sm text-dark-900 placeholder-gray-400 focus:outline-none focus:border-brand-500" placeholder="name@example.com" autocomplete="off" %}
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="button" id="changeEmailCancel"
+          class="flex-1 py-2.5 rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
+          Cancel
+        </button>
+        <button type="submit" id="changeEmailSubmit"
+          class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:enabled:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer transition-colors">
+          <svg id="changeEmailSpinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span id="changeEmailLabel">Initiate change</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    var body = document.getElementById('staffBody');
+    var openBtn = null; // the Manage button whose menu is open
+
+    // ---- Reset password modal ----
+    var resetModal = document.getElementById('resetModal');
+    var resetForm = document.getElementById('resetForm');
+    var resetSubmit = document.getElementById('resetSubmit');
+    var resetSpinner = document.getElementById('resetSpinner');
+    var resetLabel = document.getElementById('resetSubmitLabel');
+    var resetOpener = null; // the Manage button to return focus to
+
+    function openResetModal(item) {
+      resetOpener = openBtn || item.closest('.inline-block').querySelector('.staff-actions-btn');
+      resetForm.action = item.dataset.resetUrl;
+      document.getElementById('resetModalName').textContent = item.dataset.staffName;
+      document.getElementById('resetModalEmail').textContent = item.dataset.staffEmail;
+      window.clearFieldErrors(resetForm);
+      resetModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      document.getElementById('resetModalCancel').focus();
+    }
+
+    function closeResetModal() {
+      if (resetSubmit.disabled) return; // a request is in flight; wait for it
+      resetModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      if (resetOpener) resetOpener.focus();
+    }
+
+    ['resetModalClose', 'resetModalCancel', 'resetModalOverlay'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', closeResetModal);
+    });
+
+    // Posts with fetch (toast from _toast.html). On success the modal closes and the page stays put.
+    resetForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      window.submitForm(resetForm, {
+        button: resetSubmit,
+        spinner: resetSpinner,
+        label: resetLabel,
+        busyText: 'Sending',
+        idleText: 'Reset password',
+        successFallback: 'A new password has been sent to the staff email.',
+        onSuccess: function () { closeResetModal(); }
+      });
+    });
+
+    // ---- Change email modal ----
+    var changeModal = document.getElementById('changeEmailModal');
+    var changeForm = document.getElementById('changeEmailForm');
+    var changeSubmit = document.getElementById('changeEmailSubmit');
+    var changeSpinner = document.getElementById('changeEmailSpinner');
+    var changeLabel = document.getElementById('changeEmailLabel');
+    var changeOpener = null; // the Manage button to return focus to
+
+    function openChangeModal(item) {
+      changeOpener = openBtn || item.closest('.inline-block').querySelector('.staff-actions-btn');
+      document.getElementById('changeEmailName').textContent = item.dataset.staffName;
+      document.getElementById('changeEmailOld').textContent = item.dataset.staffEmail;
+      changeForm.elements['current_email'].value = item.dataset.staffEmail; // hidden field, sent with the post
+      changeForm.elements['new_email'].value = '';
+      window.clearFieldErrors(changeForm);
+      changeModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      changeForm.elements['new_email'].focus();
+    }
+
+    function closeChangeModal() {
+      if (changeSubmit.disabled) return; // a request is in flight; wait for it
+      changeModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      if (changeOpener) changeOpener.focus();
+    }
+
+    ['changeEmailClose', 'changeEmailCancel', 'changeEmailOverlay'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', closeChangeModal);
+    });
+
+    // Posts new_email and current_email with fetch. On success the modal closes and the page stays put.
+    changeForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      window.submitForm(changeForm, {
+        button: changeSubmit,
+        spinner: changeSpinner,
+        label: changeLabel,
+        busyText: 'Initiating',
+        idleText: 'Initiate change',
+        successFallback: 'Email change initiated. A confirmation link has been sent to the new email.',
+        // current_email is hidden, so show its errors under the visible field
+        fieldTarget: function (name, form) {
+          return form.elements[name === 'current_email' ? 'new_email' : name];
+        },
+        onSuccess: function () { closeChangeModal(); }
+      });
+    });
+
+    function menuOf(btn) { return btn.nextElementSibling; }
+
+    function closeMenu(returnFocus) {
+      if (!openBtn) return;
+      var btn = openBtn;
+      openBtn = null;
+      menuOf(btn).classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      if (returnFocus) btn.focus();
+    }
+
+    // The menu is placed with position: fixed, so the table's scroll area cannot clip it.
+    // It lines up with the button's right edge and flips above the button when there is no room below.
+    function placeMenu(btn, menu) {
+      var rect = btn.getBoundingClientRect();
+      var width = menu.offsetWidth;
+      var height = menu.offsetHeight;
+      var gap = 6;
+      var left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+      var top = rect.bottom + gap;
+      if (top + height > window.innerHeight - 8 && rect.top - gap - height >= 8) {
+        top = rect.top - gap - height;
+      }
+      menu.style.position = 'fixed';
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+    }
+
+    function openMenuFor(btn, viaKeyboard) {
+      closeMenu(false);
+      var menu = menuOf(btn);
+      menu.classList.remove('hidden');
+      placeMenu(btn, menu);
+      btn.setAttribute('aria-expanded', 'true');
+      openBtn = btn;
+      if (viaKeyboard) menu.querySelector('[role="menuitem"]').focus();
+    }
+
+    // One listener for every row, so rows added later work too
+    body.addEventListener('click', function (event) {
+      var resetBtn = event.target.closest('.staff-reset-btn');
+      if (resetBtn) {
+        closeMenu(false);
+        openResetModal(resetBtn);
+        return;
+      }
+
+      var changeBtn = event.target.closest('.staff-change-email-btn');
+      if (changeBtn) {
+        closeMenu(false);
+        openChangeModal(changeBtn);
+        return;
+      }
+
+      var btn = event.target.closest('.staff-actions-btn');
+      if (!btn) return;
+      event.preventDefault();
+      if (openBtn === btn) { closeMenu(false); return; }
+      openMenuFor(btn, event.detail === 0); // detail 0 = opened with the keyboard
+    });
+
+    body.addEventListener('keydown', function (event) {
+      var btn = event.target.closest('.staff-actions-btn');
+      if (btn && event.key === 'ArrowDown') {
+        event.preventDefault();
+        openMenuFor(btn, true);
+        return;
+      }
+      var item = event.target.closest('[role="menuitem"]');
+      if (!item || !openBtn) return;
+      var items = Array.prototype.slice.call(menuOf(openBtn).querySelectorAll('[role="menuitem"]'));
+      var i = items.indexOf(item);
+      if (event.key === 'ArrowDown') { event.preventDefault(); items[(i + 1) % items.length].focus(); }
+      if (event.key === 'ArrowUp') { event.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+      if (event.key === 'Home') { event.preventDefault(); items[0].focus(); }
+      if (event.key === 'End') { event.preventDefault(); items[items.length - 1].focus(); }
+      if (event.key === 'Tab') closeMenu(false);
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape') return;
+      if (!resetModal.classList.contains('hidden')) { closeResetModal(); return; }
+      if (!changeModal.classList.contains('hidden')) { closeChangeModal(); return; }
+      closeMenu(true);
+    });
+
+    // Click anywhere else closes it
+    document.addEventListener('click', function (event) {
+      if (!openBtn) return;
+      if (event.target.closest('.staff-actions-btn') || event.target.closest('.staff-actions-menu')) return;
+      closeMenu(false);
+    });
+
+    // A fixed menu would drift away from its button, so close it when anything scrolls or the window resizes
+    document.addEventListener('scroll', function () { closeMenu(false); }, true);
+    window.addEventListener('resize', function () { closeMenu(false); });
+  })();
+</script>
+{% endblock extra_js %}
