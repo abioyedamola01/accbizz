@@ -1,5 +1,4 @@
-from django import  forms
-
+from django import forms
 
 
 class StaffLoginForm(forms.Form):

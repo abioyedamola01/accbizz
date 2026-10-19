@@ -317,9 +317,7 @@ def change_email_view(request):
         change_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{change_token}"
         revert_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{revert_token}/revert-change"
 
-        print(f"finish change: {change_url}")
-        print(f"revert change: {revert_url}")
-        # send_email_change_mails(user_name=staff.profile.get_username(), current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
+        send_email_change_mails(user_name=staff.profile.get_username(), current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
 
     return toast_json_ok("Email change process initiated successfully.")
 

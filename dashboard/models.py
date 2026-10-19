@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
-from phonenumber_field.modelfields import PhoneNumberField
+from staffs.roles import ROLES
 
 # Create your models here.
 
@@ -31,7 +31,7 @@ class AboutSectionModel(models.Model):
 class TeamModel(models.Model):
     avatar = models.ImageField(upload_to="team/avatars/%y/%m/%d/", null=True)
     name = models.CharField(max_length=120)
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=75, default="")
     email = models.EmailField(max_length=254)
     slug = models.SlugField(default="", null=True)
     is_member = models.BooleanField(default=True, null=True)

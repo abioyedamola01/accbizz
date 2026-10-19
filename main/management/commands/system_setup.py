@@ -11,17 +11,17 @@ class Command(BaseCommand):
             self.stdout.write(self.style.NOTICE("\nMaking migrations"))
             call_command("makemigrations", interactive=False)
             self.stdout.write(self.style.SUCCESS(f"makemigrations completed"))
-        except:
-             self.stderr.write(self.style.ERROR_OUTPUT("Operation not completed"))
-
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        
 
         try:
             self.stdout.write(self.style.NOTICE("\nMigrating"))
             call_command("migrate", interactive=False)
             self.stdout.write(self.style.SUCCESS(f"migrating completed"))
-        except:
-            self.stderr.write(self.style.ERROR_OUTPUT("Operation not completed"))
-
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        
 
         
         self.stdout.write(self.style.NOTICE("\nCreating staffs roles and groups"))

@@ -14,9 +14,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS("Hero section has been created successfully and its fields have been prepopulated with dummy values. Ensure you add original values."))
             else:
                 self.stdout.write(self.style.SUCCESS("Hero section has been existing."))
-        except:
-            self.stderr.write(self.style.ERROR_OUTPUT("Operation not completed. Could not create hero section."))
-
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        
 
         # About section model instance creation
         try:
@@ -26,5 +26,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS("About section has been created successfully and its fields have been prepopulated withdummy values. Ensure you add original values."))
             else:
                 self.stdout.write(self.style.SUCCESS("About section has been existing."))
-        except:
-            pass
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        

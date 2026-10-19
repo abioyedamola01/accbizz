@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group
+from staffs.roles import ROLES
 
 
 
@@ -11,9 +12,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            roles = ("admin", "staff",)
+            roles = ROLES
 
-            for role in roles:
+            for role, _ in roles:
                 _, is_created = Group.objects.get_or_create(name=f"{role}_group")
                 
                 if is_created:
@@ -21,4 +22,4 @@ class Command(BaseCommand):
                 elif not is_created:
                     self.stdout.write(self.style.SUCCESS(f"{role} group has been existing."))
         except:
-            self.stderr(self.style.ERROR_OUTPUT("Operation not completed."))
+            self.stderr(self.style.ERROR("Operation not completed."))

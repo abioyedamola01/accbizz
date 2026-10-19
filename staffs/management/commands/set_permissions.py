@@ -1,15 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import (Permission, Group)
-from staffs.models import (admin_permissions, staff_permissions)
-
-
-def get_perms(perms_list):
-    perms = list()
-    for permission, _ in perms_list:
-        perms.append(permission)
-    return perms
-
-
+from staffs.roles import (ROLES, PERMISSIONS,)
 
 
 
@@ -19,28 +10,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            admin_group = Group.objects.filter(name="admin_group").first()
-            staff_group = Group.objects.filter(name="staff_group").first()
+            group_permissions = list()
 
-            admin_perms_tuple_list = admin_permissions + staff_permissions
-            staff_perms_tuple_list = staff_permissions
+            for role, _ in ROLES:
+                group = Group.objects.filter(name=f"{role}_group").first()
+                permissions = [perm[0] for perm in PERMISSIONS[role]]
 
-            admin_perms = get_perms(admin_perms_tuple_list)
-            staff_perms = get_perms(staff_perms_tuple_list)
+                group_permissions.append((group, permissions,))
 
+            for group, permissions in group_permissions:
+                permmisions_queue = Permission.objects.filter(content_type__app_label="staffs", codename__in=permissions)
 
-            group_permissions_to_add = [
-                (admin_group, admin_perms),
-                (staff_group, staff_perms),
-            ]
-
-
-            for staff_group, permissions in group_permissions_to_add:
-                if staff_group:
-                    permissions_to_add = Permission.objects.filter(content_type__app_label="staffs", codename__in=permissions)
-                    staff_group.permissions.set(permissions_to_add)
-                    self.stdout.write(self.style.SUCCESS(f"{permissions} have been set to {staff_group} group."))
-                else:
-                    self.stdout.write(self.style.ERROR('Set permissions not completed. Group is not found.'))
-        except:
-            self.stderr(self.style.ERROR_OUTPUT("Operation not completed."))
+                group.permissions.set(permmisions_queue)
+                self.stdout.write(self.style.SUCCESS(f"{len(permmisions_queue)} has been set to {group.name}."))
+                
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))

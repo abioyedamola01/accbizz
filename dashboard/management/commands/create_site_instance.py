@@ -1,3 +1,4 @@
+import os
 from django.core.management.base import BaseCommand
 from dashboard.models import SiteModel
 
@@ -10,7 +11,10 @@ class Command(BaseCommand):
             if SiteModel.objects.first():
                 self.stdout.write(self.style.SUCCESS('Site instance is already existing.'))
             else:
-                SiteModel.objects.create(company_name="Company name", display_name="Display", domain_url="url.com")
+                base_url = os.getenv("BASE_URL")
+                host_email = os.getenv("EMAIL_HOST_USER")
+                SiteModel.objects.create(company_name="Company name", display_name="Display", domain_url=base_url, email=host_email)
                 self.stdout.write(self.style.SUCCESS("Site instances created successfully. Fields are prepopuated with dummy values, ensure adding appropriate values."))
-        except:
-            self.stderr.write(self.style.ERROR_OUTPUT("Operation not completed"))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        

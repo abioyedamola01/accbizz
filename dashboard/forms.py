@@ -1,6 +1,7 @@
 from django import forms
 from staffs.models import UserProfileModel
 from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel)
+from staffs.roles import ROLES
 
 
 class EditProfileForm(forms.ModelForm):
@@ -82,3 +83,11 @@ class ContactMessageForm(forms.ModelForm):
     class Meta:
         model = ContactMessageModel
         fields = ("name", "email", "phone", "service", "message",)
+
+
+
+class StaffForm(forms.Form):
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
+    email = forms.EmailField(required=False)
+    role = forms.ChoiceField(required=True, choices=ROLES)

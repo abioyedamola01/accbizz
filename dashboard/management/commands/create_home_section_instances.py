@@ -25,7 +25,7 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write(self.style.SUCCESS(f"{name} home section has been existing."))
              
-        except:
-            self.stderr.write(self.style.ERROR_OUTPUT("Operation not completed"))
-
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+        
             

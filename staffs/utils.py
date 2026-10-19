@@ -10,6 +10,11 @@ from .models import (OTPVerifyModel, UserSession,)
 
 
 
+
+
+
+
+
 def delete_staff_sessions(staff):
     current_sessions_keys = UserSession.objects.filter(user=staff, session__expire_date__gt=timezone.now()).values_list("session__session_key", flat=True)
     Session.objects.filter(session_key__in=current_sessions_keys).delete()
@@ -28,6 +33,10 @@ class ChangeEmailTokenGenerator(PasswordResetTokenGenerator):
         return value
 
 change_email_token_generator = ChangeEmailTokenGenerator()
+
+
+
+
 
 
 

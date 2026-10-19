@@ -30,4 +30,4 @@ class Command(BaseCommand):
                 admin_group.user_set.add(default_admin_staff)
             
         except:
-            self.stderr(self.style.ERROR_OUTPUT("Operation not completed."))
+            self.stderr(self.style.ERROR("Operation not completed."))
