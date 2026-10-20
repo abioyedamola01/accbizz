@@ -6,15 +6,16 @@ from django.shortcuts import (render, redirect)
 from django.contrib.auth import (authenticate, login, logout,)
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.contrib.auth.tokens import (PasswordResetTokenGenerator, default_token_generator,)
+from django.contrib.auth.models import Group
 from django.forms.models import model_to_dict
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
 from django.utils.crypto import get_random_string
-from dashboard.models import SiteModel
-from dashboard.utils import (toast_json_ok, toast_json_error,)
-from .models import (OTPVerifyModel, CustomUserModel, ChangeEmailTrackModel, RevertEmailChangeModel)
+from dashboard.models import (SiteModel, AddStaffModel,)
+from dashboard.utils import (toast_json_ok, toast_json_error, add_staff_token_generator,)
+from .models import (OTPVerifyModel, CustomUserModel, ChangeEmailTrackModel, RevertEmailChangeModel,)
 from .forms import (StaffLoginForm, VerifyOTPForm, ChangePasswordForm, PasswordForm, ChangeEmailForm,)
 from .utils import (create_otp, send_otp_mail, verify_otp, send_password_reset_mail, change_email_token_generator, send_email_change_mails, delete_staff_sessions, delete_staff_other_sessions,)
 
@@ -442,3 +443,62 @@ def revert_email_change_view(request, track_idb64, staff_idb64, token, *args, **
         
     return render(request, "staffs/revert_change_email.html", context)
             
+
+
+
+
+def new_staff_account_creation_view(request, idb64, token):
+    try:
+        track_id = int(urlsafe_base64_decode(idb64).decode("utf-8"))
+    except:
+        raise Http404
+
+
+    creation_track = AddStaffModel.objects.filter(id=track_id).first()
+
+    if not creation_track:
+        raise Http404
+ 
+
+    if creation_track.is_expired:
+        context = {"status": "is_expired"}
+        return render(request, "staffs/create_new_account.html", context)
+
+
+    if creation_track.is_used:
+        context = {"status": "is_used"}
+        return render(request, "staffs/create_new_account.html", context)
+
+
+    if not add_staff_token_generator.check_token(creation_track, token):
+        context = {"status": "invalid_token"}
+        return render(request, "staffs/create_new_account.html", context)
+
+
+    password_form = PasswordForm(request.POST or None)
+
+    context = {
+        "name": creation_track.get_username(),
+        "password_form": password_form
+    }
+
+    if request.POST and password_form.is_valid():
+        info = creation_track.get_info()
+
+        try:
+            staff = CustomUserModel.objects.create(email=info["email"], password=password_form.cleaned_data["password"], is_staff_member=True, is_admin=False)
+            staff.profile.role = info["role"]
+            staff.profile.first_name = info["first_name"]
+            staff.profile.last_name = info["last_name"]
+            staff.profile.save(update_fields=("role", "first_name", "last_name",))
+            
+            admin_group = Group.objects.get(name=f"{info["role"]}_group")
+            admin_group.user_set.add(staff)
+
+            creation_track.set_used()
+
+            context["status"] = "success"
+        except:
+            pass
+
+    return render(request, "staffs/create_new_account.html", context)

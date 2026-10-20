@@ -11,6 +11,10 @@
 {#   staffs     all staff profiles (see partials/staffs/_rows.html for    #}
 {#              the fields each one needs)                                #}
 {#   current    "users" keeps the sidebar's Users item highlighted        #}
+{#   staff_form fields first_name, last_name, email, role, for the Add    #}
+{#              staff modal (posts to dashboard_add_staff). On success    #}
+{#              the modal swaps to a "link sent, expires in 24 hours"     #}
+{#              message; on failure the JSON "error" shows as a toast.    #}
 {#                                                                        #}
 {# Each row has a Manage dropdown: Reset password (modal, posts to        #}
 {# staff_reset_password), Change email (modal, posts to staff_change_email, #}
@@ -25,6 +29,16 @@
     <div class="flex flex-wrap items-center gap-2">
       <h2 class="text-base font-bold text-dark-900">Staffs</h2>
       <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ staffs|length }} staff member{{ staffs|length|pluralize }}</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="button" id="addStaffBtn"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
+        </svg>
+        Add staff
+      </button>
     </div>
   </div>
 
@@ -142,6 +156,83 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+{# ---- Add staff modal (same look as the other Add modals) ---- #}
+<div id="addStaffModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative" role="dialog" aria-modal="true" aria-labelledby="addStaffTitle">
+
+    <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <h3 id="addStaffTitle" class="text-base font-bold text-dark-900">Add staff</h3>
+      <button type="button" id="addStaffClose"
+        class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    {# Form view #}
+    <div id="addStaffFormView" class="flex-1 overflow-y-auto px-6 py-5">
+      <form method="post" id="addStaffForm" action="{% url "dashboard_add_staff" %}" novalidate>
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {% for field in staff_form %}
+            <div class="min-w-0 {% if field.name != 'first_name' and field.name != 'last_name' %}sm:col-span-2{% endif %}">
+              <label for="{{ field.id_for_label }}" class="text-xs font-medium text-gray-500 block mb-1">{{ field.label }}</label>
+              {% render_field field class+="add-form-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            </div>
+          {% endfor %}
+        </div>
+      </form>
+    </div>
+
+    <div id="addStaffFooter" class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <button type="button" id="addStaffCancel"
+        class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+        Cancel
+      </button>
+      <button type="submit" form="addStaffForm" id="addStaffSaveBtn" disabled
+        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+        <svg id="addStaffSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span id="addStaffSaveLabel">Create staff</span>
+      </button>
+    </div>
+
+    {# Sent view: replaces the form once the account creation link is on its way #}
+    <div id="addStaffSent" class="hidden flex-1 overflow-y-auto px-6 py-8 text-center" role="status" tabindex="-1">
+      <div class="w-14 h-14 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center">
+        <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
+        </svg>
+      </div>
+      <h4 class="text-lg font-bold text-gray-900">Account creation link sent</h4>
+      <p class="text-sm text-gray-500 mt-1.5">
+        We sent a link to <span id="addStaffSentEmail" class="font-semibold text-dark-900 break-all"></span>.
+        They will be asked to create a new password to finish creating their account.
+      </p>
+      <p class="text-sm text-gray-500 mt-2">The link expires in <span class="font-semibold text-dark-900">24 hours</span>.</p>
+      <button type="button" id="addStaffAnother"
+        class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 underline underline-offset-2 cursor-pointer transition-colors">
+        Create new user
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="addStaffSentFooter" class="hidden flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <button type="button" id="addStaffDone"
+        class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+        Close
+      </button>
+    </div>
+
   </div>
 </div>
 {% endblock content %}
@@ -324,8 +415,144 @@
       if (event.key === 'Tab') closeMenu(false);
     });
 
+    // ---- Add staff modal ----
+    var addModal = document.getElementById('addStaffModal');
+    var addForm = document.getElementById('addStaffForm');
+    var addSave = document.getElementById('addStaffSaveBtn');
+    var addSpinner = document.getElementById('addStaffSpinner');
+    var addLabel = document.getElementById('addStaffSaveLabel');
+    var addFormView = document.getElementById('addStaffFormView');
+    var addFooter = document.getElementById('addStaffFooter');
+    var addSent = document.getElementById('addStaffSent');
+    var addSentFooter = document.getElementById('addStaffSentFooter');
+    var addSentEmail = document.getElementById('addStaffSentEmail');
+    var addSending = false; // true while the post is in flight
+
+    // Save stays off until every required field is filled
+    function updateAddSaveState() {
+      var filled = true;
+      addForm.querySelectorAll('.add-form-required-field').forEach(function (field) {
+        if (!field.value || !field.value.trim()) filled = false;
+      });
+      addSave.disabled = addSending || !filled;
+    }
+
+    // Back to an empty form (used on close and by "Create new user")
+    function showAddForm() {
+      addForm.reset();
+      window.clearFieldErrors(addForm);
+      addSpinner.classList.add('hidden');
+      addLabel.textContent = 'Create staff';
+      addSent.classList.add('hidden');
+      addSentFooter.classList.add('hidden');
+      addFormView.classList.remove('hidden');
+      addFooter.classList.remove('hidden');
+      updateAddSaveState();
+    }
+
+    // Swap the form for the "link sent" message
+    function showAddSent(email) {
+      addSentEmail.textContent = email; // textContent, never innerHTML
+      addFormView.classList.add('hidden');
+      addFooter.classList.add('hidden');
+      addSent.classList.remove('hidden');
+      addSentFooter.classList.remove('hidden');
+      addSent.focus();
+    }
+
+    function focusFirstAddField() {
+      var first = addForm.querySelector('input, select');
+      if (first) first.focus();
+    }
+
+    function openAddModal() {
+      addModal.classList.remove('hidden');
+      addModal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+      focusFirstAddField();
+    }
+
+    function closeAddModal() {
+      if (addSending) return; // a request is in flight; wait for it
+      addModal.classList.add('hidden');
+      addModal.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+      showAddForm(); // start clean next time
+    }
+
+    // Inline errors, if the server sends { errors: { field: ["message"] } }
+    function showAddFieldErrors(errors) {
+      Object.keys(errors).forEach(function (name) {
+        var target = addForm.querySelector('[name="' + name + '"]');
+        if (!target) return; // non-field errors: the toast covers those
+        var list = Array.isArray(errors[name]) ? errors[name] : [errors[name]];
+        var first = list[0];
+        var text = typeof first === 'string' ? first : (first && first.message) || 'Invalid value.';
+
+        var p = document.createElement('p');
+        p.className = 'field-error text-red-500 text-xs mt-1';
+        p.textContent = text;
+        target.insertAdjacentElement('afterend', p);
+        target.style.borderColor = '#f87171';
+        target.setAttribute('data-has-error', '');
+        target.setAttribute('aria-invalid', 'true');
+      });
+    }
+
+    document.getElementById('addStaffBtn').addEventListener('click', openAddModal);
+    document.getElementById('addStaffClose').addEventListener('click', closeAddModal);
+    document.getElementById('addStaffCancel').addEventListener('click', closeAddModal);
+    document.getElementById('addStaffDone').addEventListener('click', closeAddModal);
+    document.getElementById('addStaffAnother').addEventListener('click', function () {
+      showAddForm();
+      focusFirstAddField();
+    });
+    addModal.addEventListener('click', function (event) {
+      if (event.target === addModal) closeAddModal(); // backdrop click
+    });
+
+    addForm.addEventListener('input', updateAddSaveState);
+    addForm.addEventListener('change', updateAddSaveState);
+
+    // Posts the form with fetch.
+    //   success -> toast + the modal swaps to the "link sent" message (the page does not reload)
+    //   failure -> error toast from the JSON "error" key (falls back to "message")
+    addForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      if (addSending) return;
+      addSending = true;
+
+      window.clearFieldErrors(addForm);
+      addSave.disabled = true;
+      addSpinner.classList.remove('hidden');
+      addLabel.textContent = 'Creating...';
+
+      var emailField = addForm.elements['email'] || addForm.elements['email_address'];
+      var email = emailField ? emailField.value.trim() : '';
+
+      window.ajaxPost(addForm).then(function (result) {
+        addSending = false;
+        addSpinner.classList.add('hidden');
+        addLabel.textContent = 'Create staff';
+        updateAddSaveState();
+
+        var data = result.data || {};
+        var serverError = typeof data.error === 'string' && data.error ? data.error : '';
+
+        if (result.ok && !serverError) {
+          window.showToast(result.message || 'Account creation link sent.', 'success');
+          showAddSent(email);
+          return;
+        }
+
+        if (data.errors) showAddFieldErrors(data.errors);
+        window.showToast(serverError || result.message, 'error');
+      });
+    });
+
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
+      if (!addModal.classList.contains('hidden')) { closeAddModal(); return; }
       if (!resetModal.classList.contains('hidden')) { closeResetModal(); return; }
       if (!changeModal.classList.contains('hidden')) { closeChangeModal(); return; }
       closeMenu(true);

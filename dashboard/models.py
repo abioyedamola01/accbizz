@@ -197,3 +197,47 @@ class ContactMessageModel(models.Model):
         self.attended_at = None
 
         return super().save(update_fields=("is_attended", "attended_by", "attended_at",))
+
+
+
+
+class AddStaffModel(models.Model):
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    email = models.CharField(max_length=150)
+    role = models.CharField(max_length=70, choices=ROLES[1:])
+    is_used = models.BooleanField(default=False)
+    is_valid = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
+    initiated_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE, null=True, blank=True)
+    
+    @property
+    def is_expired(self):
+        elapsed_duration = timezone.now() - self.created_at
+        return (elapsed_duration.total_seconds()/60) > (60 * 24);
+
+    def get_username(self):
+        name = f"{self.first_name} {self.last_name}"
+        return name
+
+    def get_info(self):
+        info = {
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "role": self.role
+        }
+
+        return info
+
+    def set_used(self):
+        self.is_used = True
+        return super().save(update_fields=("is_used",))
+
+    def invalidate(self):
+        self.is_valid = False
+        return super().save(update_fields=("is_valid",))
+
+    def set_initiator(self, initiator):
+        self.initiated_by = initiator
+        return super().save(update_fields=("initiated_by",))

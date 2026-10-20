@@ -1,6 +1,6 @@
 from django import forms
 from staffs.models import UserProfileModel
-from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel)
+from .models import (SiteModel, HomeSectionModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel, AddStaffModel)
 from staffs.roles import ROLES
 
 
@@ -86,8 +86,7 @@ class ContactMessageForm(forms.ModelForm):
 
 
 
-class StaffForm(forms.Form):
-    first_name = forms.CharField(required=True)
-    last_name = forms.CharField(required=True)
-    email = forms.EmailField(required=False)
-    role = forms.ChoiceField(required=True, choices=ROLES)
+class StaffForm(forms.ModelForm):
+    class Meta:
+        model = AddStaffModel
+        fields = ("first_name", "last_name", "email", "role")

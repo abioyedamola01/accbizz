@@ -93,7 +93,7 @@ admin_permissions = [
     ("manage_staffs", "Can manage staffs"),
     ("manage_roles", "Can manage roles"),
     ("view_users", "Can view users"),
-    ("add_users", "Can add users"),
+    ("add_user", "Can add users"),
     ("change_users", "Can change users"),
     ("deactivate_users", "Can deactivate users"),
     ("reset_user_password", "Can reset user passwords"),

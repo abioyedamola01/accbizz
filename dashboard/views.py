@@ -1,16 +1,19 @@
+import os
 from django.shortcuts import (render, redirect,)
 from django.urls import reverse
 from django.http import JsonResponse
+from django.utils.encoding import force_bytes
+from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
 from django.contrib.auth.decorators import (login_required, permission_required,)
 from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualIdentityForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm,)
-from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel,)
+from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualIdentityForm, SiteHomeSectionUpdateFormset, HeroInfoForm, HeroImgForm, AboutForm, TeamForm, FAQForm, ServiceForm, TestimonialForm, StaffForm,)
+from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel, AddStaffModel)
 from staffs.models import (CustomUserModel, UserProfileModel,)
 from staffs.forms import ChangeEmailForm
-from .utils import (toast_json_ok, toast_json_error,)
+from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, invalidate_add_staff_tracks, send_account_creation_email)
 
 
 
@@ -521,11 +524,46 @@ def delete_message_view(request, message):
 def staffs_view(request):
     staffs = CustomUserModel.objects.select_related("profile",).filter()
     change_email_form = ChangeEmailForm(request.POST or None)
+    staff_form = StaffForm(request.POST or None)
 
     context = {
         "staffs": staffs,
         "change_email_form": change_email_form,
+        "staff_form": staff_form,
         "current": "staffs"
     }
 
     return render(request, "dashboard/staffs.html", context)
+
+
+
+@login_required
+@permission_required(("staffs.manage_staffs", "staffs.add_user"), raise_exception=True)
+def add_staff_view(request):
+    staff_form = StaffForm(request.POST or None)
+
+    if request.POST and staff_form.is_valid():
+        data = staff_form.cleaned_data
+        name = f"{data["first_name"]} {data["last_name"]}"
+        email = data["email"]   
+
+        if len(CustomUserModel.objects.filter(email=email)):
+            return toast_json_error("Can't add staff.", error="Staff already exists")
+
+        invalidate_add_staff_tracks(email=email) # invalidate exisiting tracks and void existing tokens
+        
+        staff_form.save()
+
+        add_staff_track = AddStaffModel.objects.filter(email=email, is_valid=True, is_used=False).first()
+        add_staff_track.set_initiator(request.user)
+
+        add_staff_token = add_staff_token_generator.make_token(add_staff_track)
+        idb64 = urlsafe_base64_encode(force_bytes(add_staff_track.id))
+        base_url = os.getenv("BASE_URL")
+        add_staff_url = f"{base_url}/users/staffs/accounts/auth/new-staff-account-creation/{idb64}/{add_staff_token}"
+
+        send_account_creation_email(name=name, email=email, url=add_staff_url)
+
+        return toast_json_ok("Staff added successfully.")
+
+    return toast_json_error()
