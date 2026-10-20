@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from dashboard.models import HomeSectionModel
+from dashboard.models import (HomeSectionModel, SiteModel,)
 
 
 class Command(BaseCommand):
@@ -20,7 +20,8 @@ class Command(BaseCommand):
                 section_instance = HomeSectionModel.objects.filter(name=name).first()
 
                 if not section_instance:
-                    HomeSectionModel.objects.create(name=name, blurb=blurb, order=order)
+                    site_inst = SiteModel.objects.first()
+                    HomeSectionModel.objects.create(name=name, blurb=blurb, order=order, site=site_inst)
                     self.stdout.write(self.style.SUCCESS(f"{name} home section has been created successfully."))
                 else:
                     self.stdout.write(self.style.SUCCESS(f"{name} home section has been existing."))

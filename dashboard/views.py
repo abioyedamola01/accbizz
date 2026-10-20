@@ -21,12 +21,7 @@ from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, 
 @login_required()
 @permission_required("staffs.view_dashboard", raise_exception=True)
 def dashboard_home_view(request):
-    
-    context = {}
-
-    return render(request, "dashboard/home.html", context)
-
-
+    return redirect("dashboard_site")
 
 
 @login_required
