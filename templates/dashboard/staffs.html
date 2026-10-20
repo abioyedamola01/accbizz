@@ -18,8 +18,9 @@
 {#                                                                        #}
 {# Each row has a Manage dropdown: Reset password (modal, posts to        #}
 {# staff_reset_password), Change email (modal, posts to staff_change_email, #}
-{# needs `change_email_form` in the context) and Remove as staff, which has #}
-{# an empty link for now.                                                 #}
+{# needs `change_email_form` in the context) and Remove / Reinstate as      #}
+{# staff (one confirm modal, posts to staff_remove_staff or                 #}
+{# staff_reinstate_staff; not shown on your own row).                      #}
 {# ===================================================================== #}
 
 <div class="bg-white rounded-2xl shadow-card mt-8 p-5">
@@ -155,6 +156,48 @@
           <span id="changeEmailLabel">Initiate change</span>
         </button>
       </div>
+    </form>
+  </div>
+</div>
+
+{# ---- Remove / Reinstate staff modal ---- #}
+{# One "are you sure" modal for every row. The script fills in the wording and sets the form action from the row's data-action-url. #}
+<div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div id="confirmModalOverlay" class="absolute inset-0 bg-dark-900/70"></div>
+
+  <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-card p-6" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <button type="button" id="confirmModalClose"
+      class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <div id="confirmModalIconWrap" class="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+      <svg id="confirmModalIcon" class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+      </svg>
+    </div>
+
+    <h2 id="confirmModalTitle" class="text-lg font-bold text-center text-gray-900">Remove staff?</h2>
+    <p class="text-sm text-gray-500 text-center mt-1.5 mb-6">
+      <span id="confirmModalPrefix"></span><span id="confirmModalName" class="font-semibold text-dark-900"></span><span id="confirmModalSuffix"></span>
+    </p>
+
+    <form id="confirmForm" method="post" action="" class="flex items-center gap-3">
+      {% csrf_token %}
+      <button type="button" id="confirmModalCancel"
+        class="flex-1 py-2.5 rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
+        Cancel
+      </button>
+      <button type="submit" id="confirmSubmit"
+        class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:enabled:bg-red-600 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer transition-colors">
+        <svg id="confirmSpinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <span id="confirmSubmitLabel">Remove</span>
+      </button>
     </form>
   </div>
 </div>
@@ -390,6 +433,13 @@
         return;
       }
 
+      var confirmBtn = event.target.closest('.staff-confirm-btn');
+      if (confirmBtn) {
+        closeMenu(false);
+        openConfirmModal(confirmBtn);
+        return;
+      }
+
       var btn = event.target.closest('.staff-actions-btn');
       if (!btn) return;
       event.preventDefault();
@@ -413,6 +463,90 @@
       if (event.key === 'Home') { event.preventDefault(); items[0].focus(); }
       if (event.key === 'End') { event.preventDefault(); items[items.length - 1].focus(); }
       if (event.key === 'Tab') closeMenu(false);
+    });
+
+    // ---- Remove / Reinstate staff modal ----
+    // One confirm modal for both actions. The row's button says which one (data-action)
+    // and where to post (data-action-url). The server's JSON message becomes the toast, and
+    // the page reloads on success so the row (role, menu item) shows its new state.
+    var confirmModal = document.getElementById('confirmModal');
+    var confirmForm = document.getElementById('confirmForm');
+    var confirmSubmit = document.getElementById('confirmSubmit');
+    var confirmSpinner = document.getElementById('confirmSpinner');
+    var confirmLabel = document.getElementById('confirmSubmitLabel');
+    var confirmIconWrap = document.getElementById('confirmModalIconWrap');
+    var confirmIcon = document.getElementById('confirmModalIcon');
+    var confirmOpener = null; // the Manage button to return focus to
+    var confirmIdleText = 'Remove';
+
+    var CONFIRM_ACTIONS = {
+      remove: {
+        title: 'Remove staff?',
+        prefix: 'Are you sure you want to remove ',
+        suffix: ' as staff? They will no longer be a staff member.',
+        idle: 'Remove',
+        busy: 'Removing',
+        fallback: 'Staff removed.',
+        wrap: 'w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center',
+        icon: 'w-6 h-6 text-red-500',
+        button: 'flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:enabled:bg-red-600 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer transition-colors'
+      },
+      reinstate: {
+        title: 'Reinstate staff?',
+        prefix: 'Are you sure you want to reinstate ',
+        suffix: ' as staff? They will become a staff member again.',
+        idle: 'Reinstate',
+        busy: 'Reinstating',
+        fallback: 'Staff reinstated.',
+        wrap: 'w-14 h-14 mx-auto mb-4 rounded-full bg-brand-50 flex items-center justify-center',
+        icon: 'w-6 h-6 text-brand-500',
+        button: 'flex-1 inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:enabled:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer transition-colors'
+      }
+    };
+    var confirmConfig = CONFIRM_ACTIONS.remove;
+
+    function openConfirmModal(item) {
+      confirmConfig = CONFIRM_ACTIONS[item.dataset.action] || CONFIRM_ACTIONS.remove;
+      confirmOpener = openBtn || item.closest('.inline-block').querySelector('.staff-actions-btn');
+
+      confirmForm.action = item.dataset.actionUrl;
+      document.getElementById('confirmModalTitle').textContent = confirmConfig.title;
+      document.getElementById('confirmModalPrefix').textContent = confirmConfig.prefix;
+      document.getElementById('confirmModalName').textContent = item.dataset.staffName;
+      document.getElementById('confirmModalSuffix').textContent = confirmConfig.suffix;
+      confirmLabel.textContent = confirmConfig.idle;
+      confirmIdleText = confirmConfig.idle;
+      confirmIconWrap.setAttribute('class', confirmConfig.wrap);
+      confirmIcon.setAttribute('class', confirmConfig.icon);
+      confirmSubmit.setAttribute('class', confirmConfig.button);
+
+      confirmModal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      document.getElementById('confirmModalCancel').focus();
+    }
+
+    function closeConfirmModal() {
+      if (confirmSubmit.disabled) return; // a request is in flight; wait for it
+      confirmModal.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+      if (confirmOpener) confirmOpener.focus();
+    }
+
+    ['confirmModalClose', 'confirmModalCancel', 'confirmModalOverlay'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', closeConfirmModal);
+    });
+
+    confirmForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      window.submitForm(confirmForm, {
+        button: confirmSubmit,
+        spinner: confirmSpinner,
+        label: confirmLabel,
+        busyText: confirmConfig.busy,
+        idleText: confirmIdleText,
+        successFallback: confirmConfig.fallback
+        // no onSuccess: the default queues the toast and reloads the page
+      });
     });
 
     // ---- Add staff modal ----
@@ -553,6 +687,7 @@
     document.addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
       if (!addModal.classList.contains('hidden')) { closeAddModal(); return; }
+      if (!confirmModal.classList.contains('hidden')) { closeConfirmModal(); return; }
       if (!resetModal.classList.contains('hidden')) { closeResetModal(); return; }
       if (!changeModal.classList.contains('hidden')) { closeChangeModal(); return; }
       closeMenu(true);

@@ -324,6 +324,38 @@ def change_email_view(request):
 
 
 
+@login_required
+@permission_required(("staffs.manage_staffs", "staffs.remove_user",), raise_exception=True)
+def remove_staff_view(request, email):
+    staff = CustomUserModel.objects.filter(email=email).first()
+
+    if not staff:
+        return toast_json_error("Can't remove staff.", error="staff does not exist")
+
+    if not staff.is_staff_member:
+        return toast_json_error("Can't remove staff.", error="user has been set to not a staff")
+
+    delete_staff_sessions(staff)
+    staff.remove_as_staff()
+
+    return toast_json_ok("Staff removed successfully.")
+
+
+@login_required
+@permission_required(("staffs.manage_staffs", "staffs.reinstate_user",), raise_exception=True)
+def reinstate_staff_view(request, email):
+    staff = CustomUserModel.objects.filter(email=email).first()
+
+    if not staff:
+        return toast_json_error("Can't reinstate staff.", error="staff does not exist")
+
+    if staff.is_staff_member:
+        return toast_json_error("Can't reinstate staff.", error="staff has been a staff member")
+
+    staff.reinstate_as_staff()
+
+    return toast_json_ok("Staff reinstated successfully.")
+
 
 
 

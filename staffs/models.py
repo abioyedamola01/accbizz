@@ -60,8 +60,15 @@ class CustomUserModel(AbstractUser):
 
     def change_password(self, new_password, *args, **kwargs):
         self.set_password(new_password)
-
         return super().save(*args, **kwargs)
+
+    def remove_as_staff(self):
+        self.is_staff_member = False
+        return super().save(update_fields=("is_staff_member",))
+
+    def reinstate_as_staff(self):
+        self.is_staff_member = True
+        return super().save(update_fields=("is_staff_member",))
         
     
 

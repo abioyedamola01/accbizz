@@ -9,10 +9,13 @@
 {# and `request` (to mark your own row).                                  #}
 {#                                                                        #}
 {# Role column: the role for staff, "Not a staff" for everyone else.      #}
+{# Names in the modals (and the Manage label) fall back to the email when   #}
+{# the staff has not set a name yet.                                       #}
 {# Last menu item: "Remove as staff" for staff, "Reinstate as staff" if not. #}
 {#                                                                        #}
-{# Manage menu: Reset password and Change email each open a modal (buttons). #}
-{# Remove / Reinstate as staff is a plain link with an empty href for now.     #}
+{# Manage menu: Reset password, Change email and Remove / Reinstate as staff #}
+{# each open a modal (buttons). Remove / Reinstate is not shown on your own   #}
+{# row, so you cannot remove yourself.                                        #}
 {# ===================================================================== #}
 {% for staff in staffs %}
 <tr class="staff-row">
@@ -45,7 +48,7 @@
   <td class="py-3 pr-1 text-right">
     <div class="inline-block text-left">
       <button type="button" class="staff-actions-btn inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition"
-        aria-haspopup="menu" aria-expanded="false" aria-label="Manage {{ staff.profile.get_username }}">
+        aria-haspopup="menu" aria-expanded="false" aria-label="Manage {% firstof staff.profile.get_username staff.email %}">
         Manage
         <svg class="w-3 h-3 text-gray-500" viewBox="0 0 10 6" fill="none" aria-hidden="true">
           <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m1 1 4 4 4-4"/>
@@ -57,19 +60,31 @@
         {# Opens the reset-password modal (see staffs.html). It is a button, not a link: nothing navigates. #}
         <button type="button" role="menuitem"
           data-reset-url="{% url "staff_reset_password" staff.email %}"
-          data-staff-name="{{ staff.profile.get_username }}"
+          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
           data-staff-email="{{ staff.email }}"
           class="staff-reset-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reset password</button>
         {# Opens the change-email modal (see staffs.html). A button, not a link: nothing navigates. #}
         <button type="button" role="menuitem"
-          data-staff-name="{{ staff.profile.get_username }}"
+          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
           data-staff-email="{{ staff.email }}"
           class="staff-change-email-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Change email</button>
+        {# Not on your own row #}
+        {% if staff.id != request.user.id %}
         <div class="my-1 border-t border-gray-100" role="separator"></div>
         {% if staff.is_staff_member %}
-        <a href="" role="menuitem" class="block px-3 py-2 text-red-500 hover:bg-gray-50">Remove as staff</a>
+        {# Opens the confirm modal (see staffs.html); the modal posts to the url below #}
+        <button type="button" role="menuitem"
+          data-action="remove"
+          data-action-url="{% url "staff_remove_staff" staff.email %}"
+          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          class="staff-confirm-btn block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-50 cursor-pointer">Remove as staff</button>
         {% else %}
-        <a href="" role="menuitem" class="block px-3 py-2 text-gray-700 hover:bg-gray-50">Reinstate as staff</a>
+        <button type="button" role="menuitem"
+          data-action="reinstate"
+          data-action-url="{% url "staff_reinstate_staff" staff.email %}"
+          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          class="staff-confirm-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reinstate as staff</button>
+        {% endif %}
         {% endif %}
       </div>
     </div>

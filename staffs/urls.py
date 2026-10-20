@@ -3,7 +3,7 @@ from .views import (staff_login_view, verify_staff_otp_view, resend_staff_otp_vi
                     verify_for_staff_change_password_view, staff_change_password_view,
                     reset_staff_password_view, use_reset_staff_password_link_view,
                     change_email_view, finish_email_change_view, revert_email_change_view,
-                    new_staff_account_creation_view
+                    new_staff_account_creation_view, remove_staff_view, reinstate_staff_view
                     )
 
 
@@ -20,4 +20,6 @@ urlpatterns = [
     path("change-email/<rand>/<track_idb64>/<staff_idb64>/<token>", finish_email_change_view),
     path("change-email/<rand>/<track_idb64>/<staff_idb64>/<token>/revert-change", revert_email_change_view),
     path("auth/new-staff-account-creation/<idb64>/<token>", new_staff_account_creation_view),
+    path("remove-staff/<email>", remove_staff_view, name="staff_remove_staff"),
+    path("reinstate-staff/<email>", reinstate_staff_view, name="staff_reinstate_staff"),
 ]
