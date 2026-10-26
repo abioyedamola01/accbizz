@@ -3,36 +3,6 @@
 {% load widget_tweaks %}
 {% load email_mask %}
 
-{# ===================================================================== #}
-{# Staff change email page (reached from the emailed confirm link).      #}
-{#                                                                       #}
-{# Context: form           (one field: password)                         #}
-{#          current_email  full current email; only ever printed through #}
-{#                         |mask_email, so the browser gets the masked   #}
-{#                         version only                                  #}
-{#          new_email      the new email                                 #}
-{#          status         "success", "reverted", "invalid_token",       #}
-{#                         "changed", "expired" or nothing               #}
-{#                                                                       #}
-{#   status == "reverted"      -> message that the change was reverted,  #}
-{#                                so it cannot continue                  #}
-{#   status == "invalid_token" -> message that the link is not valid     #}
-{#   status == "changed"       -> message that the email was already     #}
-{#                                changed, so the link was already used  #}
-{#   status == "expired"       -> message that the link has expired      #}
-{#   status == "success"       -> success message + login link           #}
-{#   no status                 -> the password form (identity check)     #}
-{#                                                                       #}
-{# Never put current_email in a data- attribute, json_script or JSON     #}
-{# response: that would expose the full address.                         #}
-{#                                                                       #}
-{# The form posts to this same URL with fetch:                           #}
-{#   - JSON success  -> form is replaced by the success message, and the #}
-{#                      server's message shows as a toast                #}
-{#   - anything else -> the view re-renders this page; if that render   #}
-{#                      has a status the matching panel is shown,        #}
-{#                      is shown, otherwise its errors show as a toast   #}
-{# ===================================================================== #}
 
 {% block title %}Change Email · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 

@@ -1,17 +1,3 @@
-{# ===================================================================== #}
-{# Shared dashboard form helpers. Save as                                #}
-{#   templates/base/dashboard/partials/_form_helpers.html                #}
-{# and include it right AFTER the toast partial in                       #}
-{# base/dashboard/base.html:                                             #}
-{#   {% include "base/dashboard/partials/_toast.html" %}                  #}
-{#   {% include "base/dashboard/partials/_form_helpers.html" %}           #}
-{#                                                                       #}
-{# 1. Inline edit forms: every <form class="site-info-form"> gets        #}
-{#    Edit / Cancel / Save (fetch) with no page reload. This replaces    #}
-{#    the edit-mode scripts that used to live in _hero.html / site.html. #}
-{# 2. autoUploadImage(opts): upload a chosen image with fetch right away #}
-{# ===================================================================== #}
-
 <script>
   (function () {
     // ---- Inline edit forms (.site-info-form) ----

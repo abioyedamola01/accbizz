@@ -1,23 +1,5 @@
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# Dashboard > Contents > Testimonials                                    #}
-{#                                                                       #}
-{# Expects from the view:                                                #}
-{#   testimonials       queryset (select_related("service"), pending     #}
-{#                      first: order_by("is_approved", "-created"))      #}
-{#   testimonial_form   form with name, title, quote, service, is_approved #}
-{#   services           [{'id': 4, 'title': '...'}, ...] (as for FAQs)    #}
-{# URL names used (rename here if yours differ):                          #}
-{#   dashboard_add_testimonial                                            #}
-{#   dashboard_update_testimonial  <slug>                                   #}
-{#   dashboard_delete_testimonial  <slug>                                   #}
-{# Pending = is_approved False (submitted from the public page). The    #}
-{# Approve button ticks is_approved and saves through the update URL.     #}
-{# "Stay anonymous" is only a switch in the page: when on, name and title #}
-{# are posted blank, so the server stores them as null.                   #}
-{# ===================================================================== #}
-
 <style>
   /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */
 

@@ -69,6 +69,7 @@ def staff_login_view(request):
 
 def verify_staff_otp_view(request):
     otp_verify_info =  request.session.get("otp_verify_info", None)
+    print(otp_verify_info)
     if not otp_verify_info:
         request.session.flush()
         return redirect("main_home")
@@ -76,15 +77,19 @@ def verify_staff_otp_view(request):
     if request.user.is_authenticated and (otp_verify_info["purpose"] == "staff_login"):
         return redirect("dashboard_home")
 
+    otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
+
+    if otp_instance and otp_instance.is_expired():
+        request.session.pop("otp_verify_info", None)
+        return redirect("main_home")
     
     site_info = model_to_dict(SiteModel.objects.first())
-    
-
+        
     form = VerifyOTPForm(request.POST or None)
 
 
     if request.POST and form.is_valid():
-        otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
+        # otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
         if not otp_instance:
             request.session.pop("otp_verify_info", None)
             return redirect("main_home")

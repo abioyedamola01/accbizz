@@ -1,20 +1,3 @@
-{# ===================================================================== #}
-{# Public site footer. Included by base/main/base.html on every page.     #}
-{#                                                                        #}
-{# Reads from site_info:                                                  #}
-{#   display_name                                                         #}
-{#   tagline    (optional) one line under the logo, hidden when empty     #}
-{#   email, whatsapp (a wa.me link), location (a Google Maps link)        #}
-{#                                                                        #}
-{# Also reads, from a context processor, because the footer is on every   #}
-{# page:                                                                  #}
-{#   footer_services   a few services (title, slug) for the Services list #}
-{#                     The column is hidden when there are none.          #}
-{#                                                                        #}
-{# Every block hides itself when it has nothing to show, so an empty      #}
-{# site_info never leaves dead links behind.                              #}
-{# ===================================================================== #}
-{# `as` makes a wrong or missing URL name give an empty value, not an error on every page #}
 {% url "main_contact" as contact_url %}
 
 <footer class="bg-white border-t border-gray-100 text-gray-600">

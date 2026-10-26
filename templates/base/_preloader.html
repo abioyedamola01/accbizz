@@ -1,0 +1,140 @@
+<style>
+  #pagePreloader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    background: var(--color-cream, #ffffff);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+  #pagePreloader.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  #pagePreloader .pl-logo {
+    height: 2.5rem;
+    width: auto;
+    max-width: 10rem;
+    object-fit: contain;
+  }
+  #pagePreloader .pl-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    border: 3px solid rgba(0, 0, 0, 0.08);
+    border-top-color: var(--color-brand-500, #EF6B2E);
+    animation: pl-spin 0.8s linear infinite;
+  }
+  #pagePreloader .pl-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  @keyframes pl-spin { to { transform: rotate(360deg); } }
+  @keyframes pl-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    #pagePreloader .pl-spinner {
+      animation: pl-pulse 1.6s ease-in-out infinite;
+      border-color: var(--color-brand-500, #EF6B2E);
+    }
+    #pagePreloader { transition: none; }
+  }
+</style>
+<noscript><style>#pagePreloader { display: none !important; }</style></noscript>
+
+<div id="pagePreloader" role="status" aria-live="polite">
+  {% if site_info.logo %}<img class="pl-logo" src="{{ site_info.logo.url }}" alt="" />{% endif %}
+  <div class="pl-spinner" aria-hidden="true"></div>
+  <span class="pl-sr">Loading</span>
+</div>
+
+<script>
+  (function () {
+    var el = document.getElementById('pagePreloader');
+    if (!el) return;
+
+    var firstLoadDone = false;
+    var hideTimer, leaveFailsafe;
+
+    function hide(instant) {
+      clearTimeout(hideTimer);
+      el.classList.add('is-hidden');
+      el.setAttribute('aria-hidden', 'true');
+      if (instant) { el.style.display = 'none'; return; }
+      hideTimer = setTimeout(function () { el.style.display = 'none'; }, 350);
+    }
+
+    function show() {
+      clearTimeout(hideTimer);
+      el.style.display = 'flex';
+      void el.offsetWidth;                 // lets the fade-in run
+      el.classList.remove('is-hidden');
+      el.removeAttribute('aria-hidden');
+    }
+
+    // ---- First load: hide when everything has loaded ----
+    function finishFirstLoad() {
+      if (firstLoadDone) return;
+      firstLoadDone = true;
+      hide();
+    }
+    if (document.readyState === 'complete') finishFirstLoad();
+    else window.addEventListener('load', finishFirstLoad, { once: true });
+    setTimeout(finishFirstLoad, 6000);     // failsafe
+
+    // ---- Leaving: cover the page while the next one is being built ----
+    function leaving() {
+      show();
+      clearTimeout(leaveFailsafe);
+      // If we are still here after 15s (a download, a blocked navigation), let go
+      leaveFailsafe = setTimeout(function () { hide(); }, 15000);
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.hasAttribute('download') || a.hasAttribute('data-no-preloader')) return;
+      if (a.target && a.target !== '_self') return;
+
+      var raw = a.getAttribute('href') || '';
+      if (raw.charAt(0) === '#' || /^javascript:/i.test(raw)) return;
+
+      var url;
+      try { url = new URL(a.href, location.href); } catch (err) { return; }
+      if (url.origin !== location.origin) return;   // external, mailto:, tel:
+      if (url.pathname === location.pathname && url.search === location.search && url.hash) return;
+
+      // Wait one tick: if some other handler called preventDefault(), we are not leaving
+      setTimeout(function () { if (!e.defaultPrevented) leaving(); }, 0);
+    });
+
+    document.addEventListener('submit', function (e) {
+      var f = e.target;
+      if (!f || f.hasAttribute('data-no-preloader')) return;
+      if (f.target && f.target !== '_self') return;
+      // AJAX forms call preventDefault(), so they never show the overlay
+      setTimeout(function () { if (!e.defaultPrevented) leaving(); }, 0);
+    });
+
+    // Back/forward cache: the page returns as it was, so never leave it covered
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) { firstLoadDone = true; hide(true); }
+    });
+
+    // For code that reloads the page itself (location.reload() after an AJAX save)
+    window.pagePreloader = { show: leaving, hide: function () { hide(); } };
+  })();
+</script>

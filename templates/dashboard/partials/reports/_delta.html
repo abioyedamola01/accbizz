@@ -1,0 +1,9 @@
+{% if value is None or value == "" %}
+  <p class="text-xs text-gray-400">No prior data</p>
+{% elif value == 0 %}
+  <p class="text-xs text-gray-500">No change vs prior</p>
+{% elif value > 0 %}
+  <p class="text-xs font-medium {% if good == 'up' %}text-green-600{% else %}text-red-500{% endif %}">&uarr; +{{ value|floatformat:"0" }}% vs prior</p>
+{% else %}
+  <p class="text-xs font-medium {% if good == 'down' %}text-green-600{% else %}text-red-500{% endif %}">&darr; {{ value|floatformat:"0" }}% vs prior</p>
+{% endif %}

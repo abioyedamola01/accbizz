@@ -1,22 +1,3 @@
-{# ===================================================================== #}
-{# Staff rows for the Staffs table.                                       #}
-{# Used by dashboard/staffs.html. Kept apart (like the Communication      #}
-{# rows) so a later "load more" or re-render can return this same file.   #}
-{#                                                                        #}
-{# Expects `staffs`: each item is a user with                             #}
-{#   id, email, is_staff_member (the boolean of is_staff) and a profile   #}
-{#   (avatar, get_default_avatar, get_username, get_role_display)         #}
-{# and `request` (to mark your own row).                                  #}
-{#                                                                        #}
-{# Role column: the role for staff, "Not a staff" for everyone else.      #}
-{# Names in the modals (and the Manage label) fall back to the email when   #}
-{# the staff has not set a name yet.                                       #}
-{# Last menu item: "Remove as staff" for staff, "Reinstate as staff" if not. #}
-{#                                                                        #}
-{# Manage menu: Reset password, Change email and Remove / Reinstate as staff #}
-{# each open a modal (buttons). Remove / Reinstate is not shown on your own   #}
-{# row, so you cannot remove yourself.                                        #}
-{# ===================================================================== #}
 {% for staff in staffs %}
 <tr class="staff-row">
 

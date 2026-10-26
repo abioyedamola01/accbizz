@@ -1,16 +1,5 @@
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# Share your experience: public submission form.                         #}
-{# Expects `testimonial_form` with name, title, quote, service.           #}
-{# Posts with fetch to main_submit_testimonial and expects JSON:           #}
-{#   { "ok": true }                                                       #}
-{#   { "ok": false, "message": "...", "errors": { "quote": ["..."] } }    #}
-{# The server saves it as NOT approved (pending) and ignores the form if  #}
-{# the hidden "website" field (a spam trap) is filled.                    #}
-{# "Stay anonymous" is only a switch in the page: name and title are      #}
-{# posted blank, so the server stores them as null.                       #}
-{# ===================================================================== #}
 
 <style>
   /* Plain CSS so the custom controls never depend on the Tailwind build */
@@ -297,6 +286,9 @@
     // ---- Success / share another ----
 
     function showSuccess() {
+      // Umami custom event: the testimonial was saved. Guarded so a blocked tracker can't break the form.
+      try { if (window.umami) window.umami.track('testimonial-form-success'); } catch (e) {}
+
       form.classList.add('hidden');
       successEl.classList.remove('hidden');
       successEl.focus();

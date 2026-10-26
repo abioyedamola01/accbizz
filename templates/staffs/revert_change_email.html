@@ -2,30 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# Staff revert email change page (reached from the revert link in the   #}
-{# notification sent to the CURRENT email).                              #}
-{#                                                                       #}
-{# Context: form    (one field: password)                                #}
-{#          status  "success", "reverted", "expired", "invalid_token"    #}
-{#                  or nothing                                           #}
-{#                                                                       #}
-{#   no status                 -> the password form with the revert      #}
-{#                                button (the ONLY time the form shows)  #}
-{#   status == "success"       -> the change was just reverted           #}
-{#   status == "reverted"      -> it was already reverted earlier        #}
-{#   status == "expired"       -> the link has expired                   #}
-{#   status == "invalid_token" -> the link is not valid                  #}
-{#   any other status          -> generic "link cannot be used" panel,   #}
-{#                                so the page is never blank             #}
-{#                                                                       #}
-{# The form posts to this same URL with fetch:                           #}
-{#   - JSON success  -> form is replaced by the success message, and the #}
-{#                      server's message shows as a toast                #}
-{#   - anything else -> the view re-renders this page; if that render    #}
-{#                      has a status the matching panel is shown,        #}
-{#                      otherwise its errors show as a toast             #}
-{# ===================================================================== #}
+
 
 {% block title %}Revert Email Change · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 

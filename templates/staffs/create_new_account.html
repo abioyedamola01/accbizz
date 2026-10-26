@@ -2,33 +2,7 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# Staff create account page (reached from the emailed creation link).   #}
-{#                                                                       #}
-{# Context: password_form  (one field: password)                         #}
-{#          status         "success", "is_expired", "invalid_token",     #}
-{#                         "is_used" or nothing                          #}
-{#                                                                       #}
-{#   no status                 -> the form: enter the password twice     #}
-{#                                (the ONLY time the form shows)         #}
-{#   status == "success"       -> account created + login link           #}
-{#   status == "is_expired"    -> link expired, request another one      #}
-{#   status == "invalid_token" -> the link is not valid                  #}
-{#   status == "is_used"       -> account already created, log in with   #}
-{#                                your login credentials                 #}
-{#   any other status          -> generic "link cannot be used" panel,   #}
-{#                                so the page is never blank             #}
-{#                                                                       #}
-{# The form posts to this same URL with fetch:                           #}
-{#   - JSON success  -> form is replaced by the success message + login  #}
-{#                      link, and the server's message shows as a toast  #}
-{#   - anything else -> the view re-renders this page; if that render    #}
-{#                      has a status the matching panel is shown,        #}
-{#                      otherwise its errors show as a toast             #}
-{#                                                                       #}
-{# The second password field has no name on purpose: it is only for the  #}
-{# match check in JS, so it is never sent to the server.                 #}
-{# ===================================================================== #}
+
 
 {% block title %}Create Account · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 

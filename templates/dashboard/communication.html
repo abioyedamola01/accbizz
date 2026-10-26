@@ -3,35 +3,6 @@
 {% block title %}Communication · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
-{# ===================================================================== #}
-{# Communication: messages sent through the website contact form.         #}
-{#                                                                        #}
-{# Context:                                                               #}
-{#   contact_messages      first batch (newest first)                     #}
-{#   total_count           ALL messages in the database, not just the     #}
-{#                         loaded batch. Sent once, with the page.        #}
-{#   unattended_count      ALL messages nobody has attended. Sent once.   #}
-{#                         After that the page does the maths itself.     #}
-{#   more_messages         True if another batch can be loaded            #}
-{#   messages_batch_point  the number to pass to load the next batch      #}
-{#                                                                        #}
-{# URLs: dashboard_attend_message, dashboard_unattend_message,            #}
-{#   dashboard_delete_message (each takes the message pk) and             #}
-{#   dashboard_get_messages_batch (takes the batch point).                #}
-{#                                                                        #}
-{# Attend / unattend responses (no counts needed):                        #}
-{#   { "ok": true, "message": "...",                                      #}
-{#     "state": { "is_attended": true, "attended_by": "Ada",              #}
-{#                "attended_by_is_you": false, "attended_ago": "2 hours ago" } } #}
-{# Send "state" on failures too (for example a 403 when someone else      #}
-{# attended it), so a stale modal can correct itself.                     #}
-{# Delete response: { "ok": true, "message": "..." }                      #}
-{# Load more: { "html": "<tr>...</tr>", "messages_batch_point": 3,        #}
-{#   "more_messages": true }  (html = _rows.html rendered for that batch)  #}
-{#                                                                        #}
-{# Optional: give the sidebar's Communication badge the attribute         #}
-{#   data-unattended-badge  and this page keeps its number up to date.    #}
-{# ===================================================================== #}
 
 <div class="bg-white rounded-2xl shadow-card mt-8 p-5">
 

@@ -1,14 +1,3 @@
-{# ===================================================================== #}
-{# Testimonials slider (public). Reusable: include it on any page.        #}
-{# Expects `testimonials`: list/queryset with name, title, quote.         #}
-{# name and title can be empty (anonymous). Renders nothing if empty.     #}
-{# Needs no `with`: it reads `testimonials` and `current` from the page's #}
-{# context and builds its own URLs.                                       #}
-{#   - "View all testimonials" link: always (main_testimonials)           #}
-{#   - Reload button instead of pause/play: only on the home page         #}
-{#     (current == "home"). It GETs main_refresh_testimonials, which      #}
-{#     returns { "testimonials": [ { "name", "title", "quote" }, ... ] }  #}
-{# ===================================================================== #}
 {% if not all_testimonials_url %}{% url "main_testimonials" as all_testimonials_url %}{% endif %}
 {% if current == "home" %}{% url "main_refresh_testimonials" as refresh_url %}{% endif %}
 {% if testimonials|length %}

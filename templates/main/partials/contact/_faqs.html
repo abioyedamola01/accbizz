@@ -1,14 +1,3 @@
-{# ===================================================================== #}
-{# Contact page FAQs: general questions, not tied to one service.         #}
-{# Expects:                                                               #}
-{#   faqs              first batch of FAQ objects (question, answer)      #}
-{#   more_faqs         True if there are more to load                     #}
-{#   faqs_batch_point  the batch point to pass to load the next batch     #}
-{# "Read more" fetches the URL contact_get_faqs_batch with the batch point,#}
-{# and expects:                                                            #}
-{#   { "faqs": [{question, answer}], "faqs_batch_point": N, "more_faqs": bool } #}
-{# The whole section is hidden when there are no FAQs.                    #}
-{# ===================================================================== #}
 {% if faqs %}
 <section class="px-4 lg:px-6 py-6">
   <div class="max-w-4xl mx-auto">

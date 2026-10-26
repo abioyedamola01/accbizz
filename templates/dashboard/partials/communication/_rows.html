@@ -1,13 +1,3 @@
-{# ===================================================================== #}
-{# Message rows for the Communication table.                              #}
-{# Used by dashboard/communication.html AND by the load-more endpoint,    #}
-{# which renders this same file and returns it as the "html" string.      #}
-{# Expects `contact_messages` (each: pk, name, email, phone, service,     #}
-{#   message, created_at, is_attended, attended_by, attended_at) and      #}
-{#   `request` (to tell "attended by you" from "attended by someone").    #}
-{# The loop variable is `msg`, never `message`, so it cannot clash with   #}
-{# Django's own `messages` context variable.                              #}
-{# ===================================================================== #}
 {% for msg in contact_messages %}
 <tr class="msg-row cursor-pointer hover:bg-gray-50 transition" tabindex="0" role="button"
   data-name="{{ msg.name }}"

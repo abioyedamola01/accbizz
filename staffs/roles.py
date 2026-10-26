@@ -85,7 +85,10 @@ staff_permissions = [
 
     # Newsletter
     ("view_subscribers", "Can view newsletter subscribers"),
-    ("export_subscribers", "Can export newsletter subscribers")
+    ("export_subscribers", "Can export newsletter subscribers"),
+
+    # Reports
+    ("view_reports", "Can view reports")
 ]
 
 
@@ -104,7 +107,8 @@ admin_permissions = [
     ("manage_system_settings", "Can manage system settings"),
     ("manage_backups", "Can manage backups"),
     ("restore_backups", "Can restore backups"),
-    ("view_system_logs", "Can view system logs")
+    ("view_system_logs", "Can view system logs"),
+    ("view_staffs_reports", "Can view staffs' actions report")
 ]
 
 

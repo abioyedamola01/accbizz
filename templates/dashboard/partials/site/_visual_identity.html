@@ -1,21 +1,3 @@
-{# ===================================================================== #}
-{# Dashboard > Site > Site Visual Identity (logo and favicon)             #}
-{#                                                                        #}
-{# Expects from the view:                                                 #}
-{#   visual_identity_form  a ModelForm built with the instance, so        #}
-{#                         .logo.value / .favicon.value hold the saved    #}
-{#                         images (or are empty when nothing is saved)    #}
-{# URL used:                                                              #}
-{#   dashboard_update_visual_identity   (POST, multipart)                 #}
-{#                                                                        #}
-{# Choosing a file only previews it here. Nothing is sent until Update,   #}
-{# which posts both fields in one request. Expected replies:              #}
-{#   { "ok": true, "message": "Visual identity updated." }                #}
-{#   { "ok": false, "message": "...", "errors": { "logo": ["..."] } }     #}
-{# On success the page reloads, so the saved images come from the server  #}
-{# and the toast shows after the reload.                                  #}
-{# ===================================================================== #}
-
 <div class="bg-white rounded-2xl shadow-card mt-4 p-5">
   <form method="post" enctype="multipart/form-data" id="visualIdentityForm" action="{% url "dashboard_update_visual_identity" %}" novalidate>
     {% csrf_token %}

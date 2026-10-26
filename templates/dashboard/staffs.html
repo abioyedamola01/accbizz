@@ -4,24 +4,6 @@
 {% block title %}Staffs · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
-{# ===================================================================== #}
-{# Staffs: everyone with access to the dashboard.                         #}
-{#                                                                        #}
-{# Context:                                                               #}
-{#   staffs     all staff profiles (see partials/staffs/_rows.html for    #}
-{#              the fields each one needs)                                #}
-{#   current    "users" keeps the sidebar's Users item highlighted        #}
-{#   staff_form fields first_name, last_name, email, role, for the Add    #}
-{#              staff modal (posts to dashboard_add_staff). On success    #}
-{#              the modal swaps to a "link sent, expires in 24 hours"     #}
-{#              message; on failure the JSON "error" shows as a toast.    #}
-{#                                                                        #}
-{# Each row has a Manage dropdown: Reset password (modal, posts to        #}
-{# staff_reset_password), Change email (modal, posts to staff_change_email, #}
-{# needs `change_email_form` in the context) and Remove / Reinstate as      #}
-{# staff (one confirm modal, posts to staff_remove_staff or                 #}
-{# staff_reinstate_staff; not shown on your own row).                      #}
-{# ===================================================================== #}
 
 <div class="bg-white rounded-2xl shadow-card mt-8 p-5">
 

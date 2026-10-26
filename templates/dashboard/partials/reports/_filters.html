@@ -1,0 +1,72 @@
+{% firstof range "30d" as active_range %}
+
+<div class="mt-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+    {# ---- Range tabs ---- #}
+    <div id="reportRangeTabs" class="inline-flex self-start rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Report period">
+      <a href="?range=7d"
+        {% if active_range == "7d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>7d</a>
+      <a href="?range=30d"
+        {% if active_range == "30d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>30d</a>
+      <a href="?range=90d"
+        {% if active_range == "90d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>90d</a>
+      <button type="button" id="reportCustomToggle" aria-expanded="{% if active_range == 'custom' %}true{% else %}false{% endif %}" aria-controls="reportCustomForm"
+        class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition {% if active_range == 'custom' %}bg-dark-800 text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">Custom</button>
+    </div>
+
+  </div>
+
+  {# ---- Custom range form. Starts "hidden" and gets "flex" when opened, because #}
+  {# in Tailwind 4 a "hidden" element that also has a display class can stay visible. #}
+  <form id="reportCustomForm" method="get"
+    class="{% if active_range == 'custom' %}flex{% else %}hidden{% endif %} flex-col gap-3 mt-3 sm:flex-row sm:items-end">
+    <input type="hidden" name="range" value="custom">
+
+    <div>
+      <label for="reportFrom" class="block mb-1.5 text-xs font-medium text-gray-700">From</label>
+      <input type="date" id="reportFrom" name="from" required max="{% now 'Y-m-d' %}"
+        value="{% if active_range == 'custom' and date_from %}{{ date_from|date:'Y-m-d' }}{% endif %}"
+        class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
+    </div>
+
+    <div>
+      <label for="reportTo" class="block mb-1.5 text-xs font-medium text-gray-700">To</label>
+      <input type="date" id="reportTo" name="to" required max="{% now 'Y-m-d' %}"
+        value="{% if active_range == 'custom' and date_to %}{{ date_to|date:'Y-m-d' }}{% endif %}"
+        class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
+    </div>
+
+    <button type="submit"
+      class="h-10 px-5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 cursor-pointer transition-colors">
+      Apply
+    </button>
+  </form>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('reportCustomToggle');
+    var form = document.getElementById('reportCustomForm');
+    var from = document.getElementById('reportFrom');
+    var to = document.getElementById('reportTo');
+    if (!toggle || !form) return;
+
+    toggle.addEventListener('click', function () {
+      var open = form.classList.contains('hidden');
+      form.classList.toggle('hidden', !open);
+      form.classList.toggle('flex', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) from.focus();
+    });
+
+    // "To" can't be earlier than "From"; "From" can't be later than "To"
+    function keepOrder() {
+      to.min = from.value || '';
+      from.max = to.value || to.max;
+    }
+    from.addEventListener('change', keepOrder);
+    to.addEventListener('change', keepOrder);
+    keepOrder();
+  })();
+</script>

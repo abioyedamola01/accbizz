@@ -8,6 +8,7 @@ from .views import (dashboard_home_view,
                     update_testimonial_view, delete_testimonial_view, add_testimonial_view,
                     communication_view, get_messages_batch_view, attend_message_view, unattend_message_view, delete_message_view,
                     staffs_view, add_staff_view,
+                    reports_view, export_reports_view, get_site_analytics,
 )
 
 
@@ -42,4 +43,7 @@ urlpatterns = [
     path("communication/contact-messages/delete_message/<int:message>", delete_message_view, name="dashboard_delete_message"),
     path("staffs", staffs_view, name="dashboard_staffs"),
     path("staffs/add-staff", add_staff_view, name="dashboard_add_staff"),
+    path("reports", reports_view, name="dashboard_reports"),
+    path("reports/export-reports", export_reports_view, name="dashboard_export_reports"),
+    path("reports/get-site-analytics", get_site_analytics, name="dashboard_get_site_analytics"),
 ]

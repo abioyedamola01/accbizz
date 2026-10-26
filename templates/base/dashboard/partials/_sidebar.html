@@ -61,15 +61,18 @@
         {% if not unattended_count %}style="display:none"{% endif %}>{% if unattended_count > 99 %}99+{% else %}{{ unattended_count }}{% endif %}</span>
     </a>
 
-    <a href="{% url "dashboard_staffs" %}" {% if current == "staffs" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>
-      <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-        <circle cx="9" cy="8" r="3"/>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M16 6.5a3 3 0 010 5.8M20 20c0-2.8-2-5.1-4.6-5.8"/>
-      </svg>
-      Staffs
-    </a>
-    <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream">
+    {% if perms.staffs.manage_staffs %}
+      <a href="{% url "dashboard_staffs" %}" {% if current == "staffs" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>
+        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <circle cx="9" cy="8" r="3"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 6.5a3 3 0 010 5.8M20 20c0-2.8-2-5.1-4.6-5.8"/>
+        </svg>
+        Staffs
+      </a>
+    {% endif %}
+    
+    <a href="{% url "dashboard_reports" %}" {% if current == "reports" %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-brand-100 text-brand-500 font-semibold" {% else %} class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-500 hover:bg-cream" {% endif %}>
       <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 20V10M10 20V4M16 20v-7M20 20V13"/>
       </svg>

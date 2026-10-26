@@ -1,20 +1,5 @@
 {% load widget_tweaks %}
 
-{# ===================================================================== #}
-{# Dashboard > Contents > Services                                       #}
-{#                                                                       #}
-{# Expects from the view:                                                #}
-{#   services      queryset of Service (use prefetch_related              #}
-{#                 ("related_services") so the manage buttons do not      #}
-{#                 run one query per row)                                 #}
-{#   service_form  the ServiceForm used for add and edit                  #}
-{#                 (fields: title, blurb, description, related_services,  #}
-{#                 is_active, is_featured)                                #}
-{# URL names used (rename here if yours differ):                          #}
-{#   dashboard_add_service                                                #}
-{#   dashboard_update_service  <slug>                                     #}
-{#   dashboard_delete_service  <slug>                                     #}
-{# ===================================================================== #}
 
 <style>
   /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */

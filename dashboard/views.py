@@ -1,4 +1,6 @@
 import os
+from datetime import (timedelta, datetime,)
+from statistics import mean
 from django.shortcuts import (render, redirect,)
 from django.urls import reverse
 from django.http import JsonResponse
@@ -13,7 +15,7 @@ from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualI
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel, AddStaffModel)
 from staffs.models import (CustomUserModel, UserProfileModel,)
 from staffs.forms import ChangeEmailForm
-from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, invalidate_add_staff_tracks, send_account_creation_email)
+from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, invalidate_add_staff_tracks, send_account_creation_email, get_reports_range, get_change_percent, get_average_response_time, get_enquiries_series, get_enquiries_by_services, get_response_performance, get_busiest_days, get_umami_analytics_data, get_content_health,)
 
 
 
@@ -542,7 +544,7 @@ def add_staff_view(request):
         name = f"{data["first_name"]} {data["last_name"]}"
         email = data["email"]   
 
-        if len(CustomUserModel.objects.filter(email=email)):
+        if CustomUserModel.objects.filter(email=email).count():
             return toast_json_error("Can't add staff.", error="Staff already exists")
 
         invalidate_add_staff_tracks(email=email) # invalidate exisiting tracks and void existing tokens
@@ -562,3 +564,138 @@ def add_staff_view(request):
         return toast_json_ok("Staff added successfully.")
 
     return toast_json_error()
+
+
+
+@login_required
+@permission_required(("staffs.view_reports",), raise_exception=True)
+def reports_view(request):
+
+    (range_to, range_from, range_prior), (range_space, from_date, to_date) = get_reports_range(request)
+
+
+    enquiries = ContactMessageModel.objects.filter(created_at__range=(range_from, range_to))
+    prior_enquiries = ContactMessageModel.objects.filter(created_at__range=(range_prior, range_from))
+
+    
+    enquiries_count = enquiries.count()
+    prior_enquiries_count = prior_enquiries.count()
+
+    unattended_enquirires = enquiries.filter(is_attended=False)
+    unattended_enquirires_count = unattended_enquirires.count()
+    oldest_unattended_enquirires_days = unattended_enquirires.order_by("created_at").first().get_days_from_now() if unattended_enquirires else None
+
+    enquiries_change_percent = get_change_percent(prior=prior_enquiries_count, current=enquiries_count)
+
+    attended_enquiries = enquiries.filter(is_attended=True)
+    prior_attended_enquiries = prior_enquiries.filter(is_attended=True)
+    
+    avg_response_seconds = get_average_response_time(attended_enquiries_timespaces=list(attended_enquiries.values_list("attended_at", "created_at"))) if attended_enquiries else None
+    prior_avg_response_seconds = get_average_response_time(attended_enquiries_timespaces=list(prior_attended_enquiries.values_list("attended_at", "created_at")))
+
+
+    avg_response_change_percent = get_change_percent(prior=prior_avg_response_seconds, current=avg_response_seconds)
+
+    pending_testimonials = TestimonialModel.objects.filter(is_approved=False)
+
+    pending_testimonials_count = pending_testimonials.count()
+    oldest_pending_testimonials_days = pending_testimonials.order_by("created_at").first().get_days_from_now() if pending_testimonials else None
+    
+
+    summary = {
+        "enquiries": enquiries_count,
+        "enquiries_change": enquiries_change_percent,
+        "unattended": unattended_enquirires_count,
+        "oldest_unattended_days": oldest_unattended_enquirires_days,
+        "avg_response_seconds": avg_response_seconds,
+        "avg_response_change": avg_response_change_percent,
+        "pending_testimonials": pending_testimonials_count,
+        "oldest_pending_days": oldest_pending_testimonials_days
+    }
+
+
+    enquiries_series = get_enquiries_series(range_space_dates=(range_to, range_from, range_prior,), enquiries=enquiries)
+    enquiries_by_service = get_enquiries_by_services(enquiries=enquiries, enquiries_count=enquiries_count)
+
+    responce_performance = get_response_performance(attended_enquiries=attended_enquiries, unattended_enquiries=unattended_enquirires)
+
+    by_weekday, peak = get_busiest_days(enquiries=enquiries)
+
+    health = get_content_health(pending_testimonials=pending_testimonials)
+
+    context = {
+        "range": range_space, # 7d, 30d, 90d or custom
+        "from": from_date,
+        "to": to_date,
+        "summary": summary,
+        "enquiries_series": enquiries_series,
+        "by_service": enquiries_by_service,
+        "response_perf": responce_performance,
+        "by_weekday": by_weekday,
+        "peak": peak,
+        "health": health,
+        "current": "reports"
+    }
+
+
+    return render(request, "dashboard/reports.html", context)
+
+
+
+
+@login_required
+@permission_required(("staffs.view_reports",), raise_exception=True)
+def get_site_analytics(request):
+    (range_to, range_from, _), (range_space, from_date, to_date) = get_reports_range(request)
+
+    date = {
+        "7d": timezone.now() - timedelta(days=7),
+        "30d": timezone.now() - timedelta(days=30),
+        "90d": timezone.now() - timedelta(days=90)
+    }
+    
+    range_info = {
+        "from_date": from_date if range_space == "custom" else date[range_space],
+        "to_date": to_date if range_space == "custom" else timezone.now()
+    }
+
+    public_site_analytics_data = get_umami_analytics_data(id=os.getenv("UMAMI_PUBLIC_WEBSITE_ID"), start_datetime=range_from, end_datetime=range_to)
+
+    analytics = {
+        "public_site_analytics_data": public_site_analytics_data,
+        "range_info": range_info
+    }
+
+
+    return JsonResponse(analytics)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@login_required
+@permission_required(("staffs.view_reports",), raise_exception=True)
+def export_reports_view(request):
+    pass
+
+
+
+
+

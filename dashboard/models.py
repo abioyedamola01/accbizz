@@ -160,6 +160,7 @@ class TestimonialModel(models.Model):
     slug = models.SlugField(null=True)
     is_approved = models.BooleanField(default=False)
     service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.SET_NULL, null=True, blank=True, related_name="testimonials")
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
 
 
     def save(self, *args, **kwargs):
@@ -168,6 +169,10 @@ class TestimonialModel(models.Model):
             self.slug = f"{self.id}-{slugify(self.quote[:10])}"
             return super().save(update_fields=("slug",))
         return super().save(*args, **kwargs)
+
+    def get_days_from_now(self):
+            count = timezone.now() - self.created_at
+            return count.days
 
 
 
@@ -197,6 +202,10 @@ class ContactMessageModel(models.Model):
         self.attended_at = None
 
         return super().save(update_fields=("is_attended", "attended_by", "attended_at",))
+
+    def get_days_from_now(self):
+        count = timezone.now() - self.created_at
+        return count.days
 
 
 

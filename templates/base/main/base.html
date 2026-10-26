@@ -4,6 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Unami analytics track -->
+  <script defer src="https://umami-zeta-drab.vercel.app/script.js" data-website-id="013c8cfa-724c-4382-a8e2-5cc65716b059"></script>
   <title>{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
   {% if site_info.favicon %}<link rel="icon" href="{{ site_info.favicon.url }}" />{% endif %}
 
@@ -18,7 +21,7 @@
   {% block extra_css %}{% endblock extra_css %}
 </head>
 <body class="font-sans text-dark-900 antialiased bg-cream">
-
+  {% include "base/_preloader.html" %}
   {% include "base/main/partials/_navbar.html" %}
 
   <main>

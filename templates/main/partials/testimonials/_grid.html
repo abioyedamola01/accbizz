@@ -1,14 +1,3 @@
-{# ===================================================================== #}
-{# Testimonials page: the approved testimonials, loaded in batches.        #}
-{# Expects:                                                               #}
-{#   testimonials  the first batch (name, title, quote, service)          #}
-{#   batch_point   what to ask for next, or None when there is no more    #}
-{# "Load more" requests {% url "get_testimonials_batch" batch_point %}     #}
-{# and expects JSON:                                                      #}
-{#   { "testimonials": [{"name","title","quote","service"}, ...],         #}
-{#     "more_testimonials": true/false, "batch_point": <next> }           #}
-{# name/title empty = anonymous. service = service title, empty = general. #}
-{# ===================================================================== #}
 <style>
   /* Plain CSS so the card layout never depends on the Tailwind build.
      A real grid (not CSS columns): cards already on screen never jump

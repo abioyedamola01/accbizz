@@ -1,19 +1,4 @@
 {% load widget_tweaks %}
-{# ===================================================================== #}
-{# Contact form section: heading + card, same structure as the            #}
-{# testimonials share form. Include it on its own on the contact page.     #}
-{# Expects:                                                               #}
-{#   contact_form    with name, email, phone, service, message.          #}
-{#                   phone and service are optional.                     #}
-{#   service_titles  list of service names (strings) for the dropdown.   #}
-{# `service` is a plain text field. The dropdown below fills it: picking  #}
-{# "General" leaves it empty, so the server should store None.            #}
-{# Posts with fetch to main_submit_contact and expects JSON:               #}
-{#   { "ok": true }                                                       #}
-{#   { "ok": false, "message": "...", "errors": { "email": ["..."] } }    #}
-{# The server ignores the submission if the hidden "website" field        #}
-{# (a spam trap) is filled in.                                            #}
-{# ===================================================================== #}
 <style>
   /* Spam trap: off screen, not display:none, so simple bots still fill it */
   .ctc-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
@@ -264,6 +249,9 @@
 
     // ---- Success / send another ----
     function showSuccess() {
+      // Umami custom event: the message was saved. Guarded so a blocked tracker can't break the form.
+      try { if (window.umami) window.umami.track('contact-form-success'); } catch (e) {}
+
       successEmail.textContent = emailInput.value.trim();
       form.classList.add('hidden');
       successEl.classList.remove('hidden');

@@ -1,0 +1,57 @@
+<script defer src="https://umami-zeta-drab.vercel.app/script.js" data-website-id="56ef473c-6539-4cb2-afc7-095a37df7b0c"></script>
+
+<script>
+  (function () {
+    window.STAFF_EMAIL = {% if user.is_authenticated %}"{{ user.email|escapejs }}"{% else %}""{% endif %};
+
+    // Never throws, never blocks a form: a blocked or missing tracker is ignored.
+    window.trackStaff = function (name, data) {
+      try {
+        if (!window.umami) return;
+        var payload = Object.assign({}, data || {});
+        if (window.STAFF_EMAIL) payload.staff = window.STAFF_EMAIL;
+        var eventName = String(name).slice(0, 50);
+        if (Object.keys(payload).length) window.umami.track(eventName, payload);
+        else window.umami.track(eventName);
+      } catch (e) { /* ignore */ }
+    };
+
+    // data-track on the form wins, else build a name from the form's URL
+    function actionName(form) {
+      var name = form && form.dataset && form.dataset.track;
+      if (!name) {
+        var path;
+        try { path = new URL(form.action, window.location.href).pathname; }
+        catch (e) { path = window.location.pathname; }
+        var parts = path.split('/').filter(function (part) {
+          return part && part !== 'dashboard' &&
+            !/^\d+$/.test(part) &&                                   // record ids
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(part); // uuids
+        });
+        name = parts.slice(-2).join('-');
+      }
+      name = String(name || '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+      return (name || 'form-submit').slice(0, 42); // leaves room for "-failed"
+    }
+
+    window.trackStaffAction = function (form, result) {
+      if (!result) return;
+      var name = actionName(form);
+      if (result.ok) { window.trackStaff(name); return; }
+
+      var reason = null;
+      if (result.status === 403) reason = 'permission';
+      else if (result.status === 0) reason = result.timedOut ? 'timeout' : 'network';
+      else if (result.status >= 500) reason = 'server';
+      else if (!result.data) reason = 'unexpected'; // e.g. expired session or an error page
+      if (reason) window.trackStaff(name + '-failed', { reason: reason });
+      // anything else is a validation error: not logged
+    };
+
+    // Link every page view and event of this login to the staff member
+    window.addEventListener('load', function () {
+      try { if (window.STAFF_EMAIL && window.umami) window.umami.identify(window.STAFF_EMAIL); }
+      catch (e) { /* ignore */ }
+    });
+  })();
+</script>
