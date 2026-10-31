@@ -3,37 +3,54 @@
 <div class="mt-4">
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-    {# ---- Range tabs ---- #}
-    <div id="reportRangeTabs" class="inline-flex self-start rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Report period">
-      <a href="?range=7d"
-        {% if active_range == "7d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>7d</a>
-      <a href="?range=30d"
-        {% if active_range == "30d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>30d</a>
-      <a href="?range=90d"
-        {% if active_range == "90d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>90d</a>
-      <button type="button" id="reportCustomToggle" aria-expanded="{% if active_range == 'custom' %}true{% else %}false{% endif %}" aria-controls="reportCustomForm"
-        class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition {% if active_range == 'custom' %}bg-dark-800 text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">Custom</button>
+    {# ---- Left: range tabs (and the time-zone flag when it applies) ---- #}
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      {# ---- Range tabs ---- #}
+      <div id="reportRangeTabs" class="inline-flex self-start rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Report period">
+        <a href="?range=7d"
+          {% if active_range == "7d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>7d</a>
+        <a href="?range=30d"
+          {% if active_range == "30d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>30d</a>
+        <a href="?range=90d"
+          {% if active_range == "90d" %}aria-current="true" class="px-3.5 py-2 text-sm font-semibold transition bg-dark-800 text-white"{% else %}class="px-3.5 py-2 text-sm font-semibold transition bg-white text-gray-600 hover:bg-gray-50"{% endif %}>90d</a>
+        <button type="button" id="reportCustomToggle" aria-expanded="{% if active_range == 'custom' %}true{% else %}false{% endif %}" aria-controls="reportCustomForm"
+          class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition {% if active_range == 'custom' %}bg-dark-800 text-white{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}">Custom</button>
+      </div>
+
+      {# ---- Shown only when the browser is not in the zone the report uses (see partials/_time_zone.html) ---- #}
+      <span data-tz-notice hidden class="self-start sm:self-auto">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+          <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+          </svg>
+          <span data-tz-text></span>
+        </span>
+      </span>
     </div>
+
+    {# ---- Right: which report this is and the range it covers. The dates are filled in by the script below. ---- #}
+    <p id="reportRangeInfo" class="text-xs text-gray-500 sm:text-right">(<span id="reportRangeText">selected period</span>) All data and charts below are within this date range.</p>
 
   </div>
 
   {# ---- Custom range form. Starts "hidden" and gets "flex" when opened, because #}
   {# in Tailwind 4 a "hidden" element that also has a display class can stay visible. #}
   <form id="reportCustomForm" method="get"
-    class="{% if active_range == 'custom' %}flex{% else %}hidden{% endif %} flex-col gap-3 mt-3 sm:flex-row sm:items-end">
+    class="{% if active_range == 'custom' %}flex{% else %}hidden{% endif %} flex-wrap flex-col gap-3 mt-3 sm:flex-row sm:items-end">
     <input type="hidden" name="range" value="custom">
+    {# What the server receives: the picked days as UTC date-times, filled in when the form is submitted #}
+    <input type="hidden" name="from" id="reportFromIso">
+    <input type="hidden" name="to" id="reportToIso">
 
     <div>
       <label for="reportFrom" class="block mb-1.5 text-xs font-medium text-gray-700">From</label>
-      <input type="date" id="reportFrom" name="from" required max="{% now 'Y-m-d' %}"
-        value="{% if active_range == 'custom' and date_from %}{{ date_from|date:'Y-m-d' }}{% endif %}"
+      <input type="date" id="reportFrom" required max="{% now 'Y-m-d' %}"
         class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
     </div>
 
     <div>
       <label for="reportTo" class="block mb-1.5 text-xs font-medium text-gray-700">To</label>
-      <input type="date" id="reportTo" name="to" required max="{% now 'Y-m-d' %}"
-        value="{% if active_range == 'custom' and date_to %}{{ date_to|date:'Y-m-d' }}{% endif %}"
+      <input type="date" id="reportTo" required max="{% now 'Y-m-d' %}"
         class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
     </div>
 
@@ -41,6 +58,7 @@
       class="h-10 px-5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 cursor-pointer transition-colors">
       Apply
     </button>
+    <p data-tz-dates-note class="w-full text-xs text-gray-500"></p>
   </form>
 </div>
 
@@ -65,8 +83,51 @@
       to.min = from.value || '';
       from.max = to.value || to.max;
     }
+    // The days picked here are days in the report's zone (see partials/_time_zone.html), and "today" is today there.
+    var DT = window.DashboardTime;
+    var fromIso = document.getElementById('reportFromIso');
+    var toIso = document.getElementById('reportToIso');
+    if (DT) { from.max = DT.todayKey(); to.max = DT.todayKey(); }
+
+    // The address holds date-times (UTC). Show the days they fall on in the zone.
+    var query = new URLSearchParams(window.location.search);
+    if (DT && query.get('range') === 'custom') {
+      from.value = DT.dateKey(query.get('from'));
+      to.value = DT.dateKey(query.get('to'));
+    }
+
+    // Send the start of the first day and the end of the last one (never later than now) as UTC date-times
+    form.addEventListener('submit', function () {
+      fromIso.value = DT ? DT.dayStartISO(from.value) : from.value;
+      toIso.value = DT ? DT.dayEndISO(to.value) : to.value;
+    });
+
     from.addEventListener('change', keepOrder);
     to.addEventListener('change', keepOrder);
     keepOrder();
   })();
+</script>
+<script>
+  // "(1 Oct to 31 Oct 2026)". Uses the same day range the charts use (ReportCharts.rangeBounds,
+  // defined in reports.html), so the label and the charts never disagree.
+  document.addEventListener('DOMContentLoaded', function () {
+    var out = document.getElementById('reportRangeText');
+    if (!out || !window.ReportCharts) return;
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // "2026-10-22" -> "22 Oct" (split by hand so time zones can't shift the day)
+    function dayMonth(key) {
+      var p = String(key || '').split('-');
+      if (p.length !== 3) return '';
+      return parseInt(p[2], 10) + ' ' + MONTHS[parseInt(p[1], 10) - 1];
+    }
+
+    var bounds = window.ReportCharts.rangeBounds();
+    if (!bounds || !bounds.from || !bounds.to) return; // the "selected period" fallback stays
+    var fromYear = bounds.from.slice(0, 4);
+    var toYear = bounds.to.slice(0, 4);
+    var from = dayMonth(bounds.from) + (fromYear !== toYear ? ' ' + fromYear : ''); // year on the start only when it differs
+    var to = dayMonth(bounds.to) + ' ' + toYear;
+    out.textContent = from + ' to ' + to;
+  });
 </script>

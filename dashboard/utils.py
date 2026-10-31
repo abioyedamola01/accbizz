@@ -3,13 +3,15 @@ import requests
 from datetime import (timedelta, datetime,)
 from django.http import JsonResponse
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.urls import reverse
-from .models import AddStaffModel
-from staffs.models import CustomUserModel
-from .models import (ServiceModel, SiteModel, TestimonialModel,)
+from django.db.models import (Count, Avg, Subquery, Value, Q, F)
+from django.db.models.functions import (TruncDate, TruncHour, TruncDay, Concat, Length,)
+from staffs.models import (CustomUserModel, StaffActionsLogModel,)
+from .models import (ServiceModel, SiteModel, AddStaffModel,)
 
 
 def toast_json_ok(message, status=200, *args, **kwargs):
@@ -33,6 +35,138 @@ def toast_json_error(message, status=400, *args, **kwargs):
         load[str(key)] = value
 
     return JsonResponse(load, status=status)
+
+
+
+
+
+
+def get_reports_range(request):
+    rs = str(request.GET.get("range", "30d")).lower()
+
+    range_space = rs if rs in ("7d", "30", "90d", "custom") else "30d"
+    from_date = None
+    to_date = None
+
+    range_space_dates = {
+        # to_date 0, from_date 1, prior_date 2
+        "7d": (timezone.now(), timezone.now() - timedelta(days=7), timezone.now() - timedelta(days=14)),
+        "30d": (timezone.now(), timezone.now() - timedelta(days=30), timezone.now() - timedelta(days=60)),
+        "90d": (timezone.now(), timezone.now() - timedelta(days=90), timezone.now() - timedelta(days=180)),
+    }
+
+
+    if range_space == "custom":
+        from_date = datetime.fromisoformat(str(request.GET.get("from", None))).replace(tzinfo=timezone.UTC)
+        to_date = datetime.fromisoformat(str(request.GET.get("to", None))).replace(tzinfo=timezone.UTC)
+        range_space_dates["custom"] = (to_date, from_date, from_date - to_date + from_date)
+
+    
+    return (range_space_dates[range_space], (range_space, from_date, to_date))
+
+
+
+
+
+def log_staff_action(**args):
+    StaffActionsLogModel.objects.create(**args)
+
+
+def get_logs_series(logs):
+    points = list(logs.annotate(date=TruncDay("created_at")).values("date").annotate(count=Count("id"), failed=Count("id", filter=Q(is_success=False))).order_by("date"))
+
+    return {"points": points}
+
+
+def get_logs_by_action(logs):
+    by_codes = list(logs.values("code").annotate(count=Count("id"), failed=Count("id", filter=Q(is_success=False))).order_by("code"))
+    
+    return by_codes
+    
+
+def get_failures_by_reason(logs, reasons):
+    by_reason = list(logs.annotate(reason=F("failure_reason")).values("reason").annotate(count=Count("id")).order_by("failure_reason"))
+
+    return by_reason
+
+
+def get_recent_staff_actions(staff, batch_point):
+    actions = list(StaffActionsLogModel.objects.order_by("-created_at").filter(staff=staff, created_at__lte=batch_point)[:7].values("id", "created_at", "code", "label", "is_success", "failure_reason"))
+
+    next_batch_point = None
+    has_more = False
+
+    if len(actions) == 7:
+        next_batch_point = actions[6]["created_at"]
+        has_more = True
+
+    recent_actions = {
+        "actions": actions[:5],
+        "next_batch_point": next_batch_point,
+        "has_more": has_more
+    }
+    
+    return recent_actions
+
+
+
+
+
+
+def get_staff_actions_logs(request, staff):
+    (range_to, range_from, _), (range_space, _, _) = get_reports_range(request=request)
+
+
+    actions_logs = StaffActionsLogModel.objects.order_by("-created_at").filter(staff=staff, created_at__range=(range_from, range_to))
+    actions_count = actions_logs.count()
+
+    failed_actions_logs = actions_logs.filter(is_success=False)
+    failed_actions_count = failed_actions_logs.count()
+    
+    last_action = actions_logs.first()
+
+    logs_series = get_logs_series(logs=actions_logs)
+        
+    by_action = get_logs_by_action(logs=actions_logs)
+    
+    failure_reasons = set(failed_actions_logs.values_list("failure_reason", flat=True))
+    by_reason = get_failures_by_reason(logs=failed_actions_logs, reasons=failure_reasons)
+
+    recent_actions = get_recent_staff_actions(staff=staff, batch_point=timezone.now())
+    
+
+    range_info = {
+        "range": range_space,
+        "range_from": range_from,
+        "range_to": range_to
+    }
+
+    staff_info = {
+        "name": staff.profile.username,
+        "email": staff.email,
+        "role": staff.profile.role,
+        "status": "Active" if staff.is_staff_member else "Not Active",
+        "last_login": staff.last_login
+    }
+
+    summary = {
+        "total_actions": actions_count,
+        "failed_actions": failed_actions_count,
+        "last_action_at": last_action.created_at,
+        "last_action_label": last_action.label
+    }
+
+    logs = {
+        "range_info": range_info,
+        "staff": staff_info,
+        "summary": summary,
+        "series": logs_series,
+        "by_action": by_action,
+        "failures_by_reason": by_reason,
+        "recent_actions": recent_actions
+    }
+
+    return logs
 
 
 
@@ -74,40 +208,36 @@ def send_account_creation_email(name, email, url):
 
 
 
-
-
-
 # reports utils
 
-def get_reports_range(request):
-    range_space = str(request.GET.get("range", "30d")).lower() if len(request.GET.get("range", "30d")) else "30d"
-    from_date = None
-    to_date = None
+def get_enquiries_counts(all_enquiries, range_from, range_to, range_prior):
+    day = range_to - timedelta(days=1)
 
-    range_space_dates = {
-        # to_date 0, from_date 1, prior_date 2
-        "7d": (timezone.now(), timezone.now() - timedelta(days=7), timezone.now() - timedelta(days=14)),
-        "30d": (timezone.now(), timezone.now() - timedelta(days=30), timezone.now() - timedelta(days=60)),
-        "90d": (timezone.now(), timezone.now() - timedelta(days=90), timezone.now() - timedelta(days=180)),
-    }
+    counts = all_enquiries.aggregate(
+        enquiries_count=Count("id", filter=Q(created_at__range=(range_from, range_to))),
+        prior_enquiries_count=Count("id", filter=Q(created_at__range=(range_prior, range_from))),
+        unattended_enquirires_count=Count("id", filter=Q(created_at__range=(range_from, range_to), is_attended=False)),
+        unattended_enquirires_over_24h_count=Count("id", filter=Q(created_at__range=(range_from, day)), is_attended=False)
+    )
 
 
-    if range_space == "custom":
-        from_date = datetime.fromisoformat(str(request.GET.get("from", None))).replace(tzinfo=timezone.UTC)
-        to_date = datetime.fromisoformat(str(request.GET.get("to", None))).replace(tzinfo=timezone.UTC)
-        range_space_dates["custom"] = (to_date, from_date, from_date - to_date + from_date)
-
-    
-    return (range_space_dates[range_space], (range_space, from_date, to_date))
+    return counts
 
 
 
-def get_average_response_time(attended_enquiries_timespaces):
-    time_space_summation = 0
-    for attended_at, created_at in attended_enquiries_timespaces:
-        time_space_summation += (attended_at - created_at).seconds if attended_at else 0
+def get_average_response_time(all_enquiries, range_from, range_to, range_prior):
+    response_average = all_enquiries.filter(is_attended=True).annotate(response_time=F("attended_at") - F("created_at")).aggregate(
+        avg_response_seconds=Avg("response_time", filter=Q(created_at__range=(range_from, range_to))),
+        prior_avg_response_seconds=Avg("response_time", filter=Q(created_at__range=(range_prior, range_from)))
+    )
 
-    return time_space_summation / len(attended_enquiries_timespaces) if time_space_summation else 0
+    avg_response_seconds = response_average["avg_response_seconds"].seconds if response_average["avg_response_seconds"] else 0
+    prior_avg_response_seconds = response_average["prior_avg_response_seconds"].seconds if response_average["prior_avg_response_seconds"] else 0
+
+    return (avg_response_seconds, prior_avg_response_seconds)
+
+
+
 
 
 def get_change_percent(prior, current):
@@ -115,106 +245,71 @@ def get_change_percent(prior, current):
     return percent
 
 
-def get_enquiries_series(range_space_dates, enquiries):
-    to_date, from_date, _ = range_space_dates
-    enquiries_series = list()
 
-    iterator = from_date
-    while iterator <= to_date:
-        date = iterator.date()
-        next_iterator = iterator + timedelta(days=1)
-        enquiries_count = enquiries.filter(created_at__range=(iterator, next_iterator)).count()
+def get_enquiries_series(enquiries):
+    series = list(enquiries.annotate(date=TruncDay("created_at")).values("date").annotate(count=Count("id")).order_by("date"))
 
-        iterator = next_iterator
-        enquiries_series.append({
-            "date": date,
-            "count": enquiries_count
-        })
-
-    return enquiries_series
+    return series
 
 
-def get_enquiries_by_services(enquiries, enquiries_count):
-    services = ServiceModel.objects.filter(is_active=True).values("title")
 
-    enquiries_by_services = ["General Enquiry"]
-    enquiries_by_services_count = 0
+def get_enquiries_by_services(range_from, range_to, enquiries_count):
+    services = ServiceModel.objects.filter(is_active=True, enquiries__created_at__range=(range_from, range_to))
+
+    by_services = list(services.annotate(count=Count("enquiries")).values("title", "count"))
     
-    for service in services:
-        title = service["title"]
-        count = enquiries.filter(service=title).count()
+    services_enquiries_count = sum(dic["count"] for dic in by_services)
 
-        enquiries_by_services.append({
-            "title": title,
-            "count": count
-        })
+    gen_count = enquiries_count - services_enquiries_count
 
-        enquiries_by_services_count += count
-
-    general_enquiry_count = enquiries_count - enquiries_by_services_count
-
-    enquiries_by_services[0] = {"title": "General Enquiry", "count":general_enquiry_count}
-
-    return enquiries_by_services
+    if gen_count: by_services.append({"title": "General Enquiry", "count": gen_count})
 
 
-def get_response_performance(attended_enquiries, unattended_enquiries):
+    return by_services
+
+
+def get_response_performance(unattended_enquirires_over_24h_count):
     staffs = CustomUserModel.objects.select_related("profile").filter()
 
-    attended_by_staff = list()
-
-    for staff in staffs:
-        count = attended_enquiries.filter(attended_by=staff).count()
-        attended_by_staff.append({
-            "name": staff.email,
-            "attended": count
-        })
-
-    unattended_enquiries_over_24hrs_count = unattended_enquiries.filter(created_at__lt=timezone.now()-timedelta(days=1)).count()
+    by_staffs = list(staffs.annotate(name=Concat("profile__first_name", Value(" "), "profile__last_name"), attended=Count("attended_enquiries")).values("name", "email", "attended"))
 
     response_performance = {
-        "attended_by_staff": attended_by_staff,
-        "unattended_over_24h": unattended_enquiries_over_24hrs_count
+        "attended_by_staff": by_staffs,
+        "unattended_over_24h": unattended_enquirires_over_24h_count
     }
-
+    
     return response_performance
 
 
 
 
-def get_keys_from_value(value, dic_list):
-    keys = [dic["label"] for dic in dic_list for key, val in dic.items() if val == value]
+
+def get_keys_from_value(value, dic):
+    keys = [key for key, val  in dic.items() if val == value]
     return keys
 
-
 def get_busiest_days(enquiries):
-    week = [("Sun", 1), ("Mon", 2), ("Tue", 3), ("Wed", 4), ("Thu", 5), ("Fri", 6), ("Sat", 6)]
+    by_weekday = enquiries.aggregate(
+        Sun=Count("id", filter=Q(created_at__week_day=1)),
+        Mon=Count("id", filter=Q(created_at__week_day=2)),
+        Tue=Count("id", filter=Q(created_at__week_day=3)),
+        Wed=Count("id", filter=Q(created_at__week_day=4)),
+        Thu=Count("id", filter=Q(created_at__week_day=5)),
+        Fri=Count("id", filter=Q(created_at__week_day=6)),
+        Sat=Count("id", filter=Q(created_at__week_day=7)),
+    )
 
-    by_weekday = list()
+    counts = by_weekday.values()
 
-    for day, i in week:
-        count = enquiries.filter(created_at__week_day=i).count()
-        
-        by_weekday.append({
-            "label": day,
-            "count": count
-        })
-
-    count_track = list()
-
-    for item in by_weekday: count_track.append(item["count"])
-
-    busiest_count = max(count_track)
-    quietest_count = min(count_track)
-
-    busiest_days = get_keys_from_value(busiest_count, by_weekday)
-    quietest_days = get_keys_from_value(quietest_count, by_weekday)
+    max_count = max(counts)
+    max_count_days = get_keys_from_value(value=max_count, dic=by_weekday)
+    min_count_days = get_keys_from_value(value=min(counts), dic=by_weekday)
 
 
     peak = {
-        "busiest_days": busiest_days,
-        "busiest_days_count": busiest_count,
-        "quietest_days": quietest_days
+        "busiest_days": max_count_days,
+        "busiest_days_count": max_count,
+        "quietest_days": min_count_days
     }
 
     return by_weekday, peak
@@ -324,27 +419,14 @@ def get_umami_analytics_data(id, start_datetime, end_datetime):
 
 
 def get_content_health(pending_testimonials):
-    site_content = SiteModel.objects.values("company_name", "display_name", "tagline", "email", "whatsapp", "location", "logo", "favicon")[0]
-    
-    setup_fields = list()
+    contents = SiteModel.objects.values("company_name", "display_name", "tagline", "email", "whatsapp", "location", "logo", "favicon")[0]
+    setup_fields = [{"label": key, "ok": bool(val)} for key, val in contents.items()]
 
-    for key, value in site_content.items():
-        field = {
-            "label": key,
-            "ok": True if len(value) else False
-        }
-
-        setup_fields.append(field)
-
-
-    services = ServiceModel.objects.prefetch_related("faqs", "testimonials").filter(is_active=True)
-    no_faqs_count = 0
-    no_testimonials_count = 0
-
-    for service in services:
-        no_faqs_count += 1 if not service.faqs.filter() else no_faqs_count
-        no_testimonials_count += 1 if not service.testimonials.filter() else no_testimonials_count
-
+    counts = ServiceModel.objects.filter(is_active=True).aggregate(
+        no_faqs_count=Count("id", filter=Q(faqs__isnull=True)),
+        no_testimonials_count=Count("id", filter=Q(testimonials__isnull=True))
+    )
+    no_faqs_count, no_testimonials_count = counts.values()
 
     pending_testimonials_count_over_7d = pending_testimonials.filter(created_at__lt=timezone.now()-timedelta(days=7)).count()
 

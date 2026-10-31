@@ -216,11 +216,15 @@ def submit_contact_view(request):
     if request.POST and contact_form.is_valid():
         data = contact_form.cleaned_data
         site_info = SiteModel.objects.filter().first()
-        send_contact_message(site_info=site_info, name=data["name"], email=data["email"],message=data["message"], phone=data["phone"], service=data["service"])
-        
+        # send_contact_message(site_info=site_info, name=data["name"], email=data["email"],message=data["message"], phone=data["phone"], service=data["service"])
+        try:
+            send_contact_message(**data, site_info=site_info)
+            send_status = {"status": "sent", "errror": None}
+        except Exception as e:
+            send_status = {"status": "failed", "errror": e}
         contact_form.save()
 
-        return toast_json_ok("Message sent successfully.")
+        return toast_json_ok("Message sent successfully.", send_status=send_status)
     return toast_json_error("Can't send message")
 
 

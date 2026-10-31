@@ -174,7 +174,7 @@
     var root = document.getElementById('analyticsSection');
     if (!root) return;
 
-    var TZ = 'Africa/Lagos';
+    var TZ = (window.DashboardTime && window.DashboardTime.TZ) || 'Africa/Lagos'; // set in partials/_time_zone.html
     var DAY = 86400000;
 
     // ---- Labels you can edit ----------------------------------------------

@@ -7,7 +7,7 @@
       <img {% if staff.profile.avatar %}src="{{ staff.profile.avatar.url }}"{% else %}src="{{ staff.profile.get_default_avatar }}"{% endif %} alt="" class="w-9 h-9 rounded-lg object-cover shrink-0" />
       <div class="min-w-0">
         <p class="text-sm font-semibold text-dark-900 truncate">
-          {{ staff.profile.get_username }}
+          {{ staff.profile.username }}
           {% if staff.id == request.user.id %}<span class="ml-1 align-middle text-[11px] font-medium text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded-full">You</span>{% endif %}
         </p>
         {# Shown in full, wrapping if it is long, instead of being cut off #}
@@ -25,12 +25,12 @@
     {% endif %}
   </td>
 
-  {# ---- Manage: actions dropdown ---- #}
+  {# ---- Options: actions dropdown ---- #}
   <td class="py-3 pr-1 text-right">
     <div class="inline-block text-left">
       <button type="button" class="staff-actions-btn inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition"
-        aria-haspopup="menu" aria-expanded="false" aria-label="Manage {% firstof staff.profile.get_username staff.email %}">
-        Manage
+        aria-haspopup="menu" aria-expanded="false" aria-label="Options for {% firstof staff.profile.username staff.email %}">
+        Options
         <svg class="w-3 h-3 text-gray-500" viewBox="0 0 10 6" fill="none" aria-hidden="true">
           <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m1 1 4 4 4-4"/>
         </svg>
@@ -38,15 +38,24 @@
 
       {# Opened by the script on the page, which places it with position: fixed so the table cannot clip it #}
       <div class="staff-actions-menu hidden z-30 w-48 bg-white rounded-xl border border-gray-100 shadow-card py-1 text-sm" role="menu">
+        {# Opens the activity report modal (see partials/staffs/_activity_modal.html). A button, not a link: nothing navigates. #}
+        {# data-more-url holds the text BATCH_POINT where the batch point goes; the script swaps it in. #}
+        <button type="button" role="menuitem"
+          data-logs-url="{% url "dashboard_get_staff_action_logs" staff.email %}"
+          data-more-url="{% url "dashboard_get_staff_recent_actions_batch" staff.email "BATCH_POINT" %}"
+          data-staff-name="{% firstof staff.profile.username staff.email %}"
+          data-staff-email="{{ staff.email }}"
+          data-avatar="{% if staff.profile.avatar %}{{ staff.profile.avatar.url }}{% else %}{{ staff.profile.get_default_avatar }}{% endif %}"
+          class="staff-activity-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">View activity report</button>
         {# Opens the reset-password modal (see staffs.html). It is a button, not a link: nothing navigates. #}
         <button type="button" role="menuitem"
           data-reset-url="{% url "staff_reset_password" staff.email %}"
-          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          data-staff-name="{% firstof staff.profile.username staff.email %}"
           data-staff-email="{{ staff.email }}"
           class="staff-reset-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reset password</button>
         {# Opens the change-email modal (see staffs.html). A button, not a link: nothing navigates. #}
         <button type="button" role="menuitem"
-          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          data-staff-name="{% firstof staff.profile.username staff.email %}"
           data-staff-email="{{ staff.email }}"
           class="staff-change-email-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Change email</button>
         {# Not on your own row #}
@@ -57,13 +66,13 @@
         <button type="button" role="menuitem"
           data-action="remove"
           data-action-url="{% url "staff_remove_staff" staff.email %}"
-          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          data-staff-name="{% firstof staff.profile.username staff.email %}"
           class="staff-confirm-btn block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-50 cursor-pointer">Remove as staff</button>
         {% else %}
         <button type="button" role="menuitem"
           data-action="reinstate"
           data-action-url="{% url "staff_reinstate_staff" staff.email %}"
-          data-staff-name="{% firstof staff.profile.get_username staff.email %}"
+          data-staff-name="{% firstof staff.profile.username staff.email %}"
           class="staff-confirm-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reinstate as staff</button>
         {% endif %}
         {% endif %}

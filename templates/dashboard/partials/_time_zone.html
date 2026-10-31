@@ -1,0 +1,93 @@
+<script>
+  window.DashboardTime = (function () {
+    var TZ = 'Africa/Lagos';
+
+    var browserZone = '';
+    try { browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { browserZone = ''; }
+
+    // "WAT" (some browsers give "GMT+1" instead)
+    var abbreviation = '';
+    try {
+      var parts = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, timeZoneName: 'short' }).formatToParts(new Date());
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].type === 'timeZoneName') { abbreviation = parts[i].value; break; }
+      }
+    } catch (e) { abbreviation = ''; }
+
+    var label = TZ + (abbreviation ? ' (' + abbreviation + ')' : '');
+
+    // If the browser's zone can't be read, the flag is shown: better to say it than to guess.
+    var differs = browserZone !== TZ;
+
+    // ---- Days in TZ <-> UTC date-times ----
+    var KEY = /^\d{4}-\d{2}-\d{2}$/;
+    var wallFmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    var keyFmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    // How far TZ is ahead of UTC at this instant, in ms. Read from the clock, so a zone with
+    // daylight saving would still come out right.
+    function offsetAt(ms) {
+      var whole = ms - (ms % 1000);
+      var p = {};
+      wallFmt.formatToParts(new Date(whole)).forEach(function (x) { p[x.type] = x.value; });
+      return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - whole;
+    }
+
+    // The instant a day starts in TZ ("2026-10-20" -> 2026-10-19T23:00:00Z for Lagos)
+    function dayStartMs(key) {
+      if (!KEY.test(key)) return NaN;
+      var p = key.split('-');
+      var guess = Date.UTC(+p[0], +p[1] - 1, +p[2]);
+      var first = guess - offsetAt(guess);
+      return guess - offsetAt(first); // second pass settles a day on which the offset changes
+    }
+    function nextKey(key) {
+      var p = key.split('-');
+      return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1)).toISOString().slice(0, 10);
+    }
+
+    function dayStartISO(key) {
+      var ms = dayStartMs(key);
+      return isNaN(ms) ? '' : new Date(ms).toISOString();
+    }
+    // The last millisecond of that day in TZ, but never later than now
+    function dayEndISO(key) {
+      var next = dayStartMs(nextKey(KEY.test(key) ? key : '1970-01-01'));
+      if (!KEY.test(key) || isNaN(next)) return '';
+      return new Date(Math.min(next - 1, Date.now())).toISOString();
+    }
+    // A date-time (or a plain day) -> the day it falls on in TZ, as "YYYY-MM-DD"
+    function dateKey(value) {
+      if (!value) return '';
+      if (KEY.test(value)) return value;
+      var d = new Date(value);
+      return isNaN(d.getTime()) ? '' : keyFmt.format(d);
+    }
+    function todayKey() { return keyFmt.format(new Date()); }
+
+    function mount() {
+      document.querySelectorAll('[data-tz-dates-note]').forEach(function (node) {
+        node.textContent = 'Dates are counted as ' + TZ + ' days.';
+      });
+      document.querySelectorAll('[data-tz-notice]').forEach(function (node) {
+        node.hidden = !differs;
+        if (!differs) return;
+        var text = node.querySelector('[data-tz-text]');
+        if (text) text.textContent = 'Times shown in ' + label;
+        node.title = (browserZone ? 'Your device is set to ' + browserZone + '. ' : '') +
+          'Times and date ranges follow ' + TZ + '.';
+      });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+    else mount();
+
+    return {
+      TZ: TZ, label: label, browserZone: browserZone, differs: differs, mount: mount,
+      dayStartISO: dayStartISO, dayEndISO: dayEndISO, dateKey: dateKey, todayKey: todayKey
+    };
+  })();
+</script>

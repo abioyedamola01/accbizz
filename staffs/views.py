@@ -14,13 +14,10 @@ from django.utils.encoding import force_bytes
 from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
 from django.utils.crypto import get_random_string
 from dashboard.models import (SiteModel, AddStaffModel,)
-from dashboard.utils import (toast_json_ok, toast_json_error, add_staff_token_generator,)
+from dashboard.utils import (toast_json_ok, toast_json_error, add_staff_token_generator, log_staff_action,)
 from .models import (OTPVerifyModel, CustomUserModel, ChangeEmailTrackModel, RevertEmailChangeModel,)
 from .forms import (StaffLoginForm, VerifyOTPForm, ChangePasswordForm, PasswordForm, ChangeEmailForm,)
 from .utils import (create_otp, send_otp_mail, verify_otp, send_password_reset_mail, change_email_token_generator, send_email_change_mails, delete_staff_sessions, delete_staff_other_sessions,)
-
-
-
 
 
 def staff_login_view(request):
@@ -35,15 +32,21 @@ def staff_login_view(request):
     if request.POST and form.is_valid():
         email = form.cleaned_data["email"]
         password = form.cleaned_data["password"]
+
+        staff = CustomUserModel.objects.filter(email=email).first()
         user = authenticate(request, email=email, password=password)
-        
-        if not user:
-            form.add_error(None, "Inavid email or password. Try again")
+
+        if not staff:
+            form.add_error(None, "Invalid email or password. Try again")
+        elif not user:
+            log_staff_action(staff=staff, code="auth.login", label="Failed login attempt.", is_success=False, failure_reason="Invalid credentials.")
+            form.add_error(None, "Invalid email or password. Try again")
         elif not user.is_active:
+            log_staff_action(staff=staff, code="auth.login", label="Failed login attempt.", is_success=False, failure_reason="Account is inactive.")
             form.add_error(None, "Staff is not active at the moment.")
         elif user.is_active and user.is_staff_member:
             purpose = "staff_login"
-            username = user.profile.get_username()
+            username = user.profile.username
             otp, otp_id = create_otp(user, purpose)
             send_otp_mail(username, email, otp, verify_purpose="Staff Login")
 
@@ -55,8 +58,10 @@ def staff_login_view(request):
                 "purpose": purpose
             }
 
+            log_staff_action(staff=user, code="auth.login", label="Initiated login process and received OTP.", is_success=True)
             return redirect("verify_otp_staff")
         else:
+            log_staff_action(staff=staff, code="auth.login", label="Failed login attempt.", is_success=False, failure_reason="User is not a staff member.")
             form.add_error(None, "Not a staff member. Check with the admins to update your status.")
         
 
@@ -69,10 +74,11 @@ def staff_login_view(request):
 
 def verify_staff_otp_view(request):
     otp_verify_info =  request.session.get("otp_verify_info", None)
-    print(otp_verify_info)
+
+    
     if not otp_verify_info:
         request.session.flush()
-        return redirect("main_home")
+        return redirect("staff_login")
 
     if request.user.is_authenticated and (otp_verify_info["purpose"] == "staff_login"):
         return redirect("dashboard_home")
@@ -89,7 +95,6 @@ def verify_staff_otp_view(request):
 
 
     if request.POST and form.is_valid():
-        # otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
         if not otp_instance:
             request.session.pop("otp_verify_info", None)
             return redirect("main_home")
@@ -107,9 +112,15 @@ def verify_staff_otp_view(request):
                 request.session.flush()
                 login(request, user)
                 delete_staff_other_sessions(request=request, staff=user)
+                log_staff_action(staff=user, code="auth.otp.verify", label="Logged in successfully via OTP.", is_success=True)
+            else:
+                log_staff_action(staff=user, code="auth.otp.verify", label=f"Verified OTP for {otp_verify_info['purpose']}.", is_success=True)
+                
             return redirect(redirect_urls[otp_verify_info["purpose"]])
 
+        log_staff_action(staff=user, code="auth.otp.verify", label="Failed to verify OTP.", is_success=False, failure_reason=verify_comment)
         form.add_error(None, verify_comment)
+        
     return render(request, "staffs/otp.html", {
         "site_info": site_info,
         "user_email": otp_verify_info["user_email"],
@@ -147,10 +158,12 @@ def resend_staff_otp_view(request):
     
     otp_instance.invalidate_otp()
     new_otp, new_otp_id = create_otp(user, purpose)
-    send_otp_mail(user.profile.get_username(), user.email, new_otp, verify_purpose=otp_instance.get_purpose_display())
+    send_otp_mail(user.profile.username, user.email, new_otp, verify_purpose=otp_instance.purpose)
     otp_verify_info["otp_id"] = new_otp_id
     otp_verify_info["otp_uuid"] = str(uuid.uuid4())
     request.session["otp_verify_info"] = otp_verify_info
+    
+    log_staff_action(staff=user, code="auth.otp.resend", label=f"Requested a new OTP for {otp_instance.purpose}.", is_success=True)
     
     return render(request, "staffs/otp.html", {
         "site_info": site_info,
@@ -164,8 +177,10 @@ def resend_staff_otp_view(request):
 
 @login_required
 def staff_logout_view(request):
+    staff = request.user # Capture the user before the session is flushed
     request.session.flush()
     logout(request)
+    log_staff_action(staff=staff, code="auth.logout", label="Logged out of the system.", is_success=True)
     return redirect("staff_login")
 
 
@@ -174,7 +189,7 @@ def staff_logout_view(request):
 def verify_for_staff_change_password_view(request):
     user = request.user
     purpose = "staff_change_password"
-    username = user.profile.get_username()
+    username = user.profile.username
     email = user.email
 
     otp, otp_id = create_otp(user, purpose)
@@ -187,6 +202,8 @@ def verify_for_staff_change_password_view(request):
         "otp_uuid": str(uuid.uuid4()),
         "purpose": purpose
     }
+    
+    log_staff_action(staff=user, code="auth.password_change.initiate_otp", label="Initiated OTP verification for password change.", is_success=True)
 
     return redirect("verify_otp_staff")
 
@@ -222,11 +239,12 @@ def staff_change_password_view(request):
         user = authenticate(request, email=request.user.email, password=old_password)
 
         if not user:
+            log_staff_action(staff=request.user, code="profile.password_change", label="Failed to change password.", is_success=False, failure_reason="Incorrect current password.")
             password_form.add_error(None, "Incorrect password.")
-
             return render(request, "staffs/change_password.html", context)
 
         user.change_password(new_password=new_password)
+        log_staff_action(staff=request.user, code="profile.password_change", label="Changed their account password.", is_success=True)
 
         context["success"] = True
         
@@ -248,7 +266,8 @@ def reset_staff_password_view(request, user):
         base_url = os.getenv("BASE_URL")
         reset_link = f"{base_url}/users/staffs/accounts/auth/reset-password/use/{idb64}/{token}"
 
-        send_password_reset_mail(email=staff.email, name=staff.profile.get_username(), url=reset_link)
+        send_password_reset_mail(email=staff.email, name=staff.profile.username, url=reset_link)
+        log_staff_action(staff=request.user, code="auth.password_reset.initiate", label=f"Initiated a password reset for staff: {staff.email}.", is_success=True)
 
         return toast_json_ok("Password reset link sent successfully.")
 
@@ -276,6 +295,7 @@ def use_reset_staff_password_link_view(request, idb64, token):
 
         staff.set_password(new_password)
         staff.save()
+        log_staff_action(staff=staff, code="auth.password_reset.complete", label="Reset their password using an email reset link.", is_success=True)
 
         return toast_json_ok("Password reset successfully.")
 
@@ -323,7 +343,8 @@ def change_email_view(request):
         change_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{change_token}"
         revert_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{revert_token}/revert-change"
 
-        send_email_change_mails(user_name=staff.profile.get_username(), current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
+        send_email_change_mails(user_name=staff.profile.username, current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
+        log_staff_action(staff=request.user, code="profile.email_change.initiate", label=f"Initiated email change for staff from {current_email} to {new_email}.", is_success=True)
 
     return toast_json_ok("Email change process initiated successfully.")
 
@@ -335,13 +356,16 @@ def remove_staff_view(request, email):
     staff = CustomUserModel.objects.filter(email=email).first()
 
     if not staff:
+        log_staff_action(staff=request.user, code="staff.remove", label="Failed to remove staff member.", is_success=False, failure_reason=f"Staff does not exist ({email}).")
         return toast_json_error("Can't remove staff.", error="staff does not exist")
 
     if not staff.is_staff_member:
+        log_staff_action(staff=request.user, code="staff.remove", label="Failed to remove staff member.", is_success=False, failure_reason="Attempted to remove a user who is not marked as a staff member.")
         return toast_json_error("Can't remove staff.", error="user has been set to not a staff")
 
     delete_staff_sessions(staff)
     staff.remove_as_staff()
+    log_staff_action(staff=request.user, code="staff.remove", label=f"Removed staff privileges for: {staff.email}.", is_success=True)
 
     return toast_json_ok("Staff removed successfully.")
 
@@ -352,12 +376,15 @@ def reinstate_staff_view(request, email):
     staff = CustomUserModel.objects.filter(email=email).first()
 
     if not staff:
+        log_staff_action(staff=request.user, code="staff.reinstate", label="Failed to reinstate staff member.", is_success=False, failure_reason=f"Staff does not exist ({email}).")
         return toast_json_error("Can't reinstate staff.", error="staff does not exist")
 
     if staff.is_staff_member:
+        log_staff_action(staff=request.user, code="staff.reinstate", label="Failed to reinstate staff member.", is_success=False, failure_reason="Attempted to reinstate a user who is already an active staff member.")
         return toast_json_error("Can't reinstate staff.", error="staff has been a staff member")
 
     staff.reinstate_as_staff()
+    log_staff_action(staff=request.user, code="staff.reinstate", label=f"Reinstated staff privileges for: {staff.email}.", is_success=True)
 
     return toast_json_ok("Staff reinstated successfully.")
 
@@ -412,10 +439,12 @@ def finish_email_change_view(request, track_idb64, staff_idb64, token, *args, **
                 staff.save()
                 change_email_track.mark_changed()
                 delete_staff_sessions(staff=staff) # logout staff everywhere to force login with new email  
+                log_staff_action(staff=staff, code="profile.email_change.complete", label=f"Finalized email change to {change_email_track.new_email}.", is_success=True)
 
                 context["status"] = "success"
 
             else:
+                log_staff_action(staff=staff, code="profile.email_change.complete", label="Failed to finalize email change.", is_success=False, failure_reason="Incorrect password.")
                 form.add_error("password", "Invalid password")
     else:
         context = {"status": "invalid_token"}
@@ -469,9 +498,11 @@ def revert_email_change_view(request, track_idb64, staff_idb64, token, *args, **
                 staff.save()
                 change_email_track.mark_reverted()
                 delete_staff_sessions(staff=staff)
+                log_staff_action(staff=staff, code="profile.email_revert", label=f"Reverted email change back to {change_email_track.current_email}.", is_success=True)
 
                 context["status"] = "success"
             else:
+                log_staff_action(staff=staff, code="profile.email_revert", label="Failed to revert email change.", is_success=False, failure_reason="Incorrect password.")
                 form.add_error("password", "Invalid password")
 
     else:
@@ -515,7 +546,7 @@ def new_staff_account_creation_view(request, idb64, token):
     password_form = PasswordForm(request.POST or None)
 
     context = {
-        "name": creation_track.get_username(),
+        "name": creation_track.username,
         "password_form": password_form
     }
 
@@ -529,10 +560,11 @@ def new_staff_account_creation_view(request, idb64, token):
             staff.profile.last_name = info["last_name"]
             staff.profile.save(update_fields=("role", "first_name", "last_name",))
             
-            admin_group = Group.objects.get(name=f"{info["role"]}_group")
+            admin_group = Group.objects.get(name=f"{info['role']}_group")
             admin_group.user_set.add(staff)
 
             creation_track.set_used()
+            log_staff_action(staff=staff, code="staff.account.create", label="Created their new staff account via invitation link.", is_success=True)
 
             context["status"] = "success"
         except:

@@ -48,14 +48,13 @@
       </div>
       <div class="min-w-0">
         <label for="contactServiceSelect" class="block text-sm font-medium text-dark-900 mb-1.5">What do you need help with? <span class="font-normal text-gray-400">(optional)</span></label>
-        {# The real `service` field stays in the DOM so it posts, but is hidden. The dropdown fills it. #}
-        <div class="hidden">{% render_field contact_form.service id="contactService" %}</div>
-        {# No name attribute, so the dropdown itself is never posted #}
-        <select id="contactServiceSelect"
+        {# `service` is a ForeignKey, so the form needs the service's id. The options come from the form field itself, which makes each value the id and each label the service's name. #}
+        {# "General Enquiry" is the empty option: it posts "" and the server stores None. #}
+        <select id="contactServiceSelect" name="service"
           class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
           <option value="">General Enquiry</option>
-          {% for title in service_titles %}
-            <option value="{{ title }}">{{ title }}</option>
+          {% for value, label in contact_form.service.field.choices %}
+            {% if value != "" %}<option value="{{ value }}">{{ label }}</option>{% endif %}
           {% endfor %}
         </select>
       </div>
@@ -106,8 +105,7 @@
 
     var nameInput = form.querySelector('[name="name"]');
     var emailInput = form.querySelector('[name="email"]');
-    var serviceField = form.querySelector('[name="service"]');
-    var serviceSelect = document.getElementById('contactServiceSelect');
+    var serviceSelect = form.querySelector('[name="service"]');
     var messageInput = form.querySelector('[name="message"]');
     var errorEl = document.getElementById('contactError');
     var submitBtn = document.getElementById('contactSubmit');
@@ -115,13 +113,6 @@
     var submitLabel = document.getElementById('contactSubmitLabel');
     var successEl = document.getElementById('contactSuccess');
     var successEmail = document.getElementById('contactSuccessEmail');
-
-    // ---- Service dropdown -> hidden field ----
-    // "General" has the value "", so the field posts empty and the server stores None.
-    serviceField.value = serviceSelect.value;
-    serviceSelect.addEventListener('change', function () {
-      serviceField.value = serviceSelect.value;
-    });
 
     // ---- Messages ----
     function clearErrors() {
@@ -161,9 +152,7 @@
       var placed = false;
       Object.keys(errors).forEach(function (key) {
         var message = firstMessage(errors[key]);
-        var control = key === '__all__' ? null
-          : key === 'service' ? serviceSelect // the real field is hidden, so show it under the dropdown
-          : form.querySelector('[name="' + key + '"]');
+        var control = key === '__all__' ? null : form.querySelector('[name="' + key + '"]');
         if (control && control.type !== 'hidden') {
           showFieldError(control, message);
           placed = true;
@@ -261,8 +250,7 @@
     document.getElementById('contactAnother').addEventListener('click', function () {
       // Keep name, email and phone so a second message is quick; clear the rest
       messageInput.value = '';
-      serviceSelect.selectedIndex = 0;
-      serviceField.value = '';
+      serviceSelect.selectedIndex = 0; // back to General Enquiry
       clearErrors();
       successEl.classList.add('hidden');
       form.classList.remove('hidden');

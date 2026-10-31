@@ -108,7 +108,7 @@ admin_permissions = [
     ("manage_backups", "Can manage backups"),
     ("restore_backups", "Can restore backups"),
     ("view_system_logs", "Can view system logs"),
-    ("view_staffs_reports", "Can view staffs' actions report")
+    ("view_staffs_action_logs", "Can view staffs' actions report")
 ]
 
 

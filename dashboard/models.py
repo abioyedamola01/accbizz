@@ -180,12 +180,13 @@ class ContactMessageModel(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=20, blank=True, null=True)
-    service = models.CharField(max_length=70, blank=True, null=True)
+    # service = models.CharField(max_length=70, blank=True, null=True)
+    service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.CASCADE, blank=True, null=True, related_name="enquiries")
     message = models.TextField()
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
     attended_at = models.DateTimeField(auto_now=False, auto_now_add=False, null=True, blank=True)
     is_attended = models.BooleanField(default=False)
-    attended_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.SET_NULL, null=True, blank=True)
+    attended_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.SET_NULL, null=True, blank=True, related_name="attended_enquiries")
 
 
     def set_attended(self, request):
@@ -223,9 +224,10 @@ class AddStaffModel(models.Model):
     @property
     def is_expired(self):
         elapsed_duration = timezone.now() - self.created_at
-        return (elapsed_duration.total_seconds()/60) > (60 * 24);
+        return (elapsed_duration.total_seconds()/60) > (60 * 24)
 
-    def get_username(self):
+    @property
+    def username(self):
         name = f"{self.first_name} {self.last_name}"
         return name
 

@@ -32,7 +32,7 @@
         <tr class="border-b border-gray-100">
           <th class="py-3 pr-4 text-xs font-medium text-gray-500">Staff</th>
           <th class="py-3 pr-4 text-xs font-medium text-gray-500">Role</th>
-          <th class="py-3 pr-1 text-xs font-medium text-gray-500 text-right">Manage</th>
+          <th class="py-3 pr-1 text-xs font-medium text-gray-500 text-right">Options</th>
         </tr>
       </thead>
 
@@ -260,6 +260,9 @@
 
   </div>
 </div>
+{# ---- Activity report modal ---- #}
+{% include "dashboard/partials/staffs/_activity_modal.html" %}
+
 {% endblock content %}
 
 {% block extra_js %}
@@ -412,6 +415,14 @@
       if (changeBtn) {
         closeMenu(false);
         openChangeModal(changeBtn);
+        return;
+      }
+
+      var activityBtn = event.target.closest('.staff-activity-btn');
+      if (activityBtn) {
+        var activityOpener = openBtn; // read before the menu closes
+        closeMenu(false);
+        window.openStaffActivity(activityBtn, activityOpener);
         return;
       }
 

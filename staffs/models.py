@@ -78,7 +78,7 @@ class UserSession(models.Model):
     session = models.OneToOneField(Session, on_delete=models.CASCADE)
     
     def __str__(self):
-        return f"{self.user.profile.get_username()} - {self.session.session_key}"
+        return f"{self.user.profile.username} - {self.session.session_key}"
 
 
     
@@ -98,14 +98,15 @@ class UserProfileModel(models.Model):
     phone = models.CharField(max_length=20, default="")
     last_updated = models.DateTimeField(auto_now=True, null=True)
 
-
+    @property
+    def username(self):
+        return f"{self.first_name} {self.last_name}"
+    
+    
     def get_default_avatar(self):
         return "https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000"
+
     
-    def get_username(self):
-        return f"{self.first_name} {self.last_name}"
-
-
 
 
 class OTPVerifyModel(models.Model):
@@ -197,11 +198,14 @@ class RevertEmailChangeModel(models.Model):
 
 
 
-class StaffActionsLog(models.Model):
+class StaffActionsLogModel(models.Model):
     staff = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE)
-    action = models.CharField(max_length=120)
+    code = models.CharField(max_length=255)
+    label = models.CharField(max_length=255)
+    is_success = models.BooleanField()
+    failure_reason = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
-
+    
 
 
 class StaffPermissions(models.Model):

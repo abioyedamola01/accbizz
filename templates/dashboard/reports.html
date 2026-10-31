@@ -4,6 +4,10 @@
 
 {% block content %}
 
+{# The zone the report uses, its "Times shown in ..." flag, and the day <-> UTC date-time helpers. #}
+{# Included first because the filters script below needs it while the page is still loading. #}
+{% include "dashboard/partials/_time_zone.html" %}
+
 <div class="flex flex-col gap-4">
 
   {# 1. Date filter #}
@@ -40,6 +44,56 @@
       var p = String(iso).split('-');
       if (p.length !== 3) return String(iso);
       return parseInt(p[2], 10) + ' ' + MONTHS[parseInt(p[1], 10) - 1];
+    }
+
+    function nextDay(key) {
+      var p = key.split('-');
+      return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1)).toISOString().slice(0, 10);
+    }
+
+    // The days the page is showing, as "YYYY-MM-DD" days in the dashboard's zone, read from the address:
+    // ?range=7d / 30d / 90d (30d when there is none, like the filters) or ?range=custom&from=...&to=...
+    // Returns null when it can't tell.
+    function rangeBounds() {
+      var DT = window.DashboardTime;
+      if (!DT) return null;
+      var q = new URLSearchParams(window.location.search);
+      var range = q.get('range') || '30d';
+      if (range === 'custom') {
+        var from = DT.dateKey(q.get('from'));
+        var to = DT.dateKey(q.get('to'));
+        return from && to ? { from: from, to: to } : null;
+      }
+      var m = /^(\d+)d$/.exec(range);
+      if (!m) return null;
+      var start = new Date(Date.now() - parseInt(m[1], 10) * 86400000);
+      return { from: DT.dateKey(start.toISOString()), to: DT.todayKey() };
+    }
+
+    // The server only sends days that have something in them ({ date, count }). Group them by day (a
+    // date-time falls on its day in the dashboard's zone, a plain "YYYY-MM-DD" stays as it is), then add
+    // the empty days with a count of 0, from the first day of the range to the last.
+    function fillDays(points, bounds) {
+      var DT = window.DashboardTime;
+      var byDay = {};
+      (points || []).forEach(function (p) {
+        var key = DT ? DT.dateKey(p.date) : String(p.date).slice(0, 10);
+        if (!key) return;
+        byDay[key] = (byDay[key] || 0) + (Number(p.count) || 0);
+      });
+
+      var keys = Object.keys(byDay).sort();
+      if (!keys.length) return [];
+      var first = keys[0];
+      var last = keys[keys.length - 1];
+      if (bounds && bounds.from && bounds.from < first) first = bounds.from;
+      if (bounds && bounds.to && bounds.to > last) last = bounds.to;
+
+      var days = [];
+      for (var key = first, guard = 0; key <= last && guard < 800; key = nextDay(key), guard++) {
+        days.push({ date: key, count: byDay[key] || 0 });
+      }
+      return days;
     }
 
     // One-series line chart in the brand colour.
@@ -117,7 +171,7 @@
       });
     }
 
-    return { line: line, lines: lines, shortDate: shortDate };
+    return { line: line, lines: lines, shortDate: shortDate, rangeBounds: rangeBounds, fillDays: fillDays };
   })();
 </script>
 {% endblock extra_js %}
