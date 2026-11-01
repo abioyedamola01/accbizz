@@ -58,9 +58,12 @@
 
   {# ---- Header ---- #}
   <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <h2 class="text-base font-bold text-dark-900">FAQs</h2>
-      <span id="faqCountBadge" data-total="{{ faqs|length }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ faqs|length }} FAQs</span>
+      {# Total of every FAQ, from the faqs_count context processor #}
+      <span id="faqCountBadge" data-total="{{ faqs_count|default:0 }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ faqs_count|default:0 }} FAQs</span>
+      {# How many are on the page right now. The script keeps it up to date (See more, service filter) and hides it once everything is loaded and shown. #}
+      <span id="faqLoadedBadge" class="text-xs font-medium text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full{% if faqs|length >= faqs_count %} hidden{% endif %}">{{ faqs|length }} loaded</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -111,37 +114,41 @@
         </tr>
       </thead>
 
-      {% for faq in faqs %}
-      <tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ faq.question }}</span></td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ faq.service.title|default:"General" }}</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleManageRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="{% url "dashboard_update_faq" faq.slug %}"
-              data-delete-url="{% url "dashboard_delete_faq" faq.slug %}"
-              data-question="{{ faq.question }}"
-              data-answer="{{ faq.answer }}"
-              data-service="{{ faq.service_id|default_if_none:'' }}">Manage</button>
-          </td>
-        </tr>
-        {# Manage panel is built by JS from #faqFormTemplate when "Manage" is clicked #}
-        <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody>
-      {% empty %}
+      {# Rows live in their own partial so the "See more" endpoint renders the same markup #}
+      {% include "dashboard/partials/contents/_faqs_list.html" %}
+
+      {# Nothing at all yet #}
+      {% if not faqs %}
       <tbody>
         <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs yet. Use "Add FAQ" to create the first one.</td></tr>
       </tbody>
-      {% endfor %}
+      {% endif %}
 
       {# Shown by the filter when no FAQ matches the selected services #}
       <tbody id="faqFilterEmpty" class="hidden">
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs match the selected services.</td></tr>
+        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs match the selected services.<span id="faqFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
       </tbody>
 
     </table>
   </div>
+
+  {# ---- See more: only when has_more is true and there is a next_batch_point (both can be None or missing) ---- #}
+  {% if has_more and next_batch_point is not None %}
+  <div id="faqMoreWrap" class="pt-5 text-center">
+    {# The URL is built with a placeholder number that the script swaps for the current batch point (an FAQ id) #}
+    <button type="button" id="faqMoreBtn"
+      data-more-url="{% url "dashboard_get_faqs_batch" 123456789 %}"
+      data-next="{{ next_batch_point }}"
+      class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+      <svg id="faqMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span id="faqMoreLabel">See more</span>
+    </button>
+    <p class="mt-2 text-xs text-gray-400">The service filter covers the FAQs loaded so far.</p>
+  </div>
+  {% endif %}
 
   {# ---- Shared delete confirmation modal ---- #}
   <div id="deleteFaqModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
@@ -570,21 +577,32 @@
     const allBox = document.getElementById('faqFilterAll');
     const optionsEl = document.getElementById('faqFilterOptions');
     const emptyBody = document.getElementById('faqFilterEmpty');
-    const badge = document.getElementById('faqCountBadge');
+    const totalBadge = document.getElementById('faqCountBadge');
+    const loadedBadge = document.getElementById('faqLoadedBadge');
     if (!wrapper) return;
 
-    const groups = Array.from(document.querySelectorAll('#faqTableScroll tbody.faq-group'));
+    // One tbody per FAQ. Re-read after every "See more" batch.
+    function collectGroups() {
+      return Array.from(document.querySelectorAll('#faqTableScroll tbody.faq-group'));
+    }
+    let groups = collectGroups();
 
     function serviceOf(group) {
       return group.querySelector('[data-update-url]').dataset.service || '';
     }
 
-    // How many FAQs each service has (shown next to its checkbox)
-    const counts = {};
-    groups.forEach((group) => {
-      const value = serviceOf(group);
-      counts[value] = (counts[value] || 0) + 1;
-    });
+    // How many loaded FAQs each service has (shown next to its checkbox)
+    let counts = {};
+    const countEls = {};
+    function recount() {
+      counts = {};
+      groups.forEach((group) => {
+        const value = serviceOf(group);
+        counts[value] = (counts[value] || 0) + 1;
+      });
+      Object.keys(countEls).forEach((value) => { countEls[value].textContent = counts[value] || 0; });
+    }
+    recount();
 
     function addOption(value, title) {
       const row = document.createElement('label');
@@ -604,6 +622,7 @@
       const count = document.createElement('span');
       count.className = 'faq-filter-count';
       count.textContent = counts[value] || 0;
+      countEls[value] = count;
 
       row.append(box, name, count);
       optionsEl.appendChild(row);
@@ -653,10 +672,19 @@
       else if (selected.length === 1) label.textContent = selected[0].dataset.title;
       else label.textContent = selected.length + ' of ' + boxes.length + ' services';
 
-      // "No match" row and the count badge
+      // "Loaded" tag: how many FAQs are on the page ("V of N loaded" while the filter hides some).
+      // It disappears once every FAQ is loaded and none is filtered out.
+      const loaded = groups.length;
+      const total = Number(totalBadge.dataset.total) || 0;
+      const filteredOut = visible !== loaded;
+      loadedBadge.textContent = (filteredOut ? visible + ' of ' + loaded : loaded) + ' loaded';
+      loadedBadge.classList.toggle('hidden', !filteredOut && loaded >= total);
+
+      // "No match" row, with a hint to use See more when there is more to load
       emptyBody.classList.toggle('hidden', !(groups.length > 0 && visible === 0));
-      const total = groups.length;
-      badge.textContent = visible === total ? total + ' FAQs' : visible + ' of ' + total + ' FAQs';
+      const moreWrap = document.getElementById('faqMoreWrap');
+      const hint = document.getElementById('faqFilterEmptyHint');
+      if (hint) hint.classList.toggle('hidden', !(moreWrap && !moreWrap.classList.contains('hidden')));
 
       // Remember the unchecked services (new services default to selected)
       try {
@@ -693,6 +721,13 @@
       }
     });
 
+    // A "See more" batch was added to the table: pick up the new rows
+    document.addEventListener('faqs:loaded', function () {
+      groups = collectGroups();
+      recount();
+      applyFilter();
+    });
+
     applyFilter();
   })();
 
@@ -711,4 +746,62 @@
       closeAddFaqModal();
     }
   });
+
+  // ---- See more (loads the next batch of FAQs) ----
+  // GET dashboard_get_faqs_batch/<batch point> returns { html, has_more, next_batch_point }.
+  // The batch point is the id of the last FAQ loaded. The html is more <tbody class="faq-group">
+  // rows, added before the "no match" row.
+
+  (function initFaqSeeMore() {
+    const wrap = document.getElementById('faqMoreWrap');
+    const btn = document.getElementById('faqMoreBtn');
+    if (!wrap || !btn) return;
+
+    const spinner = document.getElementById('faqMoreSpinner');
+    const label = document.getElementById('faqMoreLabel');
+    const anchor = document.getElementById('faqFilterEmpty');
+    const PLACEHOLDER = '123456789';
+
+    let nextPoint = btn.dataset.next;
+    if (nextPoint === undefined || nextPoint === '' || nextPoint === 'None') {
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    btn.addEventListener('click', function () {
+      if (btn.disabled || nextPoint === null) return;
+
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = 'Loading...';
+
+      fetch(btn.dataset.moreUrl.replace(PLACEHOLDER, encodeURIComponent(nextPoint)), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error('bad status');
+          return response.json();
+        })
+        .then(function (data) {
+          anchor.insertAdjacentHTML('beforebegin', data.html || '');
+
+          // The id 0 would still count as a batch point, so test for null/undefined, not for truthiness
+          const more = data.has_more === true && data.next_batch_point !== null && data.next_batch_point !== undefined;
+          nextPoint = more ? data.next_batch_point : null;
+          wrap.classList.toggle('hidden', !more);
+
+          // Tell the filter there are new rows (it recounts and re-applies itself)
+          document.dispatchEvent(new CustomEvent('faqs:loaded'));
+        })
+        .catch(function () {
+          window.showToast('Could not load more FAQs. Please try again.', 'error');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          label.textContent = 'See more';
+        });
+    });
+  })();
 </script>

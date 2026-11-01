@@ -1,0 +1,33 @@
+{% for testimonial in testimonials %}
+<tbody class="tst-group divide-y divide-gray-100 border-b border-gray-100">
+  <tr>
+    <td class="py-3 pr-4">
+      <div class="flex flex-wrap items-baseline gap-x-2">
+        {% if testimonial.name %}
+          <span class="text-sm font-semibold text-dark-900">{{ testimonial.name }}</span>
+        {% else %}
+          <span class="text-sm font-semibold text-gray-400">Anonymous</span>
+        {% endif %}
+        {% if testimonial.title %}<span class="text-xs text-gray-500">{{ testimonial.title }}</span>{% endif %}
+        {% if not testimonial.is_approved %}<span class="tst-pending-badge">Awaiting approval</span>{% endif %}
+      </div>
+      <p class="tst-preview mt-0.5 text-sm text-gray-600">{{ testimonial.quote }}</p>
+    </td>
+    <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ testimonial.service.title|default:"General" }}</span></td>
+    <td class="py-3 pr-5">
+      <button type="button" onclick="toggleTestimonialRow(this)"
+        class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+        data-update-url="{% url "dashboard_update_testimonial" testimonial.slug %}"
+        data-delete-url="{% url "dashboard_delete_testimonial" testimonial.slug %}"
+        data-person-name="{{ testimonial.name|default_if_none:'' }}"
+        data-person-title="{{ testimonial.title|default_if_none:'' }}"
+        data-quote="{{ testimonial.quote }}"
+        data-anonymous="{% if not testimonial.name and not testimonial.title %}1{% else %}0{% endif %}"
+        data-approved="{% if testimonial.is_approved %}1{% else %}0{% endif %}"
+        data-service="{{ testimonial.service_id|default_if_none:'' }}">{% if testimonial.is_approved %}Manage{% else %}Review{% endif %}</button>
+    </td>
+  </tr>
+  {# Manage panel is built by JS from #testimonialFormTemplate when "Manage" is clicked #}
+  <tr class="tst-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
+</tbody>
+{% endfor %}

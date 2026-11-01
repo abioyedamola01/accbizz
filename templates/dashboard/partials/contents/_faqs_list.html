@@ -1,0 +1,19 @@
+{% for faq in faqs %}
+<tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
+  <tr>
+    <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ faq.question }}</span></td>
+    <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ faq.service.title|default:"General" }}</span></td>
+    <td class="py-3 pr-5">
+      <button type="button" onclick="toggleManageRow(this)"
+        class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+        data-update-url="{% url "dashboard_update_faq" faq.slug %}"
+        data-delete-url="{% url "dashboard_delete_faq" faq.slug %}"
+        data-question="{{ faq.question }}"
+        data-answer="{{ faq.answer }}"
+        data-service="{{ faq.service_id|default_if_none:'' }}">Manage</button>
+    </td>
+  </tr>
+  {# Manage panel is built by JS from #faqFormTemplate when "Manage" is clicked #}
+  <tr class="faq-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
+</tbody>
+{% endfor %}

@@ -76,6 +76,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'dashboard.context_processors.contact_messages_count',
+                'dashboard.context_processors.testimonials_count',
+                'dashboard.context_processors.faqs_count',
                 'main.context_processors.footer_info',
             ],
         },

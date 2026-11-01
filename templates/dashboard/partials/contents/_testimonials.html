@@ -67,9 +67,11 @@
 
   {# ---- Header ---- #}
   <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <h2 class="text-base font-bold text-dark-900">Testimonials</h2>
-      <span id="testimonialCountBadge" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ testimonials|length }} testimonial{{ testimonials|length|pluralize }}</span>
+      {# Both numbers come from the testimonials_count context processor, so they cover every testimonial, not just the loaded ones #}
+      <span id="testimonialCountBadge" data-count="{{ testimonials_count|default:0 }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ testimonials_count|default:0 }} testimonial{{ testimonials_count|default:0|pluralize }}</span>
+      <span id="testimonialUnapprovedBadge" data-count="{{ unapproved_count|default:0 }}" class="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">{{ unapproved_count|default:0 }} unapproved</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -77,7 +79,7 @@
       {# ---- Status filter (client side only): All / Pending / Approved ---- #}
       <div id="testimonialStatus" class="tst-seg" role="group" aria-label="Filter testimonials by status">
         <button type="button" class="tst-seg-btn is-active" data-status="all" aria-pressed="true">All</button>
-        <button type="button" class="tst-seg-btn" data-status="pending" aria-pressed="false">Pending<span class="tst-seg-count is-empty"></span></button>
+        <button type="button" class="tst-seg-btn" data-status="pending" aria-pressed="false">Pending<span class="tst-seg-count{% if not unapproved_count %} is-empty{% endif %}" data-count="{{ unapproved_count|default:0 }}">{{ unapproved_count|default:0 }}</span></button>
         <button type="button" class="tst-seg-btn" data-status="approved" aria-pressed="false">Approved</button>
       </div>
 
@@ -125,51 +127,41 @@
         </tr>
       </thead>
 
-      {% for testimonial in testimonials %}
-      <tbody class="tst-group divide-y divide-gray-100 border-b border-gray-100">
-        <tr>
-          <td class="py-3 pr-4">
-            <div class="flex flex-wrap items-baseline gap-x-2">
-              {% if testimonial.name %}
-                <span class="text-sm font-semibold text-dark-900">{{ testimonial.name }}</span>
-              {% else %}
-                <span class="text-sm font-semibold text-gray-400">Anonymous</span>
-              {% endif %}
-              {% if testimonial.title %}<span class="text-xs text-gray-500">{{ testimonial.title }}</span>{% endif %}
-              {% if not testimonial.is_approved %}<span class="tst-pending-badge">Awaiting approval</span>{% endif %}
-            </div>
-            <p class="tst-preview mt-0.5 text-sm text-gray-600">{{ testimonial.quote }}</p>
-          </td>
-          <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ testimonial.service.title|default:"General" }}</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleTestimonialRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
-              data-update-url="{% url "dashboard_update_testimonial" testimonial.slug %}"
-              data-delete-url="{% url "dashboard_delete_testimonial" testimonial.slug %}"
-              data-person-name="{{ testimonial.name|default_if_none:'' }}"
-              data-person-title="{{ testimonial.title|default_if_none:'' }}"
-              data-quote="{{ testimonial.quote }}"
-              data-anonymous="{% if not testimonial.name and not testimonial.title %}1{% else %}0{% endif %}"
-              data-approved="{% if testimonial.is_approved %}1{% else %}0{% endif %}"
-              data-service="{{ testimonial.service_id|default_if_none:'' }}">{% if testimonial.is_approved %}Manage{% else %}Review{% endif %}</button>
-          </td>
-        </tr>
-        {# Manage panel is built by JS from #testimonialFormTemplate when "Manage" is clicked #}
-        <tr class="tst-manage-row hidden"><td colspan="3" class="p-0"></td></tr>
-      </tbody>
-      {% empty %}
+      {# Rows live in their own partial so the "See more" endpoint renders the same markup #}
+      {% include "dashboard/partials/contents/_testimonials_list.html" %}
+
+      {# Nothing at all yet #}
+      {% if not testimonials %}
       <tbody>
         <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials yet. Use "Add testimonial" to create the first one.</td></tr>
       </tbody>
-      {% endfor %}
+      {% endif %}
 
       {# Shown by the filter when no testimonial matches the selected services #}
       <tbody id="testimonialFilterEmpty" class="hidden">
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials match the current filters.</td></tr>
+        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials match the current filters.<span id="testimonialFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
       </tbody>
 
     </table>
   </div>
+
+  {# ---- See more: only when has_more is true and there is a next_batch_point (both can be None or missing) ---- #}
+  {% if has_more and next_batch_point %}
+  <div id="testimonialMoreWrap" class="pt-5 text-center">
+    {# data-more-url has the text BATCH_POINT where the batch point goes; the script swaps it in #}
+    <button type="button" id="testimonialMoreBtn" data-more-url="{% url "dashboard_get_testimonials_batch" "BATCH_POINT" %}"
+      class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+      <svg id="testimonialMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span id="testimonialMoreLabel">See more</span>
+    </button>
+    <p class="mt-2 text-xs text-gray-400">Filters cover the testimonials loaded so far.</p>
+    {# The datetime goes through json_script so it reaches the script in the same format the JSON endpoint uses #}
+    {{ next_batch_point|json_script:"testimonialNextBatchPoint" }}
+  </div>
+  {% endif %}
 
   {# ---- Shared delete confirmation modal ---- #}
   <div id="deleteTestimonialModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
@@ -303,7 +295,7 @@
         <p class="text-xs text-gray-600">Submitted from the website. It is not shown on the site until you approve it. Edit it first if it needs fixing.</p>
       </div>
       <button type="button"
-        class="tst-approve-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+        class="tst-approve-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
         <svg class="tst-approve-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -368,7 +360,7 @@
             Cancel
           </button>
           <button type="submit"
-            class="tst-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="tst-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
             <svg class="tst-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -569,7 +561,18 @@
         idleText: 'Save changes',
         successFallback: 'Testimonial updated.',
       };
-      testimonialSubmit(form, opts);
+      // While one of the two is running, the other is disabled too, so they cannot overlap.
+      // (An approved testimonial has no Approve button, so there is nothing to disable then.)
+      const other = approving
+        ? form.querySelector('.tst-form-save-btn')
+        : (approved ? null : notice.querySelector('.tst-approve-btn'));
+      if (other) other.disabled = true;
+      const enableOther = function () { if (other) other.disabled = false; };
+
+      // On success the page reloads, so the other button simply stays disabled until then.
+      testimonialSubmit(form, opts).then(function (result) {
+        if (!result || !result.ok) enableOther();
+      }, enableOther);
 
       // The form data was read by the call above. If approving fails, a later
       // "Save changes" must not approve by accident, so put the field back.
@@ -736,10 +739,13 @@
     const allBox = document.getElementById('testimonialFilterAll');
     const optionsEl = document.getElementById('testimonialFilterOptions');
     const emptyBody = document.getElementById('testimonialFilterEmpty');
-    const badge = document.getElementById('testimonialCountBadge');
     if (!wrapper) return;
 
-    const groups = Array.from(document.querySelectorAll('#testimonialTableScroll tbody.tst-group'));
+    // One tbody per testimonial. Re-read after every "See more" batch.
+    function collectGroups() {
+      return Array.from(document.querySelectorAll('#testimonialTableScroll tbody.tst-group'));
+    }
+    let groups = collectGroups();
 
     function serviceOf(group) {
       return group.querySelector('[data-update-url]').dataset.service || '';
@@ -752,9 +758,8 @@
     const STATUS_KEY = 'testimonialStatusFilter';
     const statusBtns = Array.from(document.querySelectorAll('#testimonialStatus .tst-seg-btn'));
     const pendingCountEl = document.querySelector('#testimonialStatus .tst-seg-count');
-    const pendingTotal = groups.filter((group) => !approvedOf(group)).length;
-    pendingCountEl.textContent = pendingTotal;
-    pendingCountEl.classList.toggle('is-empty', pendingTotal === 0);
+    // The pending number is the server's unapproved_count (every testimonial, not just the loaded ones)
+    const pendingTotal = Number(pendingCountEl.dataset.count) || 0;
 
     let status = 'all';
     try {
@@ -762,12 +767,18 @@
       if (saved === 'approved' || (saved === 'pending' && pendingTotal > 0)) status = saved;
     } catch (e) { /* ignore */ }
 
-    // How many testimonials each service has (shown next to its checkbox)
-    const counts = {};
-    groups.forEach((group) => {
-      const value = serviceOf(group);
-      counts[value] = (counts[value] || 0) + 1;
-    });
+    // How many loaded testimonials each service has (shown next to its checkbox)
+    let counts = {};
+    const countEls = {};
+    function recount() {
+      counts = {};
+      groups.forEach((group) => {
+        const value = serviceOf(group);
+        counts[value] = (counts[value] || 0) + 1;
+      });
+      Object.keys(countEls).forEach((value) => { countEls[value].textContent = counts[value] || 0; });
+    }
+    recount();
 
     function addOption(value, title) {
       const row = document.createElement('label');
@@ -787,6 +798,7 @@
       const count = document.createElement('span');
       count.className = 'tst-filter-count';
       count.textContent = counts[value] || 0;
+      countEls[value] = count;
 
       row.append(box, name, count);
       optionsEl.appendChild(row);
@@ -849,11 +861,11 @@
       else if (selected.length === 1) label.textContent = selected[0].dataset.title;
       else label.textContent = selected.length + ' of ' + boxes.length + ' services';
 
-      // "No match" row and the count badge
+      // "No match" row, with a hint to use See more when there is more to load
       emptyBody.classList.toggle('hidden', !(groups.length > 0 && visible === 0));
-      const total = groups.length;
-      const noun = total === 1 ? ' testimonial' : ' testimonials';
-      badge.textContent = visible === total ? total + noun : visible + ' of ' + total + noun;
+      const moreWrap = document.getElementById('testimonialMoreWrap');
+      const hint = document.getElementById('testimonialFilterEmptyHint');
+      if (hint) hint.classList.toggle('hidden', !(moreWrap && !moreWrap.classList.contains('hidden')));
 
       // Remember the unchecked services (new services default to selected)
       try {
@@ -897,6 +909,13 @@
       }
     });
 
+    // A "See more" batch was added to the table: pick up the new rows
+    document.addEventListener('testimonials:loaded', function () {
+      groups = collectGroups();
+      recount();
+      applyFilter();
+    });
+
     applyFilter();
   })();
 
@@ -915,4 +934,58 @@
       closeAddTestimonialModal();
     }
   });
+
+  // ---- See more (loads the next batch of testimonials) ----
+  // GET dashboard_get_testimonials_batch/<batch point> returns { html, has_more, next_batch_point }.
+  // The html is more <tbody class="tst-group"> rows, added before the "no match" row.
+
+  (function initTestimonialSeeMore() {
+    const wrap = document.getElementById('testimonialMoreWrap');
+    const btn = document.getElementById('testimonialMoreBtn');
+    const pointEl = document.getElementById('testimonialNextBatchPoint');
+    if (!wrap || !btn || !pointEl) return;
+
+    const spinner = document.getElementById('testimonialMoreSpinner');
+    const label = document.getElementById('testimonialMoreLabel');
+    const anchor = document.getElementById('testimonialFilterEmpty');
+
+    let nextPoint = null;
+    try { nextPoint = JSON.parse(pointEl.textContent); } catch (e) { /* no usable batch point */ }
+    if (!nextPoint) { wrap.classList.add('hidden'); return; }
+
+    btn.addEventListener('click', function () {
+      if (!nextPoint || btn.disabled) return;
+
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      label.textContent = 'Loading...';
+
+      fetch(btn.dataset.moreUrl.replace('BATCH_POINT', encodeURIComponent(nextPoint)), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+        credentials: 'same-origin'
+      })
+        .then(function (response) {
+          if (!response.ok) throw new Error('bad status');
+          return response.json();
+        })
+        .then(function (data) {
+          anchor.insertAdjacentHTML('beforebegin', data.html || '');
+
+          const more = data.has_more === true && !!data.next_batch_point;
+          nextPoint = more ? data.next_batch_point : null;
+          wrap.classList.toggle('hidden', !more);
+
+          // Tell the filter there are new rows (it recounts and re-applies itself)
+          document.dispatchEvent(new CustomEvent('testimonials:loaded'));
+        })
+        .catch(function () {
+          window.showToast('Could not load more testimonials. Please try again.', 'error');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          spinner.classList.add('hidden');
+          label.textContent = 'See more';
+        });
+    });
+  })();
 </script>

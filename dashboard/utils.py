@@ -91,20 +91,13 @@ def get_failures_by_reason(logs, reasons):
 
 
 def get_recent_staff_actions(staff, batch_point):
-    actions = list(StaffActionsLogModel.objects.order_by("-created_at").filter(staff=staff, created_at__lte=batch_point)[:7].values("id", "created_at", "code", "label", "is_success", "failure_reason"))
-
-    next_batch_point = None
-    has_more = False
-
-    if len(actions) == 7:
-        next_batch_point = actions[6]["created_at"]
-        has_more = True
-
-    recent_actions = {
-        "actions": actions[:5],
-        "next_batch_point": next_batch_point,
-        "has_more": has_more
-    }
+    recent_actions = get_items_batch(
+        query=StaffActionsLogModel.objects.order_by("-created_at").filter(staff=staff, created_at__lte=batch_point),
+        size=6,
+        tmp="dashboard/partials/staffs/_recent_actions.html",
+        name="actions",
+        point_field="created_at",
+    )
     
     return recent_actions
 
@@ -444,3 +437,32 @@ def get_content_health(pending_testimonials):
     
 
     return health
+
+
+
+
+
+
+
+def get_items_batch(query, size, tmp, name, point_field):
+    trunc_size = size if point_field == "created_at" else size + 1
+    objects = list(query[:trunc_size])
+
+    context = {}
+
+    if objects:
+        has_more = len(objects) == int(trunc_size)
+        html = render_to_string(f"{tmp}", {f"{name}": objects[:size]})
+
+        context = {
+            "html": html,
+            "has_more": has_more
+        }
+
+        if point_field == "created_at":
+            context["next_batch_point"] = objects[-1].created_at if has_more else None
+        else:
+            context["next_batch_point"] = objects[-1].id if has_more else None
+
+
+    return context

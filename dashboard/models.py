@@ -161,7 +161,8 @@ class TestimonialModel(models.Model):
     is_approved = models.BooleanField(default=False)
     service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.SET_NULL, null=True, blank=True, related_name="testimonials")
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
-
+    approved_at = models.DateTimeField(auto_now=False, auto_now_add=False, blank=True, null=True)
+    approved_by = models.ForeignKey("staffs.CustomUserModel", on_delete=models.CASCADE, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if not self.id or not self.slug:
@@ -169,6 +170,15 @@ class TestimonialModel(models.Model):
             self.slug = f"{self.id}-{slugify(self.quote[:10])}"
             return super().save(update_fields=("slug",))
         return super().save(*args, **kwargs)
+
+
+    def set_approved(self, staff):
+        self.is_approved = True
+        self.approved_at = timezone.now()
+        self.approved_by = staff
+
+        return super().save(update_fields=("is_approved", "approved_at", "approved_by"))
+       
 
     def get_days_from_now(self):
             count = timezone.now() - self.created_at
@@ -180,7 +190,6 @@ class ContactMessageModel(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=20, blank=True, null=True)
-    # service = models.CharField(max_length=70, blank=True, null=True)
     service = models.ForeignKey("dashboard.ServiceModel", on_delete=models.CASCADE, blank=True, null=True, related_name="enquiries")
     message = models.TextField()
     created_at = models.DateTimeField(auto_now=False, auto_now_add=True)

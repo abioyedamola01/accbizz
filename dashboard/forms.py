@@ -74,6 +74,9 @@ class ServiceForm(forms.ModelForm):
 
 
 class TestimonialForm(forms.ModelForm):
+    def save(self, commit = True):
+        return super().save(commit)
+
     class Meta:
         model = TestimonialModel
         fields = ("name", "title", "quote", "service", "is_approved",)

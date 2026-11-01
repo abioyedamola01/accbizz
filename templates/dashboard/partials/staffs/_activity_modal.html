@@ -6,15 +6,6 @@
   }
 </style>
 
-{# Staff activity report modal. One modal for every row.                                      #}
-{# Opened by window.openStaffActivity(button, opener), called from the click handler in        #}
-{# staffs.html when a "View activity report" menu item is chosen. The button carries:          #}
-{#   data-logs-url       the report URL (dashboard_get_staff_action_logs)                      #}
-{#   data-more-url       the recent-actions URL with the text BATCH_POINT where the batch      #}
-{#                       point goes (dashboard_get_staff_recent_actions_batch)                 #}
-{#   data-staff-name, data-staff-email, data-avatar                                            #}
-
-{# The zone the times use, and the "Times shown in ..." flag #}
 {% include "dashboard/partials/_time_zone.html" %}
 
 <div id="activityModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4 py-6">
@@ -562,24 +553,24 @@
     }
 
     // ---- Recent actions ----
-    function appendRecent(actions) {
+    // The server sends the <li> items already rendered (staffs/_recent_actions.html). They are parsed in a
+    // detached <template>, their times are re-formatted in the dashboard's zone, then they are moved into the list.
+    function appendRecentHtml(html) {
       var ul = $('actRecent');
-      (actions || []).forEach(function (a) {
-        if (a.id !== undefined && state.seen[a.id]) return; // a batch that overlaps the last one adds nothing twice
-        if (a.id !== undefined) state.seen[a.id] = true;
+      var holder = document.createElement('template');
+      holder.innerHTML = html || '';
 
-        var ok = a.is_success !== false;
-        var li = el('li', 'flex items-start gap-3 py-2.5');
-        var dot = el('span', 'mt-1.5 h-2 w-2 shrink-0 rounded-full ' + (ok ? 'bg-green-500' : 'bg-red-500'));
-        dot.title = ok ? 'Succeeded' : 'Failed';
-        li.appendChild(dot);
-
-        var mid = el('div', 'min-w-0 flex-1');
-        mid.appendChild(el('p', 'text-sm text-dark-900', a.label || actionLabel(a.code)));
-        if (!ok) mid.appendChild(el('p', 'text-xs text-red-500', 'Failed: ' + (a.failure_reason || 'No reason given')));
-        li.appendChild(mid);
-
-        li.appendChild(el('span', 'shrink-0 text-xs text-gray-500', fmtDateTime(a.created_at)));
+      Array.prototype.slice.call(holder.content.children).forEach(function (li) {
+        var id = li.getAttribute('data-action-id');
+        if (id) {
+          if (state.seen[id]) return; // a batch that overlaps the last one adds nothing twice
+          state.seen[id] = true;
+        }
+        var time = li.querySelector('time.act-time');
+        if (time) {
+          var text = fmtDateTime(time.getAttribute('datetime'));
+          if (text) time.textContent = text; // else the server's text stays
+        }
         ul.appendChild(li);
       });
       $('actRecentEmpty').hidden = !!ul.children.length;
@@ -680,7 +671,7 @@
       clear($('actRecent'));
       state.seen = {};
       var recent = data.recent_actions || {};
-      appendRecent(recent.actions);
+      appendRecentHtml(recent.html);
       updateMore(recent);
 
       show('content');
@@ -702,8 +693,8 @@
         setMoreBusy(false);
 
         if (!result.ok) { window.showToast(result.message || 'Could not load more actions.', 'error'); return; }
-        var recent = (result.data && result.data.recent_actions) || result.data || {};
-        appendRecent(recent.actions);
+        var recent = result.data || {}; // { html, has_more, next_batch_point }
+        appendRecentHtml(recent.html);
         updateMore(recent);
       });
     }

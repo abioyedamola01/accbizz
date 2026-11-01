@@ -17,7 +17,7 @@ from staffs.models import (CustomUserModel, UserProfileModel, StaffActionsLogMod
 from staffs.forms import ChangeEmailForm
 from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, log_staff_action, get_staff_actions_logs, get_recent_staff_actions, get_logs_series, invalidate_add_staff_tracks, send_account_creation_email, 
                     get_reports_range, get_change_percent, get_average_response_time, get_enquiries_series, get_enquiries_by_services, get_response_performance, get_busiest_days, get_umami_analytics_data, get_content_health, 
-                    get_enquiries_counts,)
+                    get_enquiries_counts, get_items_batch,)
 
 
 
@@ -208,26 +208,37 @@ def contents_view(request):
         }
 
     elif tab == "faqs":
-        faqs = FAQsModel.objects.select_related("service").filter().order_by("-id")
+        faqs = list(FAQsModel.objects.select_related("service").filter().order_by("-id")[:11])
         services = list(ServiceModel.objects.filter().values("id", "title"))
 
         faq_form = FAQForm()
 
         context = {
-            "faqs": faqs,
+            "faqs": faqs[:10],
             "services": services,
             "faq_form": faq_form
         }
 
+        if len(faqs) == 11:
+            context["has_more"] = True
+            context["next_batch_point"] = faqs[-1].id
+
+
     elif tab == "testimonials":
-        testmonials = TestimonialModel.objects.filter().order_by("-id")
+        testmonials = list(TestimonialModel.objects.filter().order_by("-id")[:11])
         services = list(ServiceModel.objects.filter().values("id", "title"))
         testmonial_form = TestimonialForm()
+
         context = {
-            "testimonials": testmonials,
+            "testimonials": testmonials[:10],
             "services": services,
             "testimonial_form": testmonial_form
         }
+
+        if len(testmonials) == 11:
+            context["has_more"] = True
+            context["next_batch_point"] = testmonials[-1].id
+
 
 
     context["content_tab"] = tab
@@ -235,6 +246,38 @@ def contents_view(request):
     context["page_blurb"] = "Manage all the contents displayed across your website."
 
     return render(request, "dashboard/contents.html", context)
+
+
+
+def get_testimonials_next_batch(*args, **kwargs):
+    batch_point = kwargs.get("batch_point")
+    
+    context = get_items_batch(
+        query=TestimonialModel.objects.filter(id__lte=batch_point).select_related("service").order_by("-id"),
+        size=6,
+        tmp="dashboard/partials/contents/_testimonials_list.html",
+        name="testimonials",
+        point_field="id"
+    )
+
+    return JsonResponse(context)
+    
+
+
+
+def get_faqs_next_batch(*args, **kwargs):
+    batch_point = kwargs.get("batch_point")
+ 
+    context = get_items_batch(
+        query=FAQsModel.objects.select_related("service").filter(id__lte=batch_point).order_by("-id"),
+        size=6,
+        tmp="dashboard/partials/contents/_faqs_list.html",
+        name="faqs",
+        point_field="id"
+    )
+
+    return JsonResponse(context)
+    
 
 
 
@@ -443,6 +486,7 @@ def update_testimonial_view(request, testimonial):
 
         if is_not_approved and "is_approved" in testimonial_form.changed_data:
             log_staff_action(staff=request.user, code="testimonial.approve", label=f"Approved testimonial from {testimonial_inst.name}.", is_success=True)
+            testimonial_inst.set_approved(staff=request.user)
             return toast_json_ok("Testimonial approved successfully.")
 
         log_staff_action(staff=request.user, code="testimonial.update", label=f"Updated testimonial from {testimonial_inst.name}.", is_success=True)
@@ -491,13 +535,13 @@ def delete_testimonial_view(request, testimonial):
 @login_required
 @permission_required(("staffs.manage_messages"), raise_exception=True)
 def communication_view(request):
-    contact_messages = list(ContactMessageModel.objects.filter().order_by("-attended_at", "-created_at",)[:11])
-
+    contact_messages = list(ContactMessageModel.objects.filter().order_by("-id")[:11])
+    has_more = len(contact_messages) == 11
     
     context = {
         "contact_messages": contact_messages[:10],
-        "messages_batch_point": contact_messages[9].id if len(contact_messages) == 11 else None,
-        "more_messages": True if len(contact_messages) == 11 else None,
+        "messages_batch_point": contact_messages[-1].id if has_more else None,
+        "more_messages": True if has_more else None,
         "current": "communication"
     }
 
@@ -508,23 +552,13 @@ def communication_view(request):
 @login_required
 @permission_required(("staffs.manage_messages", "staffs.view_messages"), raise_exception=True)
 def get_messages_batch_view(request, batch_point):
-    batch_point_inst = ContactMessageModel.objects.filter(id=batch_point).first()
-
-    context = {}
-
-    if batch_point_inst:
-        batch_point_timestamp = batch_point_inst.attended_at if batch_point_inst.attended_at else batch_point_inst.created_at
-
-        contact_messages = list(ContactMessageModel.objects.filter(Q(created_at__lt=batch_point_timestamp) | Q(attended_at__lt=batch_point_timestamp)).order_by("-attended_at", "-created_at")[:7])
-
-
-        html = render_to_string("dashboard/partials/communication/_rows.html", {"contact_messages": contact_messages[:6]}, request=request)
-
-        context["html"] = html
-        context["messages_batch_point"] = contact_messages[5].id if len(contact_messages) == 7 else None
-        context["more_messages"] = True if len(contact_messages) == 7 else False
-
-        
+    context = get_items_batch(
+        query=ContactMessageModel.objects.filter(id__lte=batch_point).order_by("-id"),
+        size=6,
+        tmp="dashboard/partials/communication/_rows.html",
+        name="contact_messages",
+        point_field="id"
+    )
 
     return JsonResponse(context)
 

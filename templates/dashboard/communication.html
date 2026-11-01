@@ -571,8 +571,8 @@
         })
         .then(function (data) {
           body.insertAdjacentHTML('beforeend', data.html || '');
-          moreBtn.dataset.next = data.messages_batch_point;
-          $('msgMoreWrap').classList.toggle('hidden', !data.more_messages);
+          moreBtn.dataset.next = data.next_batch_point;
+          $('msgMoreWrap').classList.toggle('hidden', !data.has_more);
           applyFilter();
         })
         .catch(function () {

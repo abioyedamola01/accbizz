@@ -1,5 +1,6 @@
 {% if faqs %}
-<section class="px-4 lg:px-6 py-6">
+{# id="contact-faqs" is the target of "View all FAQs" on the service detail page. scroll-margin keeps it clear of the sticky navbar. #}
+<section id="contact-faqs" style="scroll-margin-top: 6rem" class="px-4 lg:px-6 py-6">
   <div class="max-w-4xl mx-auto">
 
     <div class="bg-white rounded-3xl shadow-card p-8 sm:p-12">
@@ -23,21 +24,7 @@
 
       {# ---- FAQ list ---- #}
       <div class="faq-list">
-        {% for faq in faqs %}
-            <div class="faq-item border-b border-gray-100">
-            <button type="button" class="faq-trigger w-full flex items-start gap-4 text-left cursor-pointer py-5">
-                <span class="flex-1 text-sm font-semibold text-dark-900">{{ faq.question }}</span>
-                <svg class="faq-chevron w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
-                </svg>
-            </button>
-            <div class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out">
-                <div class="overflow-hidden">
-                <p class="text-sm text-gray-500 leading-relaxed pb-5">{{ faq.answer }}</p>
-                </div>
-            </div>
-            </div>
-        {% endfor %}
+        {% include "main/partials/faqs/_faq_items.html" %}
       </div>
 
       {% if more_faqs %}
@@ -186,29 +173,10 @@
       body.classList.toggle('hidden', state !== 'ready');
     }
 
-    function renderFaqItems(faqs) {
-      var fragment = document.createDocumentFragment();
-      faqs.forEach(function (faq) {
-        var item = document.createElement('div');
-        item.className = 'faq-item border-b border-gray-100';
-        item.innerHTML =
-          '<button type="button" class="faq-trigger w-full flex items-start gap-4 text-left cursor-pointer py-5">' +
-            '<span class="flex-1 text-sm font-semibold text-dark-900"></span>' +
-            '<svg class="faq-chevron w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">' +
-              '<path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>' +
-            '</svg>' +
-          '</button>' +
-          '<div class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out">' +
-            '<div class="overflow-hidden">' +
-              '<p class="text-sm text-gray-500 leading-relaxed pb-5"></p>' +
-            '</div>' +
-          '</div>';
-        // textContent (not innerHTML) so API data can't inject markup
-        item.querySelector('.flex-1').textContent = faq.question;
-        item.querySelector('p').textContent = faq.answer;
-        fragment.appendChild(item);
-      });
-      faqModalList.appendChild(fragment);
+    // The endpoint sends the items already rendered (the same _faq_items.html partial the page uses),
+    // so they are added as they are. Clicks on them are handled by the delegated listener above.
+    function appendFaqHtml(html) {
+      faqModalList.insertAdjacentHTML('beforeend', html);
     }
 
     function setModalReadMoreLoading(isLoading) {
@@ -226,10 +194,14 @@
           return res.json();
         })
         .then(function (data) {
-          renderFaqItems(data.faqs || []);
-          currentBatchPoint = data.faqs_batch_point;
+          if (typeof data.html !== 'string') {
+            // Nothing to show: the response is not { html, has_more, next_batch_point }
+            console.error('FAQ batch response has no "html" string. Keys received:', Object.keys(data));
+          }
+          appendFaqHtml(data.html || '');
+          currentBatchPoint = data.next_batch_point;
 
-          if (data.more_faqs) {
+          if (data.has_more) {
             readMoreWrap.classList.remove('hidden');
           } else {
             readMoreWrap.classList.add('hidden');

@@ -1,0 +1,13 @@
+{% for action in actions %}
+<li class="flex items-start gap-3 py-2.5"{% if action.id %} data-action-id="{{ action.id }}"{% endif %}>
+  <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full {% if action.is_success is False %}bg-red-500{% else %}bg-green-500{% endif %}"
+    title="{% if action.is_success is False %}Failed{% else %}Succeeded{% endif %}"></span>
+  <div class="min-w-0 flex-1">
+    <p class="text-sm text-dark-900">{{ action.label|default:action.code }}</p>
+    {% if action.is_success is False %}
+    <p class="text-xs text-red-500">Failed: {{ action.failure_reason|default:"No reason given" }}</p>
+    {% endif %}
+  </div>
+  <time class="act-time shrink-0 text-xs text-gray-500" datetime="{{ action.created_at|date:'c' }}">{{ action.created_at|date:"j M Y, H:i" }}</time>
+</li>
+{% endfor %}

@@ -17,7 +17,14 @@
     {% if content_tab == "faqs" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
   </a>
   <a href="?tab=testimonials" {% if content_tab == "testimonials" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    Testimonials
+    <span class="inline-flex items-center gap-2">
+      Testimonials
+      {# unapproved_count comes from the testimonials_count context processor #}
+      {% if unapproved_count %}
+      <span title="Testimonials awaiting approval"
+        class="min-w-4 h-4 px-1 rounded-full bg-brand-500 text-white text-[10px] font-semibold leading-none inline-flex items-center justify-center">{% if unapproved_count > 99 %}99+{% else %}{{ unapproved_count }}{% endif %}</span>
+      {% endif %}
+    </span>
     {% if content_tab == "testimonials" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
   </a>
 </nav>
