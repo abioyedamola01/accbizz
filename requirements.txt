@@ -5,3 +5,4 @@ dotenv
 django-widget-tweaks
 pillow
 requests
+whitenoise
