@@ -6,3 +6,5 @@ django-widget-tweaks
 pillow
 requests
 whitenoise
+django-storages
+boto3
