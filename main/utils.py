@@ -1,14 +1,18 @@
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from dashboard.utils import SiteModel
 
 def send_contact_message(site_info, name, email, message, phone=None, service=None):
+    logo_url = SiteModel.objects.first().logo.url
+
     context = {
         'name': name,
         'email': email,
         'phone': phone if phone else None,
         'service': service if service else None,
         'message': message,
+        "logo_url": logo_url
     }
     
     

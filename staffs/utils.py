@@ -7,6 +7,7 @@ from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.contrib.sessions.models import Session
 from .models import (OTPVerifyModel, UserSession,)
+from dashboard.models import SiteModel
 
 
 
@@ -60,12 +61,14 @@ def create_otp(user, verify_purpose):
 
 
 def send_otp_mail(user_name, user_email, raw_code, verify_purpose):
+    logo_url = SiteModel.objects.first().logo.url
 
     context = {
         "user_name": user_name,
         "user_email": user_email,
         "raw_code": raw_code,
-        "verify_purpose": verify_purpose
+        "verify_purpose": verify_purpose,
+        "logo_url": logo_url
     }
 
     html_message = render_to_string("messages/otp_message.html", context=context)
@@ -99,9 +102,12 @@ def verify_otp(input_otp, otp_instance):
 
 
 def send_password_reset_mail(email, name, url):
+    logo_url = SiteModel.objects.first().logo.url
+
     context = {
         "user_name": name,
-        "reset_url": url
+        "reset_url": url,
+        "logo_url": logo_url
     }
 
     html_message = render_to_string("messages/reset_message.html", context=context)
@@ -117,11 +123,14 @@ def send_password_reset_mail(email, name, url):
 
 
 def send_email_change_mails(user_name, current_email, new_email, change_url, revert_url):
+    logo_url = SiteModel.objects.first().logo.url
+
     context = {
         "user_name": user_name,
         "current_email": current_email,
         "new_email": new_email,
         "url": revert_url,
+        "logo_url": logo_url
     }
 
 

@@ -21,6 +21,11 @@
           <tr>
             <td style="padding:36px 32px;">
 
+               
+              {% if logo_url %}
+              <img src="{{ logo_url }}" alt="Logo" height="48" style="display:block; height:48px; width:auto; max-width:200px; margin:0 0 24px 0; border:0; outline:none; text-decoration:none;">
+              {% endif %}
+
               {# Heading, same eyebrow + title pattern as the site #}
               <p style="margin:0 0 8px 0; font-size:12px; line-height:16px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#EF6B2E;">
                 New website enquiry

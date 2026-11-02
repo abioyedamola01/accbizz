@@ -205,11 +205,13 @@ def invalidate_add_staff_tracks(email):
 
 
 def send_account_creation_email(name, email, url, role):
-
+    logo_url = SiteModel.objects.first().logo.url
+    
     context = {
         "name": name,
         "url": url,
-        "role": role
+        "role": role,
+        "logo_url": logo_url
     }
 
     html_message = render_to_string("messages/account_creation_message.html", context=context)
