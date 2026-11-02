@@ -3,12 +3,28 @@ from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from dashboard.management.commands import (create_sections, create_site_instance, create_home_section_instances)
-from staffs.management.commands import (create_role_groups, set_permissions, create_default_admin_staff)
+from staffs.management.commands import (create_default_admin_staffs, create_role_groups, set_permissions)
 
 class Command(BaseCommand):
     help = "This command calls all the commands needed for the initial setup."
 
     def handle(self, *args, **options):
+        # install requirements
+        try:
+            self.stdout.write("\nInstalling required dependemcies...")
+            result = subprocess.run(
+                ["pip", "install", "-r", "requirements.txt"],
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=settings.BASE_DIR 
+            )
+            self.stdout.write(result.stdout)
+            self.stdout.write(self.style.SUCCESS("Installation completed."))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
+
+
         try:
             self.stdout.write("\nMaking migrations...")
             call_command("makemigrations", interactive=False)
@@ -27,16 +43,16 @@ class Command(BaseCommand):
 
         # npm run build
         try:
-            self.stdout.write('\nRunning "npm run build"...')
+            self.stdout.write("\nRunning 'npm run build'...")
             result = subprocess.run(
-                ['npm', 'run', 'build'],
+                ["npm", "run", "build"],
                 capture_output=True,
                 text=True,
                 check=True,
                 cwd=settings.BASE_DIR 
             )
             self.stdout.write(result.stdout)
-            self.stdout.write(self.style.SUCCESS('Tailwind CSS successfully built and minified.'))
+            self.stdout.write(self.style.SUCCESS("Tailwind CSS successfully built and minified."))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
 
@@ -59,7 +75,7 @@ class Command(BaseCommand):
 
 
         self.stdout.write("\nCreating default admin user...")
-        create_default_admin_staff.Command.handle(self)
+        create_default_admin_staffs.Command.handle(self)
 
         self.stdout.write("\nCreating sections...")
         create_sections.Command.handle(self)

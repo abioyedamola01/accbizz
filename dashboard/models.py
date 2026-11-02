@@ -221,8 +221,8 @@ class ContactMessageModel(models.Model):
 
 
 class AddStaffModel(models.Model):
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
+    first_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150, blank=True, null=True)
     email = models.CharField(max_length=150)
     role = models.CharField(max_length=70, choices=ROLES[1:])
     is_used = models.BooleanField(default=False)

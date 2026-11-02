@@ -21,5 +21,5 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f"Successfully created {role} group."))
                 elif not is_created:
                     self.stdout.write(self.style.SUCCESS(f"{role} group has been existing."))
-        except:
-            self.stderr(self.style.ERROR("Operation not completed."))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))

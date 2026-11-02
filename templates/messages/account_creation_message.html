@@ -1,6 +1,6 @@
 {% comment %}
   Account creation email. Sent to a NEW staff member.
-  Context: user_name, create_url, expiry_hours (optional, defaults to 24).
+  Context: name (can be None), url, role (can be None), expiry_hours (optional, defaults to 24).
 
   Same look as the OTP, reset and email change emails. Colours are written out as hex because
   email clients ignore Tailwind and your theme file:
@@ -39,10 +39,10 @@
               </h1>
 
               <p style="margin:16px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
-                Dear {{ name }},
+                {% if name %}Dear {{ name }},{% else %}Hello,{% endif %}
               </p>
               <p style="margin:8px 0 0 0; font-size:15px; line-height:24px; color:#374151;">
-                A staff account has been set up for you. To finish creating it, choose a password using the button below.
+                A staff account has been set up for you{% if role %} with the role of <strong style="color:#181523;">{{ role }}</strong>{% endif %}. To finish creating it, choose a password using the button below.
               </p>
 
               {# What happens next #}

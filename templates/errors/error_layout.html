@@ -64,7 +64,7 @@
 <body class="min-h-screen flex flex-col font-sans text-dark-900 antialiased bg-cream">
 
   {# ---- Top bar: the logo, or the name when there is none (same as the public navbar) ---- #}
-  <header class="sticky top-0 z-40">
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur shadow-card">
     <div class="max-w-6xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 shrink-0">
         {% if site_info.logo %}
@@ -93,6 +93,13 @@
            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition">
           Go to Home Page
         </a>
+        {# Staff only. Needs request in the context, so it shows on 404, 403 and 429, never on 400, 500 or the CSRF page. #}
+        {% if request.user.is_authenticated and request.user.is_staff_member %}
+        <a href="{% url "dashboard_home" %}"
+           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-dark-400/30 text-dark-400 text-sm font-semibold hover:bg-white/10 transition">
+          Go to Dashboard
+        </a>
+        {% endif %}
         <button type="button" onclick="if (history.length > 1) { history.back(); } else { location.href = '/'; }"
            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-dark-400/30 text-dark-400 text-sm font-semibold hover:bg-white/10 transition cursor-pointer">
           Go back

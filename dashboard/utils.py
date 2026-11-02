@@ -10,6 +10,8 @@ from django.utils import timezone
 from django.urls import reverse
 from django.db.models import (Count, Avg, Subquery, Value, Q, F)
 from django.db.models.functions import (TruncDate, TruncHour, TruncDay, Concat, Length,)
+from django.utils.encoding import force_bytes
+from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
 from staffs.models import (CustomUserModel, StaffActionsLogModel,)
 from .models import (ServiceModel, SiteModel, AddStaffModel,)
 
@@ -36,6 +38,30 @@ def toast_json_error(message, status=400, *args, **kwargs):
 
     return JsonResponse(load, status=status)
 
+
+
+
+def add_new_staff(**kwags):
+    action_source = kwags["action_source"]
+    email = kwags["email"]
+    name = kwags["name"]
+
+    if action_source == "dashboard":
+        initiator = kwags["initiator"]
+        add_staff_track = AddStaffModel.objects.filter(email=email, is_valid=True, is_used=False).first()
+        add_staff_track.set_initiator(initiator)
+    elif action_source == "management":
+        invalidate_add_staff_tracks(email=email) # invalidate exisiting tracks and void existing tokens
+        add_staff_track = AddStaffModel.objects.create(email=email, role="admin")
+
+    role = add_staff_track.role
+
+    add_staff_token = add_staff_token_generator.make_token(add_staff_track)
+    idb64 = urlsafe_base64_encode(force_bytes(add_staff_track.id))
+    base_url = os.getenv("BASE_URL")
+    add_staff_url = f"{base_url}/users/staffs/accounts/auth/new-staff-account-creation/{idb64}/{add_staff_token}"
+
+    send_account_creation_email(name=name, email=email, url=add_staff_url, role=role)
 
 
 
@@ -178,11 +204,12 @@ def invalidate_add_staff_tracks(email):
         track.invalidate()
 
 
-def send_account_creation_email(name, email, url):
+def send_account_creation_email(name, email, url, role):
 
     context = {
         "name": name,
-        "url": url
+        "url": url,
+        "role": role
     }
 
     html_message = render_to_string("messages/account_creation_message.html", context=context)

@@ -15,7 +15,7 @@ from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualI
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel, AddStaffModel)
 from staffs.models import (CustomUserModel, UserProfileModel, StaffActionsLogModel,)
 from staffs.forms import ChangeEmailForm
-from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, log_staff_action, get_staff_actions_logs, get_recent_staff_actions, get_logs_series, invalidate_add_staff_tracks, send_account_creation_email, 
+from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, add_new_staff, log_staff_action, get_staff_actions_logs, get_recent_staff_actions, get_logs_series, invalidate_add_staff_tracks, send_account_creation_email, 
                     get_reports_range, get_change_percent, get_average_response_time, get_enquiries_series, get_enquiries_by_services, get_response_performance, get_busiest_days, get_umami_analytics_data, get_content_health, 
                     get_enquiries_counts, get_items_batch,)
 
@@ -664,17 +664,14 @@ def add_staff_view(request):
         
         staff_form.save()
 
-        add_staff_track = AddStaffModel.objects.filter(email=email, is_valid=True, is_used=False).first()
-        add_staff_track.set_initiator(request.user)
-
-        add_staff_token = add_staff_token_generator.make_token(add_staff_track)
-        idb64 = urlsafe_base64_encode(force_bytes(add_staff_track.id))
-        base_url = os.getenv("BASE_URL")
-        add_staff_url = f"{base_url}/users/staffs/accounts/auth/new-staff-account-creation/{idb64}/{add_staff_token}"
-
-        send_account_creation_email(name=name, email=email, url=add_staff_url)
+        try:
+            add_new_staff(email=email, name=name, action_source="dashboard", initiator=request.user)
+        except Exception as e:
+            log_staff_action(staff=request.user, code="staff.invite", label=f"Can't initiate account creation for new staff: {email}.", is_success=False, failure_reason=e)
+            return toast_json_error("Account creation not initiated", error=e)
 
         log_staff_action(staff=request.user, code="staff.invite", label=f"Initiated account creation for new staff: {email}.", is_success=True)
+        
         return toast_json_ok("Staff added successfully.")
 
     if request.POST:

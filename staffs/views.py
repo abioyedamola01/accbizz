@@ -552,12 +552,24 @@ def new_staff_account_creation_view(request, idb64, token):
 
     if request.POST and password_form.is_valid():
         info = creation_track.get_info()
+        email = info["email"]
+        role = info["role"]
+        first_name = info.get("first_name", "")
+        last_name = info.get("last_name", "")
 
         try:
-            staff = CustomUserModel.objects.create(email=info["email"], password=password_form.cleaned_data["password"], is_staff_member=True, is_admin=False)
-            staff.profile.role = info["role"]
-            staff.profile.first_name = info["first_name"]
-            staff.profile.last_name = info["last_name"]
+            staff_details = {
+                "email": email,
+                "password": password_form.cleaned_data["password"],
+                "is_staff_member": True,
+                "is_admin": role == "admin"
+            }
+            
+            staff = CustomUserModel.objects.create(**staff_details)
+            staff.profile.role = role
+            if role != "admin":
+                staff.profile.first_name = first_name
+                staff.profile.last_name = last_name
             staff.profile.save(update_fields=("role", "first_name", "last_name",))
             
             admin_group = Group.objects.get(name=f"{info['role']}_group")
@@ -567,7 +579,7 @@ def new_staff_account_creation_view(request, idb64, token):
             log_staff_action(staff=staff, code="staff.account.create", label="Created their new staff account via invitation link.", is_success=True)
 
             context["status"] = "success"
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     return render(request, "staffs/create_new_account.html", context)
