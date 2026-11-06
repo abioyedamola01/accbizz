@@ -5,7 +5,7 @@
 {% block visual %}{% include "staffs/partials/_visual.html" with fallback_src="https://images.unsplash.com/photo-1560264418-c4445382edbc?q=80&w=1400&auto=format&fit=crop" %}{% endblock visual %}
 
 {% block back %}
-<a href="{% url 'staff_login' %}" class="icon-btn" aria-label="Back to log in">{% include "components/_icon.html" with name="chevron-left" size=20 %}</a>
+<a href="{% url 'staff_login' %}" class="icon-btn" aria-label="Go back" data-history-back>{% include "components/_icon.html" with name="chevron-left" size=20 %}</a>
 {% endblock back %}
 
 {% block panel %}

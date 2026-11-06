@@ -1,7 +1,7 @@
 import os
 import uuid
 from django.http import Http404
-from django.urls import reverse
+from django.urls import (reverse, is_valid_path,)
 from django.shortcuts import (render, redirect)
 from django.contrib.auth import (authenticate, login, logout,)
 from django.contrib.auth.decorators import (login_required, permission_required,)
@@ -26,7 +26,13 @@ def staff_login_view(request):
     
     site_info = model_to_dict(SiteModel.objects.first())
 
+    next_url = request.GET.get("next", None)
+    if not next_url: next_url = request.session.get("next_url", None)
+
     request.session.flush()
+
+    request.session["next_url"] = next_url
+
     form = StaffLoginForm(request.POST or None)
 
     if request.POST and form.is_valid():
@@ -74,6 +80,9 @@ def staff_login_view(request):
 
 def verify_staff_otp_view(request):
     otp_verify_info =  request.session.get("otp_verify_info", None)
+    next_url = request.session.get("next_url", None)
+
+    is_valid_next_url = bool(is_valid_path(str(next_url).split("?", maxsplit=1)[0], urlconf=None))
 
     
     if not otp_verify_info:
@@ -100,7 +109,7 @@ def verify_staff_otp_view(request):
         
         verify_status, verify_comment = verify_otp(form.cleaned_data["otp_code"], otp_instance)
         redirect_urls = {
-            "staff_login": "dashboard_home",
+            "staff_login": next_url if is_valid_next_url else "dashboard_home",
             "staff_change_password": "staff_change_password"
         }
 

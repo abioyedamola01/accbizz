@@ -561,9 +561,27 @@
     updateState();
   }
 
+  /* ---------- Back links: act like the browser Back button (Alt + Left arrow) ---------- */
+  // The link keeps its href, so it still works without JS, and when there is no earlier page of ours
+  // to go back to (for example the page was opened from an email). Ctrl, Cmd and Shift clicks are left alone.
+
+  function initHistoryBack() {
+    doc.addEventListener('click', function (e) {
+      var link = e.target.closest && e.target.closest('[data-history-back]');
+      if (!link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var fromThisSite = false;
+      try { fromThisSite = !!doc.referrer && new URL(doc.referrer).origin === window.location.origin; } catch (err) { /* bad referrer */ }
+      if (window.history.length > 1 && fromThisSite) {
+        e.preventDefault();
+        window.history.back();
+      }
+    });
+  }
+
   /* ---------- Start ---------- */
 
   function start() {
+    initHistoryBack();
     initServerErrors();
     initLogin();
     initOtp();
