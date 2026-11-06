@@ -1,0 +1,26 @@
+{# Logo with theme handling, empty-safe. #}
+{# site_info.logo = light-colored logo (for dark backgrounds). site_info.logo_dark = dark-colored logo (for light backgrounds). #}
+{# Light theme shows logo_dark, dark theme shows logo; if only one exists it is used in both; if none, the letter mark. #}
+{# Params: cls (height classes, default h-10). The surrounding link supplies the accessible name, so images use alt="". #}
+{% if site_info.logo and site_info.logo_dark %}
+  {% with on_dark=site_info.logo.url|cut:" " on_light=site_info.logo_dark.url|cut:" " %}
+    {% if on_dark and on_light %}
+      <img src="{{ on_light }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain dark:hidden" />
+      <img src="{{ on_dark }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain hidden dark:block" />
+    {% elif on_dark %}
+      <img src="{{ on_dark }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain" />
+    {% elif on_light %}
+      <img src="{{ on_light }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain" />
+    {% else %}{% include "components/_logo_mark.html" %}{% endif %}
+  {% endwith %}
+{% elif site_info.logo %}
+  {% with one=site_info.logo.url|cut:" " %}
+    {% if one %}<img src="{{ one }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain" />{% else %}{% include "components/_logo_mark.html" %}{% endif %}
+  {% endwith %}
+{% elif site_info.logo_dark %}
+  {% with one=site_info.logo_dark.url|cut:" " %}
+    {% if one %}<img src="{{ one }}" alt="" width="160" height="40" class="{{ cls|default:'h-10' }} w-auto object-contain" />{% else %}{% include "components/_logo_mark.html" %}{% endif %}
+  {% endwith %}
+{% else %}
+  {% include "components/_logo_mark.html" %}
+{% endif %}

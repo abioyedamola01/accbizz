@@ -1,15 +1,16 @@
-{% for faq in faqs %}
-<div class="faq-item border-b border-gray-100">
-  <button type="button" class="faq-trigger w-full flex items-start gap-4 text-left cursor-pointer py-5">
-    <span class="flex-1 text-sm font-semibold text-dark-900">{{ faq.question }}</span>
-    <svg class="faq-chevron w-4 h-4 text-gray-400 shrink-0 mt-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
-    </svg>
-  </button>
-  <div class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out">
+{# FAQ accordion items. Expects `faqs` (question, answer). Also rendered by the batch endpoint for the modal. Ids use faq.pk, falling back to the loop counter. #}
+{% for faq in faqs %}{% with uid=faq.pk|default:forloop.counter %}
+<div class="faq-item border-b border-line">
+  <h3 class="m-0 text-body">
+    <button type="button" id="faq-q-{{ uid }}" class="faq-trigger flex w-full cursor-pointer items-start gap-4 rounded-xl py-4 text-left" aria-expanded="false" aria-controls="faq-a-{{ uid }}">
+      <span class="flex-1 text-body font-semibold text-ink">{{ faq.question }}</span>
+      {% include "components/_icon.html" with name="chevron-down" size=20 cls="faq-chevron mt-1 text-muted transition-transform duration-300 motion-reduce:transition-none" %}
+    </button>
+  </h3>
+  <div id="faq-a-{{ uid }}" class="faq-answer grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none">
     <div class="overflow-hidden">
-      <p class="text-sm text-gray-500 leading-relaxed pb-5">{{ faq.answer }}</p>
+      <p class="measure pb-4 text-body text-muted">{{ faq.answer }}</p>
     </div>
   </div>
 </div>
-{% endfor %}
+{% endwith %}{% endfor %}

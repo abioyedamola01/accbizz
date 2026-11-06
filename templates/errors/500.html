@@ -1,6 +1,13 @@
 {% extends "errors/error_layout.html" %}
 
+{# Django renders 500 with no context and no request: keep this free of variables. #}
 {% block title %}Something went wrong{% endblock title %}
 {% block code %}500{% endblock code %}
-{% block heading %}Something went wrong{% endblock heading %}
-{% block message %}It’s us, not you. We hit a problem on our side. Please try again in a few minutes.{% endblock message %}
+{% block heading %}Something went wrong on our side{% endblock heading %}
+{% block message %}It’s us, not you. We hit a problem and couldn’t finish your request. Try again in a few minutes.{% endblock message %}
+
+{% block actions %}
+{# Hidden until JS runs; the homepage link always works. #}
+{% include "components/_button.html" with label="Try again" variant="primary" size="lg" attrs="data-reload hidden" %}
+{% include "components/_button.html" with label="Go to homepage" href="/" variant="secondary" size="lg" %}
+{% endblock actions %}

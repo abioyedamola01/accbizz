@@ -1,0 +1,30 @@
+{% extends "base/staffs/base.html" %}
+{# Shared shell for every staff auth page: photo panel (large screens only) beside the form column. Child pages fill: title, panel (required), back (optional), visual (optional, to change the photo fallback). #}
+
+{% block content %}
+<a href="#main" class="skip-link" data-no-progress>Skip to main content</a>
+<main id="main" tabindex="-1" class="min-h-dvh flex items-center justify-center p-4 md:p-8">
+  <section class="w-full max-w-6xl overflow-hidden rounded-2xl border border-line bg-surface shadow-sm dark:shadow-none">
+    <div class="grid lg:grid-cols-2 lg:min-h-[32rem]">
+
+      <aside class="hidden lg:block p-4" aria-hidden="true">
+        {% block visual %}{% include "staffs/partials/_visual.html" with fallback_src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop" %}{% endblock visual %}
+      </aside>
+
+      <div class="flex flex-col gap-8 px-6 py-8 sm:px-12 lg:py-12">
+        <div class="flex items-center justify-between gap-4">
+          {% block back %}{% endblock back %}
+          <a href="{% url 'main_home' %}" class="ml-auto inline-flex items-center gap-2 rounded-xl" aria-label="{{ site_info.display_name|default:'Accbizz' }} home">
+            {% include "components/_logo.html" with cls="h-10" %}
+          </a>
+        </div>
+
+        <div class="flex w-full max-w-md flex-col gap-8">
+          {% block panel %}{% endblock panel %}
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+{% endblock content %}

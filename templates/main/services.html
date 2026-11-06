@@ -2,11 +2,18 @@
 
 {% block title %}Our services · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
+{# Hard-coded for now (see notes). #}
+{% block meta_description %}<meta name="description" content="Browse every service we offer, see what each one includes, and pick the one that fits your work." />{% endblock meta_description %}
+
 {% block content %}
 
-    {% include "main/partials/services/_intro.html" %}
-    {% include "main/partials/services/_grid.html" %}
-    {% include "main/partials/services/_process.html" %}
-    {% include "main/partials/services/_why.html" %}
-    
+  {% include "main/partials/services/_intro.html" %}
+  {% include "main/partials/services/_grid.html" %}
+  {% include "main/partials/services/_process.html" %}
+  {% include "main/partials/services/_why.html" %}
+
+  {# Closing call to action. Text is hard-coded for now (see notes). #}
+  {% url "main_contact" as contact_url %}
+  {% include "main/partials/_cta.html" with headings="Not sure which service fits?" text="Tell us about your project and we will help you choose." label1="Contact us" url1=contact_url|add:"#contact-us" %}
+
 {% endblock content %}

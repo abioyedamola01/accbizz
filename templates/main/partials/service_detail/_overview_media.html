@@ -1,0 +1,4 @@
+{# Overview photo. Expects src (already empty-safe) and alt. A failed load leaves the plain themed surface. #}
+<figure class="m-0 aspect-[16/9] overflow-hidden rounded-2xl border border-line bg-raised">
+  <img src="{{ src }}" alt="{{ alt }}" width="1000" height="563" loading="lazy" decoding="async" class="h-full w-full object-cover" onerror="this.hidden=true" />
+</figure>

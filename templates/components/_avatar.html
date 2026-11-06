@@ -1,0 +1,2 @@
+{# Initials avatar with an icon fallback. Params: name, cls. Decorative: the name is always printed next to it. #}
+<span class="avatar {{ cls }}" aria-hidden="true">{% if name %}{{ name|slice:":1"|upper }}{% else %}{% include "components/_icon.html" with name="user" size=20 %}{% endif %}</span>

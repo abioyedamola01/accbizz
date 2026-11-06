@@ -1,24 +1,53 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %} {{ site_info.display_name|title|default:"Accbizz" }} {% endblock title %}</title>
+  <meta name="color-scheme" content="light dark" />
+  {# Staff pages are private: keep them out of search results. #}
+  <meta name="robots" content="noindex, nofollow" />
+  {# The two hex values below must mirror --page in base.css (light and dark). They are the only hex outside CSS. #}
+  <meta name="theme-color" content="#F5F0E7" data-light="#F5F0E7" data-dark="#181523" />
+
+  {# Runs before first paint: sets data-theme from the saved choice (no flash of the wrong theme) and marks JS as available. #}
+  <script>
+    (function () {
+      var d = document.documentElement, pref = 'system';
+      try { var v = localStorage.getItem('theme'); if (v === 'light' || v === 'dark') pref = v; } catch (e) {}
+      var dark = pref === 'system' ? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : pref === 'dark';
+      var theme = dark ? 'dark' : 'light';
+      d.setAttribute('data-theme', theme);
+      d.setAttribute('data-theme-pref', pref);
+      d.classList.add('js');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', m.getAttribute('data-' + theme));
+    })();
+  </script>
+
+  <title>{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
   {% if site_info.favicon %}<link rel="icon" href="{{ site_info.favicon.url }}" />{% endif %}
 
-  <!-- Tailwind compiled CSS -->
+  {# Compiled Tailwind. base.css is imported inside it, so it is not linked separately. #}
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
-  <!-- Global design tokens -->
-  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
   {% block extra_css %}{% endblock extra_css %}
 </head>
-<body class="h-full min-h-screen antialiased bg-gradient-to-br from-brand-100 via-cream to-brand-200 text-dark-900">
-  {% include "base/_preloader.html" %}
+<body class="min-h-dvh bg-page font-sans text-body text-ink antialiased">
+  <div class="nav-progress" aria-hidden="true"></div>
   {% block content %}{% endblock content %}
 
-  <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+  {# Polite announcements for screen readers (button busy states) #}
+  <div id="staffs-live" class="sr-only" role="status" aria-live="polite"></div>
+
+  {# Top loading bar on navigation (same behaviour as the public site) #}
+  <script src="{% static 'js/motion.js' %}" defer></script>
+  <script src="{% static 'js/staffs.js' %}" defer></script>
+  {# Flowbite: no staff page uses it. If one needs a component, load the local v4 build here. #}
   {% block extra_js %}{% endblock extra_js %}
 </body>
 </html>

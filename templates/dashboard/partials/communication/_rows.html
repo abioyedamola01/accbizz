@@ -1,5 +1,7 @@
+{# One table row per message. The data-* attributes are the contract with static/js/communication.js: keep them. #}
+{# Row state (dot, name weight, status pill) is styled from data-attended on the row and data-state on the pill, so the script never sets classes. #}
 {% for msg in contact_messages %}
-<tr class="msg-row cursor-pointer hover:bg-gray-50 transition" tabindex="0" role="button"
+<tr class="msg-row group cursor-pointer hover:bg-raised"
   data-name="{{ msg.name }}"
   data-email="{{ msg.email }}"
   data-phone="{{ msg.phone|default:'' }}"
@@ -15,27 +17,27 @@
   data-delete-url="{% url "dashboard_delete_message" msg.pk %}">
 
   <td class="py-3 pr-4">
-    <div class="flex items-center gap-2.5">
-      {# Unattended dot. The script adds or removes bg-brand-500 #}
-      <span class="msg-dot w-2 h-2 rounded-full shrink-0 {% if not msg.is_attended %}bg-brand-500{% endif %}"></span>
-      <div class="min-w-0">
-        <p class="msg-name text-sm text-dark-900 truncate {% if msg.is_attended %}font-medium{% else %}font-bold{% endif %}">{{ msg.name }}</p>
-        <p class="text-xs text-gray-500 truncate">{{ msg.email }}</p>
-      </div>
-    </div>
+    {# The real keyboard target. A click anywhere else on the row also opens the message. #}
+    <button type="button" class="msg-open flex min-w-0 max-w-56 items-center gap-3 rounded-lg text-left" aria-haspopup="dialog">
+      <span class="h-2 w-2 shrink-0 rounded-full bg-transparent group-data-[attended='0']:bg-brand-500" aria-hidden="true"></span>
+      <span class="flex min-w-0 flex-col">
+        <span class="msg-name truncate text-small font-medium text-ink group-data-[attended='0']:font-semibold"><span class="sr-only">Open message from </span>{{ msg.name }}</span>
+        <span class="truncate text-caption text-muted">{{ msg.email }}</span>
+      </span>
+    </button>
   </td>
 
-  <td class="py-3 pr-4"><span class="text-sm text-gray-600 whitespace-nowrap">{{ msg.service|default:"General" }}</span></td>
+  <td class="py-3 pr-4"><span class="whitespace-nowrap text-small text-muted">{{ msg.service|default:"General" }}</span></td>
 
-  <td class="py-3 pr-4 max-w-[260px]"><p class="text-sm text-gray-600 truncate">{{ msg.message }}</p></td>
+  <td class="max-w-xs py-3 pr-4"><p class="truncate text-small text-muted">{{ msg.message }}</p></td>
 
-  <td class="py-3 pr-4"><span class="text-xs text-gray-500 whitespace-nowrap">{{ msg.created_at|timesince }} ago</span></td>
+  <td class="py-3 pr-4"><time class="whitespace-nowrap text-caption text-muted" datetime="{{ msg.created_at|date:'c' }}" title="{{ msg.created_at|date:'j M Y, g:i A' }}">{{ msg.created_at|timesince }} ago</time></td>
 
-  <td class="py-3 pr-5">
+  <td class="py-3 pr-4">
     {% if msg.is_attended %}
-    <span class="msg-status inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-gray-100 text-gray-500">Attended by {% if msg.attended_by_id == request.user.id %}you{% else %}{{ msg.attended_by.get_full_name|default:msg.attended_by.username|default:"someone" }}{% endif %}</span>
+    <span class="msg-status inline-flex items-center whitespace-nowrap rounded-full bg-raised px-3 py-1 text-caption font-medium text-muted data-[state=unattended]:bg-brand-500/15 data-[state=unattended]:text-link" data-state="attended">Attended by {% if msg.attended_by_id == request.user.id %}you{% else %}{{ msg.attended_by.get_full_name|default:msg.attended_by.username|default:"someone" }}{% endif %}</span>
     {% else %}
-    <span class="msg-status inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-brand-100 text-brand-600">Unattended</span>
+    <span class="msg-status inline-flex items-center whitespace-nowrap rounded-full bg-brand-500/15 px-3 py-1 text-caption font-medium text-link data-[state=attended]:bg-raised data-[state=attended]:text-muted" data-state="unattended">Unattended</span>
     {% endif %}
   </td>
 </tr>

@@ -41,6 +41,15 @@ def toast_json_error(message, status=400, *args, **kwargs):
 
 
 
+def check_staff_email(email):
+    is_existing = CustomUserModel.objects.filter(email=email).exists()
+
+    return is_existing
+
+
+
+
+
 def add_new_staff(**kwags):
     action_source = kwags["action_source"]
     email = kwags["email"]
@@ -205,7 +214,8 @@ def invalidate_add_staff_tracks(email):
 
 
 def send_account_creation_email(name, email, url, role):
-    logo_url = SiteModel.objects.first().logo.url
+    logo = SiteModel.objects.first().logo
+    logo_url = logo.url if logo else None
     
     context = {
         "name": name,

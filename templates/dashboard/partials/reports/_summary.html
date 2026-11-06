@@ -1,53 +1,45 @@
 {% load report_tags %}
+{# Summary cards. Context: summary. The two linked cards are whole-card links with one destination each. #}
+<section aria-label="Summary">
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-  {# ---- Enquiries in the period ---- #}
-  <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-    <p class="text-xs font-medium text-gray-500">Enquiries</p>
-    <p class="mt-2 text-2xl font-extrabold text-dark-900">{{ summary.enquiries|default:0 }}</p>
-    <div class="mt-1">
+    {# ---- Enquiries in the period ---- #}
+    <div class="card flex flex-col gap-1">
+      <p class="text-caption font-medium text-muted">Enquiries</p>
+      <p class="font-sans text-h3 font-semibold tracking-tight">{{ summary.enquiries|default:0 }}</p>
       {% include "dashboard/partials/reports/_delta.html" with value=summary.enquiries_change good="up" %}
     </div>
-  </div>
 
-  {# ---- Unattended right now (whole card links to Communication) ---- #}
-  <a href="{% url "dashboard_communication" %}"
-    class="group relative block bg-white rounded-2xl shadow-card p-4 sm:p-5 transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">
-    <svg class="absolute top-4 right-4 w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5l7.5 7.5-7.5 7.5"/>
-    </svg>
-    <p class="text-xs font-medium text-gray-500">Unattended now</p>
-    <p class="mt-2 text-2xl font-extrabold {% if summary.unattended %}text-brand-500{% else %}text-dark-900{% endif %}">{{ summary.unattended|default:0 }}</p>
-    <p class="mt-1 text-xs {% if summary.unattended %}text-gray-500{% else %}font-medium text-green-600{% endif %}">
-      {% if not summary.unattended %}All caught up
-      {% elif summary.oldest_unattended_days == 0 %}oldest: today
-      {% else %}oldest: {{ summary.oldest_unattended_days }} day{{ summary.oldest_unattended_days|pluralize }}{% endif %}
-    </p>
-  </a>
+    {# ---- Unattended right now (links to Communication) ---- #}
+    <a href="{% url "dashboard_communication" %}" class="card card-link relative flex flex-col gap-1">
+      {% include "components/_icon.html" with name="chevron-right" size=16 cls="absolute right-4 top-4 text-muted" %}
+      <p class="text-caption font-medium text-muted">Unattended now</p>
+      <p class="font-sans text-h3 font-semibold tracking-tight {% if summary.unattended %}text-link{% endif %}">{{ summary.unattended|default:0 }}</p>
+      <p class="text-caption {% if summary.unattended %}text-muted{% else %}font-medium text-success-fg{% endif %}">
+        {% if not summary.unattended %}All caught up
+        {% elif summary.oldest_unattended_days == 0 %}Oldest: today
+        {% else %}Oldest: {{ summary.oldest_unattended_days }} day{{ summary.oldest_unattended_days|pluralize }}{% endif %}
+      </p>
+    </a>
 
-  {# ---- Average response time (a lower number is better) ---- #}
-  <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-    <p class="text-xs font-medium text-gray-500">Avg response</p>
-    <p class="mt-2 text-2xl font-extrabold text-dark-900">{{ summary.avg_response_seconds|short_duration }}</p>
-    <div class="mt-1">
+    {# ---- Average response time (a lower number is better) ---- #}
+    <div class="card flex flex-col gap-1">
+      <p class="text-caption font-medium text-muted">Avg response</p>
+      <p class="font-sans text-h3 font-semibold tracking-tight">{{ summary.avg_response_seconds|short_duration }}</p>
       {% include "dashboard/partials/reports/_delta.html" with value=summary.avg_response_change good="down" %}
     </div>
+
+    {# ---- Pending testimonials (links to the testimonials tab) ---- #}
+    <a href="{% url "dashboard_contents" %}?tab=testimonials" class="card card-link relative flex flex-col gap-1">
+      {% include "components/_icon.html" with name="chevron-right" size=16 cls="absolute right-4 top-4 text-muted" %}
+      <p class="text-caption font-medium text-muted">Pending testimonials</p>
+      <p class="font-sans text-h3 font-semibold tracking-tight">{{ summary.pending_testimonials|default:0 }}</p>
+      <p class="text-caption {% if summary.pending_testimonials %}text-muted{% else %}font-medium text-success-fg{% endif %}">
+        {% if not summary.pending_testimonials %}Nothing waiting
+        {% elif summary.oldest_pending_days == 0 %}Oldest: today
+        {% else %}Oldest: {{ summary.oldest_pending_days }} day{{ summary.oldest_pending_days|pluralize }}{% endif %}
+      </p>
+    </a>
+
   </div>
-
-  {# ---- Pending testimonials (whole card links to the testimonials tab) ---- #}
-  <a href="{% url "dashboard_contents" %}?tab=testimonials"
-    class="group relative block bg-white rounded-2xl shadow-card p-4 sm:p-5 transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400">
-    <svg class="absolute top-4 right-4 w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5l7.5 7.5-7.5 7.5"/>
-    </svg>
-    <p class="text-xs font-medium text-gray-500">Pending testimonials</p>
-    <p class="mt-2 text-2xl font-extrabold text-dark-900">{{ summary.pending_testimonials|default:0 }}</p>
-    <p class="mt-1 text-xs {% if summary.pending_testimonials %}text-gray-500{% else %}font-medium text-green-600{% endif %}">
-      {% if not summary.pending_testimonials %}Nothing waiting
-      {% elif summary.oldest_pending_days == 0 %}oldest: today
-      {% else %}oldest: {{ summary.oldest_pending_days }} day{{ summary.oldest_pending_days|pluralize }}{% endif %}
-    </p>
-  </a>
-
-</div>
+</section>

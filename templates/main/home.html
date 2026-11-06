@@ -2,17 +2,20 @@
 
 {% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
+{% block meta_description %}{% if hero_section.sub_title %}<meta name="description" content="{{ hero_section.sub_title|truncatechars:160 }}" />{% elif site_info.tagline %}<meta name="description" content="{{ site_info.tagline }}" />{% endif %}{% endblock meta_description %}
+
 {% block content %}
 
   {% url "main_testimonials" as all_testimonials_page %}
   {% url "main_refresh_testimonials" as refresh_testimonials_endpoint %}
 
-  
-
   {% for section in enabled_sections %}
     {% include "main/partials/home/_"|add:section.name|add:".html" %}
   {% endfor %}
 
+  {# Closing call to action. Text is hard-coded for now (see notes). #}
+  {% url "main_contact" as contact_url %}
+  {% url "main_services" as services_url %}
+  {% include "main/partials/_cta.html" with headings="Ready to achieve academic success?" text="Tell us what you need help with and we will suggest where to start." label1="Contact us" url1=contact_url|add:"#contact-us" label2="Explore services" url2=services_url %}
 
- 
 {% endblock content %}

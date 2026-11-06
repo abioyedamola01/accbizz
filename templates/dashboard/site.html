@@ -2,13 +2,11 @@
 {% load static %}
 {% load widget_tweaks %}
 
-{% block title %}Dashboard {{ current|title }} · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
+{% block title %}Dashboard {{ current|capfirst }} · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
-
-
-{% include "dashboard/partials/site/_site_info.html" %}
-{% include "dashboard/partials/site/_visual_identity.html" %}
-
-
+<div class="flex max-w-4xl flex-col gap-6">
+  {% include "dashboard/partials/site/_site_info.html" %}
+  {% include "dashboard/partials/site/_visual_identity.html" %}
+</div>
 {% endblock content %}

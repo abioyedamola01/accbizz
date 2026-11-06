@@ -114,6 +114,16 @@
       }
     } catch (e) { /* ignore */ }
 
+    // Field errors from a JSON response: `form_errors` (new) or `errors` (older views).
+    // Either an object or a JSON string, for example form.errors.as_json(). Returns an object or null.
+    function parseFieldErrors(data) {
+      var raw = data.form_errors || data.errors;
+      if (typeof raw === 'string') {
+        try { raw = JSON.parse(raw); } catch (e) { return null; }
+      }
+      return raw && typeof raw === 'object' ? raw : null;
+    }
+
     // POST a form with fetch. Always resolves (never rejects) with:
     //   { ok, status, data, message }
     // `message` is the server's message, or a friendly one for timeouts,
@@ -141,12 +151,14 @@
           var data = r.data;
 
           if (data && typeof data === 'object') {
-            var ok = response.ok && data.ok !== false;
+            var serverError = typeof data.error === 'string' ? data.error : '';
+            var ok = response.ok && data.ok !== false && !serverError;
             return {
               ok: ok,
               status: response.status,
               data: data,
-              message: data.message || (ok ? '' : 'Something went wrong. Please try again.')
+              fieldErrors: parseFieldErrors(data),
+              message: data.message || serverError || (ok ? '' : 'Something went wrong. Please try again.')
             };
           }
 
@@ -248,7 +260,7 @@
         }
 
         resetButton();
-        if (result.data && result.data.errors) showFieldErrors(form, result.data.errors, opts);
+        if (result.fieldErrors) showFieldErrors(form, result.fieldErrors, opts);
         window.showToast(result.message, 'error');
         return result;
       });

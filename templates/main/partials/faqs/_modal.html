@@ -1,0 +1,187 @@
+{# FAQ modal ("Read more"), loaded in batches. Needs the #faqReadMoreBtn button on the page (data-batch-point). Param: faq_url_template, a URL that contains the placeholder 123456789 where the batch point goes. #}
+<div id="faqModalOverlay" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+  <div class="relative flex h-[80vh] w-full max-w-3xl flex-col rounded-2xl border border-line bg-surface p-6 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="faqModalTitle">
+
+    <div class="mb-4 flex items-start justify-between gap-4">
+      <h2 id="faqModalTitle" class="font-sans font-semibold tracking-tight text-balance text-h3">More questions</h2>
+      <button type="button" id="faqModalCloseBtn" class="icon-btn" aria-label="Close more questions">
+        {% include "components/_icon.html" with name="x-mark" size=20 %}
+      </button>
+    </div>
+
+    {# Loading #}
+    <div id="faqModalSpinner" class="hidden flex-1 flex-col items-center justify-center gap-3" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p class="text-small text-muted">Loading questions</p>
+    </div>
+
+    {# Error #}
+    <div id="faqModalError" class="hidden flex-1 flex-col items-center justify-center gap-4 px-6 text-center" role="alert">
+      <span class="icon-chip">{% include "components/_icon.html" with name="exclamation-triangle" size=20 %}</span>
+      <p class="text-body text-muted">Couldn't load the questions. Check your connection and try again.</p>
+      <button type="button" id="faqModalRetryBtn" class="btn btn-secondary btn-md"><span>Try again</span></button>
+    </div>
+
+    <div id="faqModalBody" class="hidden flex-1 overflow-y-auto pr-1">
+      <div id="faqModalList" class="faq-list"></div>
+
+      <div id="faqModalReadMoreWrap" class="mt-6 hidden justify-end">
+        <button type="button" id="faqModalReadMoreBtn" class="btn btn-secondary btn-md">
+          <span class="faq-modal-more-label">Read more</span>
+          {% include "components/_icon.html" with name="arrow-right" size=16 cls="faq-modal-more-icon nudge-icon" %}
+          <span class="faq-modal-more-spinner spinner hidden" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+    // The batch point is swapped into the placeholder on each request
+    var FAQ_ENDPOINT_TEMPLATE = "{{ faq_url_template|escapejs }}";
+    function buildFaqEndpoint(batchPoint) {
+      return FAQ_ENDPOINT_TEMPLATE.replace("123456789", batchPoint);
+    }
+
+    // Accordion toggle, shared by the page list and the modal list (including items added by AJAX)
+    function toggleFaqItem(trigger) {
+      var item = trigger.closest('.faq-item');
+      var list = item.closest('.faq-list');
+      var answer = item.querySelector('.faq-answer');
+      var chevron = trigger.querySelector('.faq-chevron');
+      var isOpening = answer.classList.contains('grid-rows-[0fr]');
+
+      list.querySelectorAll('.faq-item').forEach(function (otherItem) {
+        if (otherItem === item) return;
+        otherItem.querySelector('.faq-answer').classList.add('grid-rows-[0fr]');
+        otherItem.querySelector('.faq-answer').classList.remove('grid-rows-[1fr]');
+        otherItem.querySelector('.faq-chevron').classList.remove('rotate-180');
+        otherItem.querySelector('.faq-trigger').setAttribute('aria-expanded', 'false');
+      });
+
+      answer.classList.toggle('grid-rows-[1fr]', isOpening);
+      answer.classList.toggle('grid-rows-[0fr]', !isOpening);
+      chevron.classList.toggle('rotate-180', isOpening);
+      trigger.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
+    }
+
+    // Page list is server-rendered; the modal list is filled by AJAX, so it uses delegation
+    document.querySelectorAll('.faq-list .faq-trigger').forEach(function (trigger) {
+      trigger.addEventListener('click', function () { toggleFaqItem(trigger); });
+    });
+    var faqModalList = document.getElementById('faqModalList');
+    faqModalList.addEventListener('click', function (e) {
+      var trigger = e.target.closest('.faq-trigger');
+      if (trigger) toggleFaqItem(trigger);
+    });
+
+    var readMoreBtn = document.getElementById('faqReadMoreBtn');
+    var overlay = document.getElementById('faqModalOverlay');
+    var closeBtn = document.getElementById('faqModalCloseBtn');
+    var spinner = document.getElementById('faqModalSpinner');
+    var errorBox = document.getElementById('faqModalError');
+    var retryBtn = document.getElementById('faqModalRetryBtn');
+    var body = document.getElementById('faqModalBody');
+    var readMoreWrap = document.getElementById('faqModalReadMoreWrap');
+    var modalReadMoreBtn = document.getElementById('faqModalReadMoreBtn');
+
+    var currentBatchPoint = null;
+    var lastFocus = null;
+
+    function showState(state) { // 'loading' | 'error' | 'ready'
+      spinner.classList.toggle('hidden', state !== 'loading');
+      spinner.classList.toggle('flex', state === 'loading');
+      errorBox.classList.toggle('hidden', state !== 'error');
+      errorBox.classList.toggle('flex', state === 'error');
+      body.classList.toggle('hidden', state !== 'ready');
+    }
+
+    // The endpoint sends items already rendered with _faq_items.html, so they are added as they are
+    function appendFaqHtml(html) {
+      faqModalList.insertAdjacentHTML('beforeend', html);
+    }
+
+    function setModalReadMoreLoading(isLoading) {
+      modalReadMoreBtn.disabled = isLoading;
+      modalReadMoreBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+      modalReadMoreBtn.querySelector('.faq-modal-more-label').classList.toggle('hidden', isLoading);
+      modalReadMoreBtn.querySelector('.faq-modal-more-icon').classList.toggle('hidden', isLoading);
+      modalReadMoreBtn.querySelector('.faq-modal-more-spinner').classList.toggle('hidden', !isLoading);
+    }
+
+    function fetchFaqBatch(batchPoint, isInitial) {
+      return fetch(buildFaqEndpoint(batchPoint))
+        .then(function (res) {
+          if (!res.ok) throw new Error('Request failed with status ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          if (typeof data.html !== 'string') {
+            console.error('FAQ batch response has no "html" string. Keys received:', Object.keys(data));
+          }
+          appendFaqHtml(data.html || '');
+          currentBatchPoint = data.next_batch_point;
+          readMoreWrap.classList.toggle('hidden', !data.has_more);
+          readMoreWrap.classList.toggle('flex', !!data.has_more);
+          if (isInitial) showState('ready');
+        });
+    }
+
+    function loadInitial() {
+      showState('loading');
+      fetchFaqBatch(readMoreBtn.dataset.batchPoint, true).catch(function () { showState('error'); });
+    }
+
+    function openFaqModal() {
+      lastFocus = document.activeElement;
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+      faqModalList.innerHTML = '';
+      readMoreWrap.classList.add('hidden');
+      readMoreWrap.classList.remove('flex');
+      closeBtn.focus();
+      loadInitial();
+    }
+
+    function closeFaqModal() {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    // Keep Tab inside the modal while it is open
+    function trapTab(e) {
+      var items = overlay.querySelectorAll('button:not([disabled]), a[href]');
+      var visible = Array.prototype.filter.call(items, function (el) { return el.offsetParent !== null; });
+      if (!visible.length) return;
+      var first = visible[0], last = visible[visible.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+
+    if (readMoreBtn && overlay) {
+      readMoreBtn.addEventListener('click', openFaqModal);
+      closeBtn.addEventListener('click', closeFaqModal);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeFaqModal(); });
+      document.addEventListener('keydown', function (e) {
+        if (overlay.classList.contains('hidden')) return;
+        if (e.key === 'Escape') closeFaqModal();
+        else if (e.key === 'Tab') trapTab(e);
+      });
+      retryBtn.addEventListener('click', loadInitial);
+      modalReadMoreBtn.addEventListener('click', function () {
+        if (!currentBatchPoint) return;
+        setModalReadMoreLoading(true);
+        fetchFaqBatch(currentBatchPoint, false)
+          .catch(function () { /* keep existing items visible so the click can be retried */ })
+          .then(function () { setModalReadMoreLoading(false); });
+      });
+    }
+
+  });
+</script>

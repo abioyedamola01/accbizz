@@ -67,10 +67,11 @@
     if (!el) return;
 
     var firstLoadDone = false;
-    var hideTimer, leaveFailsafe;
+    var hideTimer, leaveFailsafe, showTimer;
 
     function hide(instant) {
       clearTimeout(hideTimer);
+      clearTimeout(showTimer);
       el.classList.add('is-hidden');
       el.setAttribute('aria-hidden', 'true');
       if (instant) { el.style.display = 'none'; return; }
@@ -93,11 +94,13 @@
     }
     if (document.readyState === 'complete') finishFirstLoad();
     else window.addEventListener('load', finishFirstLoad, { once: true });
-    setTimeout(finishFirstLoad, 6000);     // failsafe
+    setTimeout(finishFirstLoad, 3000);     // failsafe
 
     // ---- Leaving: cover the page while the next one is being built ----
+    // Only cover the page if the next one takes longer than 300ms, so fast navigations never flash it
     function leaving() {
-      show();
+      clearTimeout(showTimer);
+      showTimer = setTimeout(show, 300);
       clearTimeout(leaveFailsafe);
       // If we are still here after 15s (a download, a blocked navigation), let go
       leaveFailsafe = setTimeout(function () { hide(); }, 15000);
@@ -135,6 +138,6 @@
     });
 
     // For code that reloads the page itself (location.reload() after an AJAX save)
-    window.pagePreloader = { show: leaving, hide: function () { hide(); } };
+    window.pagePreloader = { show: function () { clearTimeout(showTimer); show(); clearTimeout(leaveFailsafe); leaveFailsafe = setTimeout(function () { hide(); }, 15000); }, hide: function () { hide(); } };
   })();
 </script>

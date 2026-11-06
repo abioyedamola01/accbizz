@@ -2,5 +2,15 @@
 
 {% block title %}Too many requests{% endblock title %}
 {% block code %}429{% endblock code %}
-{% block heading %}Too many requests{% endblock heading %}
-{% block message %}You’ve made too many attempts in a short time. Please wait a minute, then try again.{% endblock message %}
+{% block heading %}Too many attempts in a short time{% endblock heading %}
+{% block message %}We paused your requests to keep the site safe. Wait a minute, then try again.{% endblock message %}
+
+{% block actions %}
+{# Hidden until JS runs; the homepage link always works. #}
+{% include "components/_button.html" with label="Try again" variant="primary" size="lg" attrs="data-reload hidden" %}
+{% include "components/_button.html" with label="Go to homepage" href="/" variant="secondary" size="lg" %}
+{% if request.user.is_authenticated and request.user.is_staff_member %}
+{% url "dashboard_home" as dashboard_home_url %}
+{% include "components/_button.html" with label="Go to dashboard" href=dashboard_home_url variant="ghost" size="lg" %}
+{% endif %}
+{% endblock actions %}

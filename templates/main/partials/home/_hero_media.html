@@ -1,0 +1,12 @@
+{# Hero photo. Expects: src (already checked and trimmed). The container is a themed surface, so if the image fails to load nothing jumps and no broken icon shows. #}
+<div class="relative isolate">
+  <div class="absolute -bottom-3 -right-3 inset-0 -z-10 rounded-2xl bg-brand-200 dark:bg-brand-500/20" aria-hidden="true"></div>
+  <figure class="m-0 overflow-hidden rounded-2xl border border-line bg-raised aspect-[5/4]">
+    <img src="{{ src }}"
+         alt="{{ hero_section.img_alt|default:'Students working on computers' }}"
+         width="1400" height="1120"
+         class="h-full w-full object-cover object-center"
+         loading="eager" fetchpriority="high" decoding="async"
+         onerror="this.hidden=true" />
+  </figure>
+</div>

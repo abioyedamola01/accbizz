@@ -29,6 +29,8 @@
       });
       window.clearFieldErrors(form);
       setEditing(form, true);
+      // Lets a card with its own editor (for example the about intro) follow along
+      form.dispatchEvent(new CustomEvent('site-form:edit'));
     }
 
     // discard = true restores the snapshot (Cancel); false keeps what is in the fields (after a save)
@@ -40,6 +42,7 @@
       }
       window.clearFieldErrors(form);
       setEditing(form, false);
+      form.dispatchEvent(new CustomEvent(discard ? 'site-form:cancel' : 'site-form:saved'));
     }
 
     // After a successful save: put the new values into the read-only text and leave edit mode.

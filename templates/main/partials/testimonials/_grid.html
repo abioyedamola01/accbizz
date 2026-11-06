@@ -1,151 +1,60 @@
-<style>
-  /* Plain CSS so the card layout never depends on the Tailwind build.
-     A real grid (not CSS columns): cards already on screen never jump
-     between columns when more are added. */
-  .tst-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
-  @media (min-width: 768px) { .tst-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 1024px) { .tst-grid { grid-template-columns: repeat(3, 1fr); } }
-
-  .tst-card { display: flex; flex-direction: column; margin: 0; }
-  .tst-card figcaption { margin-top: auto; padding-top: 1.25rem; }
-  .tst-card:focus { outline: none; }
-
-  .tst-card-new { animation: tstIn 0.35s ease both; }
-  @keyframes tstIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .tst-card-new { animation: none; } }
-
-  .tst-more:disabled { opacity: 0.6; cursor: not-allowed; }
-</style>
-
-<section class="px-4 lg:px-6 py-10">
-  <div class="max-w-6xl mx-auto">
+{# Testimonials grid with load more. Behavior lives in ui.js (initTestimonialsMore), hooked by data attributes: [data-tst-grid], [data-tst-more] (data-url-template, data-batch-point), [data-tst-more-wrap], [data-tst-more-error], [data-tst-more-status], template[data-tst-skeleton]. Without JS the first batch is simply visible and the load more button does nothing. Context: testimonials, batch_point (None when there is no more; 0 still counts). #}
+<section class="pb-16 lg:pb-24" aria-labelledby="testimonials-list-title">
+  <div class="wrap">
+    <h2 id="testimonials-list-title" class="sr-only">All testimonials</h2>
 
     {% if testimonials|length %}
-    <div id="tstGrid" class="tst-grid">
-      {% include "main/partials/testimonials/_cards.html" %}
+    <div data-reveal>
+      {# auto-fill, not auto-fit: a single card keeps a normal width instead of stretching across the row #}
+      <div data-tst-grid class="grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17.5rem),1fr))]">
+        {% include "main/partials/testimonials/_cards.html" %}
+      </div>
     </div>
 
-    {# ---- Load more: only when the server says there is more (batch_point is not None; 0 still counts) ---- #}
+    {# Load more: only when the server says there is more (batch_point is not None; 0 still counts) #}
     {% if batch_point is not None %}
-    <div id="tstMoreWrap" class="mt-10 text-center">
-      {# The URL is built with a placeholder number that the script swaps for the current batch_point #}
-      <button type="button" id="tstLoadMore" class="tst-more inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-gray-200 bg-white text-sm font-semibold text-dark-900 hover:text-brand-500 cursor-pointer transition"
-        data-url-template="{% url "get_testimonials_batch" 123456789 %}"
-        data-batch-point="{{ batch_point }}">
-        <svg id="tstMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-        </svg>
-        <span id="tstMoreLabel">Load more testimonials</span>
+    <div data-tst-more-wrap class="mt-12 flex flex-col items-center gap-4">
+      {# The URL is built with a placeholder number that the script swaps for the current batch point #}
+      <button type="button" class="btn btn-secondary btn-md" data-tst-more
+              data-url-template="{% url "get_testimonials_batch" 123456789 %}"
+              data-batch-point="{{ batch_point }}">
+        <span data-tst-more-label>Load more testimonials</span>
       </button>
-      <p id="tstMoreError" role="alert" class="hidden mt-3 text-sm text-red-500"></p>
+      <p data-tst-more-error role="alert" hidden class="flex items-center gap-2 text-small text-danger-fg">
+        {% include "components/_icon.html" with name="exclamation-triangle" size=16 %}
+        <span data-tst-more-error-text></span>
+      </p>
     </div>
+
+    {# Loading state: three placeholder cards, cloned by the script while more are fetched #}
+    <template data-tst-skeleton>
+      <div class="card flex flex-col items-start gap-4" aria-hidden="true">
+        <span class="skeleton block h-6 w-6 rounded-full"></span>
+        <span class="skeleton block h-4 w-full"></span>
+        <span class="skeleton block h-4 w-full"></span>
+        <span class="skeleton block h-4 w-24"></span>
+        <span class="mt-auto flex items-center gap-3 pt-2">
+          <span class="skeleton block h-12 w-12 rounded-full"></span>
+          <span class="flex flex-col gap-2">
+            <span class="skeleton block h-4 w-24"></span>
+            <span class="skeleton block h-4 w-16"></span>
+          </span>
+        </span>
+      </div>
+    </template>
     {% endif %}
 
-    {# Screen readers hear how many were added #}
-    <p id="tstMoreStatus" class="sr-only" aria-live="polite"></p>
+    {# Screen readers hear loading progress and how many were added #}
+    <p data-tst-more-status class="sr-only" role="status" aria-live="polite"></p>
 
     {% else %}
-    <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-card border border-gray-100 px-6 py-10 text-center">
-      <p class="text-base font-semibold text-dark-900">No testimonials yet</p>
-      <p class="mt-1 text-sm text-gray-500">Be the first to share your experience.</p>
-      <a href="#share-testimonial" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 transition-colors">
-        Share your experience
-      </a>
+    <div class="empty-state" data-reveal>
+      <span class="icon-chip">{% include "components/_icon.html" with name="chat" size=20 %}</span>
+      <p class="text-body font-semibold text-ink">No testimonials yet</p>
+      <p class="text-body text-muted measure">Approved testimonials appear here once people have shared them. Yours could be the first.</p>
+      {% include "components/_button.html" with href="#share-testimonial" label="Share your experience" variant="secondary" size="md" %}
     </div>
     {% endif %}
 
   </div>
 </section>
-
-<script>
-  (function () {
-    var grid = document.getElementById('tstGrid');
-    var btn = document.getElementById('tstLoadMore');
-    if (!grid || !btn) return; // nothing more to load
-
-    var wrap = document.getElementById('tstMoreWrap');
-    var label = document.getElementById('tstMoreLabel');
-    var spinner = document.getElementById('tstMoreSpinner');
-    var errorEl = document.getElementById('tstMoreError');
-    var statusEl = document.getElementById('tstMoreStatus');
-
-    var PLACEHOLDER = '123456789'; // the number the url tag was rendered with
-    var batchPoint = btn.dataset.batchPoint;
-    var loading = false;
-
-    function urlFor(point) {
-      return btn.dataset.urlTemplate.replace(PLACEHOLDER, encodeURIComponent(point));
-    }
-
-    function setLoading(on, retry) {
-      loading = on;
-      btn.disabled = on;
-      spinner.classList.toggle('hidden', !on);
-      label.textContent = on ? 'Loading...' : (retry ? 'Try again' : 'Load more testimonials');
-    }
-
-    function showError() {
-      errorEl.textContent = 'We could not load more testimonials. Please check your connection and try again.';
-      errorEl.classList.remove('hidden');
-    }
-
-    btn.addEventListener('click', function () {
-      if (loading) return;
-      errorEl.classList.add('hidden');
-      setLoading(true);
-
-      var controller = new AbortController();
-      var timer = setTimeout(function () { controller.abort(); }, 15000);
-
-      fetch(urlFor(batchPoint), {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        signal: controller.signal,
-      })
-        .then(function (response) {
-          return response.json().then(
-            function (data) { return { ok: response.ok, data: data }; },
-            function () { return { ok: response.ok, data: null }; }
-          );
-        })
-        .then(function (result) {
-          var data = result.data;
-          if (!result.ok || !data || typeof data.html !== 'string') throw new Error('Unexpected response');
-
-          // The cards arrive already rendered (the same _cards.html partial as the page).
-          // They are parsed in a detached <template>, marked as new, then moved into the grid.
-          var holder = document.createElement('template');
-          holder.innerHTML = data.html;
-          var cards = Array.prototype.slice.call(holder.content.querySelectorAll('.tst-card'));
-
-          var firstNew = null;
-          cards.forEach(function (card) {
-            card.classList.add('tst-card-new');
-            card.setAttribute('tabindex', '-1'); // so the first new card can take focus
-            if (!firstNew) firstNew = card;
-            grid.appendChild(card);
-          });
-
-          // 0 would still be a valid batch point, so test for null/undefined, not for truthiness
-          var more = data.has_more === true && data.next_batch_point !== null && data.next_batch_point !== undefined;
-          var count = cards.length;
-          statusEl.textContent = count + (count === 1 ? ' more testimonial loaded' : ' more testimonials loaded') + (more ? '' : '. That is all of them.');
-
-          if (more) {
-            batchPoint = data.next_batch_point;
-            setLoading(false);
-          } else {
-            // Nothing left: remove the button and keep keyboard users in place
-            wrap.remove();
-            if (firstNew) firstNew.focus({ preventScroll: true });
-          }
-        })
-        .catch(function () {
-          showError();
-          setLoading(false, true);
-        })
-        .finally(function () { clearTimeout(timer); });
-    });
-  })();
-</script>

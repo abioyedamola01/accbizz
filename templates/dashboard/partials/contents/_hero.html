@@ -1,99 +1,67 @@
 {% load widget_tweaks %}
 
-
-{# ---- Hero image form (uploads with fetch as soon as a file is chosen; see the script at the bottom) ---- #}
-<form method="post" enctype="multipart/form-data" action="{% url "dashboard_update_hero" type="img"%}" class="hidden">
+{# Hero image form. It holds only the CSRF token: the file input sits next to the preview and joins this form through its form attribute. Uploads with fetch as soon as a file is chosen (see the script at the bottom). #}
+<form method="post" enctype="multipart/form-data" id="heroImgForm" action="{% url "dashboard_update_hero" type="img" %}" class="hidden">
   {% csrf_token %}
-  {% render_field hero_img_form.img id="heroImgInput" accept="image/*" class="hidden" %}
 </form>
 
-<div class="bg-white rounded-2xl shadow-card mt-4 p-5" data-site-info-card>
-  <form method="post" class="site-info-form" data-form-role="site-info" data-success-message="Hero section updated." action="{% url "dashboard_update_hero" type="info"%}">
+{# Fallback preview, used only when the database has no hero image #}
+{% with hero_fallback="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop" %}
+<section class="card" aria-labelledby="heroCardTitle" data-site-info-card>
+  <form method="post" class="site-info-form flex flex-col gap-6" data-form-role="site-info" data-success-message="Hero section updated." action="{% url "dashboard_update_hero" type="info" %}">
     {% csrf_token %}
 
-    <div class="mb-6 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div>
-              <p class="text-base text-dark-900">
-                  <span class="font-bold">Hero Section</span>
-              </p>
-              <p class="text-sm text-gray-500 mt-0.5">Manage homepage hero info.</p>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-          {# Cancel — separate element beside Save, only shown once edit mode is active #}
-          <button type="button" data-action="cancel"
-            class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 cursor-pointer hover:text-gray-700 opacity-0 pointer-events-none transition-opacity">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-            Cancel
-          </button>
-
-          <div class="inline-grid">
-            {# Edit trigger — plain div, never part of form submission #}
-            <div role="button" tabindex="0" data-action="edit"
-              class="col-start-1 row-start-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition-opacity">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2v-5"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              Edit
-            </div>
-
-            {# Save — real submit button, same grid cell as Edit, starts invisible #}
-            <button type="submit" data-action="save"
-              class="col-start-1 row-start-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 cursor-pointer hover:text-brand-600 opacity-0 pointer-events-none transition-opacity">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-8H7v8"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7 3v5h8"/>
-              </svg>
-              <span data-save-label>Save</span>
-            </button>
-          </div>
-        </div>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h2 id="heroCardTitle" class="font-sans text-lead font-semibold tracking-tight">Hero section</h2>
+        <p class="text-small text-muted">Manage the text and image at the top of the home page.</p>
+      </div>
+      {% include "dashboard/partials/contents/_edit_actions.html" %}
     </div>
 
-    {# ---- Hero image  ---- #}
-    <div class="mb-6 flex items-end gap-4">
+    {# ---- Hero image ---- #}
+    <div class="flex flex-wrap items-end gap-4">
       <div class="relative shrink-0">
-        <img
-          {% if hero_img_form.img.value %} src="{{ hero_img_form.img.value.url }}" {% else %} src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400&auto=format&fit=crop" {% endif %}
-          alt="Hero image" id="heroImgPreview"
-          class="w-40 h-24 rounded-lg object-cover">
+        <div class="h-24 w-40 overflow-hidden rounded-xl bg-raised">
+          <img
+            src="{% if hero_img_form.img.value %}{{ hero_img_form.img.value.url|cut:' '|default:hero_fallback }}{% else %}{{ hero_fallback }}{% endif %}"
+            alt="Current hero image" id="heroImgPreview" width="160" height="96"
+            class="h-full w-full object-cover" onerror="this.hidden=true" onload="this.hidden=false">
+        </div>
+        {# The file input is visually hidden but still reachable with the keyboard; the label shows its focus ring #}
+        {% render_field hero_img_form.img id="heroImgInput" form="heroImgForm" accept="image/*" class="peer sr-only" %}
         <label for="heroImgInput"
-          class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
-          aria-label="Change hero image">
-          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
+          class="photo-edit-btn">
+          <span class="sr-only">Change hero image</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
           </svg>
         </label>
       </div>
 
-      <div>
-        <p class="text-sm font-semibold text-dark-900">Hero Image</p>
-        <p class="text-xs text-gray-500 mt-0.5">Shown on the homepage hero. Landscape images work best.</p>
-        <a href="{% url "dashboard_update_hero" type="reset"%}" class="mt-4 text-xs font-semibold text-brand-500 hover:text-brand-600 cursor-pointer transition">Set to default</a>
+      <div class="flex flex-col items-start gap-1">
+        <p class="text-small font-semibold">Hero image</p>
+        <p class="text-caption text-muted">Shown on the home page hero. Landscape images work best.</p>
+        {# This link resets the image with a GET request. A POST would be safer; that is a backend change. #}
+        <a href="{% url "dashboard_update_hero" type="reset" %}" class="link-slide text-caption font-semibold text-link">Set to default</a>
       </div>
     </div>
 
-    <div class="divide-y divide-gray-100">
-
+    <div class="divide-y divide-line">
       {% for field in hero_form %}
-        <div class="flex items-start gap-4 py-2 first:pt-0">
-            <p class="w-40 h-7 shrink-0 text-sm text-gray-500 border-r border-gray-100 pr-4 leading-6">{{ field.label|title }}</p>
-            <div class="flex-1 min-w-0">
-            <p class="site-view-value text-sm text-dark-900 font-semibold leading-6">{{ field.value|title }}</p>
-            {% render_field field class+="site-edit-field hidden h-5 w-full max-w-100 leading-6 border-0 border-b border-gray-300 bg-transparent rounded-none px-1 py-0 pb-2 text-sm text-dark-900 placeholder:text-gray-400 placeholder:font-normal hover:border-gray-400 focus:outline-none focus:border-brand-400 ring-0 transition" %}
-            </div>
+        <div class="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:gap-4">
+          <label for="{{ field.id_for_label }}" class="shrink-0 text-small leading-6 text-muted sm:w-40 sm:border-r sm:border-line sm:pr-4">{{ field.label|capfirst }}</label>
+          <div class="min-w-0 flex-1">
+            {# |title is kept from the old template; remove it to show the text as typed #}
+            <p class="site-view-value text-small font-semibold leading-6">{{ field.value|title }}</p>
+            {% render_field field class+="site-edit-field hidden dash-input-inline max-w-md leading-6" %}
+          </div>
         </div>
       {% endfor %}
-
     </div>
   </form>
-</div>
+</section>
+{% endwith %}
 
 <script>
   // autoUploadImage comes from base/dashboard/partials/_form_helpers.html,
@@ -102,6 +70,7 @@
     autoUploadImage({
       input: document.getElementById('heroImgInput'),
       img: document.getElementById('heroImgPreview'),
+      form: document.getElementById('heroImgForm'),
       successFallback: 'Hero image updated.',
     });
   });

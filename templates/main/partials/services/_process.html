@@ -1,54 +1,62 @@
-{# Services: how it works. Static copy, edit the four steps below to match how the work really runs. #}
-<section class="px-4 lg:px-6 py-12">
-  <div class="max-w-6xl mx-auto">
+{# Services: how it works. Four soft cards with a tight gap and a round arrow centered between each pair (no images or icons: the text carries the step). A real sequence, so the numbers mean something. Static copy (flagged, see notes): edit the steps to match how the work really runs. The "Your part" and "Our part" pills say who acts in each step. Layout: from lg the grid is card, 0px arrow column, card, 0px arrow column and so on; each arrow cell is a flex box stretched to the row height, so the arrow is always vertically centered and spills equally into both neighbours. On mobile the cards stack in odd rows and each arrow sits in a zero-height row between them, pointing down. The arrows come after the cards in the source so they paint above the cards (no z-index needed); they are aria-hidden. The mt-* is the space between this section and the grid above it. #}
+<section class="mt-12 lg:mt-16 bg-surface py-16 lg:py-24" aria-labelledby="process-title">
+  <div class="wrap">
 
-    {# ---- Heading ---- #}
-    <div class="max-w-2xl mx-auto text-center mb-12">
-      <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight">
-        How it works
-      </h2>
-      <p class="mt-3 text-sm sm:text-base text-gray-500 leading-relaxed">
-        From first message to finished work, this is what to expect.
-      </p>
+    <div data-reveal>
+      {% include "components/_section_header.html" with eyebrow="Process" title_html='How it <span class="text-link">works</span>' intro="From first message to finished work, this is what to expect." id="process-title" %}
     </div>
 
-    {# ---- Steps (a real sequence, so the numbers mean something) ---- #}
-    <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+    <ol class="mt-12 grid gap-1 lg:[grid-template-columns:1fr_0px_1fr_0px_1fr_0px_1fr]" role="list">
 
-      <li class="relative">
-        <span class="w-10 h-10 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center">1</span>
-        {# Dashed connector to the next step, desktop only #}
-        <span class="hidden lg:block absolute top-5 left-14 -right-4 border-t border-dashed border-gray-300" aria-hidden="true"></span>
-        <h3 class="mt-4 text-base font-semibold text-dark-900">Tell us what you need</h3>
-        <p class="mt-2 text-sm text-gray-500 leading-relaxed">
-          Pick a service and share your topic, requirements and deadline.
-        </p>
+      <li data-reveal class="col-start-1 row-start-1 lg:col-start-1 lg:row-start-1 relative flex flex-col items-start gap-4 rounded-2xl bg-raised p-6 lg:p-8">
+        <p class="text-small font-semibold text-link">Step 1</p>
+        <h3 class="font-sans font-semibold tracking-tight text-balance text-lead">Tell us what you need</h3>
+        <p class="text-body text-muted">Pick a service and share your topic, requirements and deadline.</p>
+        <span class="badge mt-auto">Your part</span>
       </li>
 
-      <li class="relative">
-        <span class="w-10 h-10 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center">2</span>
-        <span class="hidden lg:block absolute top-5 left-14 -right-4 border-t border-dashed border-gray-300" aria-hidden="true"></span>
-        <h3 class="mt-4 text-base font-semibold text-dark-900">We review and confirm</h3>
-        <p class="mt-2 text-sm text-gray-500 leading-relaxed">
-          We check the details, confirm what is included and agree a timeline with you.
-        </p>
+      <li data-reveal class="col-start-1 row-start-3 lg:col-start-3 lg:row-start-1 relative flex flex-col items-start gap-4 rounded-2xl bg-raised p-6 lg:p-8">
+        <p class="text-small font-semibold text-link">Step 2</p>
+        <h3 class="font-sans font-semibold tracking-tight text-balance text-lead">We review and confirm</h3>
+        <p class="text-body text-muted">We check the details, confirm what is included and agree a timeline with you.</p>
+        <span class="badge mt-auto">Our part</span>
       </li>
 
-      <li class="relative">
-        <span class="w-10 h-10 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center">3</span>
-        <span class="hidden lg:block absolute top-5 left-14 -right-4 border-t border-dashed border-gray-300" aria-hidden="true"></span>
-        <h3 class="mt-4 text-base font-semibold text-dark-900">We get to work</h3>
-        <p class="mt-2 text-sm text-gray-500 leading-relaxed">
-          An expert takes on your project, and you can ask for an update at any point.
-        </p>
+      <li data-reveal class="col-start-1 row-start-5 lg:col-start-5 lg:row-start-1 relative flex flex-col items-start gap-4 rounded-2xl bg-raised p-6 lg:p-8">
+        <p class="text-small font-semibold text-link">Step 3</p>
+        <h3 class="font-sans font-semibold tracking-tight text-balance text-lead">We get to work</h3>
+        <p class="text-body text-muted">An expert takes on your project, and you can ask for an update at any point.</p>
+        <span class="badge mt-auto">Our part</span>
       </li>
 
-      <li class="relative">
-        <span class="w-10 h-10 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center">4</span>
-        <h3 class="mt-4 text-base font-semibold text-dark-900">Review and finish</h3>
-        <p class="mt-2 text-sm text-gray-500 leading-relaxed">
-          You receive the work, request changes if needed, and sign off when you are happy.
-        </p>
+      <li data-reveal class="col-start-1 row-start-7 lg:col-start-7 lg:row-start-1 relative flex flex-col items-start gap-4 rounded-2xl bg-raised p-6 lg:p-8">
+        <p class="text-small font-semibold text-link">Step 4</p>
+        <h3 class="font-sans font-semibold tracking-tight text-balance text-lead">Review and finish</h3>
+        <p class="text-body text-muted">You receive the work, request changes if needed, and sign off when you are happy.</p>
+        <span class="badge mt-auto">Your part</span>
+      </li>
+
+      {# Arrows between the cards #}
+      <li data-reveal aria-hidden="true" class="col-start-1 row-start-2 lg:col-start-2 lg:row-start-1 relative flex h-0 items-center justify-center lg:h-auto">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full border border-line-strong bg-raised text-link">
+            {% include "components/_icon.html" with name="arrow-right" size=16 cls="rotate-90 lg:rotate-0" %}
+          </span>
+        </span>
+      </li>
+      <li data-reveal aria-hidden="true" class="col-start-1 row-start-4 lg:col-start-4 lg:row-start-1 relative flex h-0 items-center justify-center lg:h-auto">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full border border-line-strong bg-raised text-link">
+            {% include "components/_icon.html" with name="arrow-right" size=16 cls="rotate-90 lg:rotate-0" %}
+          </span>
+        </span>
+      </li>
+      <li data-reveal aria-hidden="true" class="col-start-1 row-start-6 lg:col-start-6 lg:row-start-1 relative flex h-0 items-center justify-center lg:h-auto">
+        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface">
+          <span class="flex h-8 w-8 items-center justify-center rounded-full border border-line-strong bg-raised text-link">
+            {% include "components/_icon.html" with name="arrow-right" size=16 cls="rotate-90 lg:rotate-0" %}
+          </span>
+        </span>
       </li>
 
     </ol>

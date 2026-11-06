@@ -1,115 +1,52 @@
-{# About story  #}
-<section class="px-4 lg:px-6 py-6">
-  <div class="max-w-6xl mx-auto flex flex-col gap-6">
+{# About story. Expects about.story (text). Photo: about.img1 first, hard-coded photo only when it is missing, empty or blank. #}
+{# Optional: about.milestones, a list of objects with year, title, description. Renders a timeline only when present. #}
+{% if about.story %}
+{% with fallback_src="https://images.unsplash.com/photo-1758270705317-3ef6142d306f?q=80&w=1000&auto=format&fit=crop" %}
+<section class="section bg-surface border-y border-line" aria-labelledby="story-title">
+  <div class="wrap">
+    <div class="grid gap-12 lg:grid-cols-2 lg:gap-16 lg:items-center">
 
-    {# ---- Our Story: text left, image right ---- #}
-    <div class="bg-white rounded-3xl shadow-card overflow-hidden">
-      <div class="flex flex-col md:flex-row items-between">
-        <div class="w-full md:w-1/2 p-8 sm:p-12">
-            <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-dark-900 leading-tight mb-4">
-              Our Story
-            </h2>
-
-            <div class="story-text-wrapper">
-              <p class="story-text text-sm text-gray-600 text-justify leading-relaxed h-68 overflow-hidden">
-                {{ about.story }}
-              </p>
-            </div>
-
-            <button
-                type="button"
-                class="story-learn-more hidden mt-8 inline-flex items-center gap-2 text-sm font-semibold text-brand-500 hover:underline underline-offset-4 decoration-brand-500 hover:text-brand-600 hover:decoration-brand-600 cursor-pointer transition">
-                View full story
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-            </button>
+      {# ---- Copy: the full story is shown, no truncation or modal ---- #}
+      <div class="flex max-w-xl flex-col items-start gap-6" data-reveal>
+        <div class="flex max-w-2xl flex-col gap-3">
+          <h2 id="story-title" class="font-sans font-semibold tracking-tight text-balance leading-tight text-h3 sm:text-h2">Our <span class="text-link">story</span></h2>
         </div>
-
-        <div class="w-full md:w-1/2 h-64 md:h-120">
-
-          <img
-            src="https://images.unsplash.com/photo-1758270705317-3ef6142d306f?q=80&w=1000&auto=format&fit=crop"
-            alt="Accbizz tutors collaborating together"
-            class="w-full h-full object-cover"
-          />
-        </div>
-
+        <div class="flex flex-col gap-4 text-body text-muted measure">{{ about.story|linebreaks }}</div>
       </div>
+
+      {# ---- Photo ---- #}
+      <div data-reveal>
+        {% if about.img1 %}
+          {% with db_src=about.img1.url|cut:" " %}
+            {% with src=db_src|default:fallback_src %}{% include "main/partials/about/_story_media.html" %}{% endwith %}
+          {% endwith %}
+        {% else %}
+          {% include "main/partials/about/_story_media.html" with src=fallback_src %}
+        {% endif %}
+      </div>
+
     </div>
 
-    {# ---- Our Story: full text modal ---- #}
-    <div class="story-modal-overlay fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-      <div class="story-modal-box bg-white rounded-2xl shadow-xl w-full max-w-lg sm:max-w-xl max-h-[85vh] flex flex-col p-6 sm:p-8 relative">
-
-        <div class="story-modal-header flex-shrink-0 relative">
-          <button
-              type="button"
-              class="story-modal-close absolute top-0 right-0 text-gray-400 hover:text-gray-700 cursor-pointer transition"
-              aria-label="Close">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight text-dark-900 mb-4 pr-8">
-            Our Story
-          </h3>
-        </div>
-
-        <div class="story-modal-body flex-1 overflow-y-auto">
-          <p class="story-modal-text text-sm text-gray-600 text-justify leading-relaxed"></p>
-        </div>
-
-      </div>
+    {# ---- Timeline: only when the backend provides milestones ---- #}
+    {% if about.milestones %}
+    <div class="mt-16 flex flex-col gap-8">
+      <h3 class="font-sans font-semibold tracking-tight text-balance text-h3" data-reveal>Milestones</h3>
+      <ol class="ms-1.5 flex max-w-2xl flex-col gap-8 border-s border-line-strong" role="list">
+        {% for m in about.milestones %}
+        <li class="relative ps-8" data-reveal>
+          <span class="absolute -start-1.5 top-2 size-3 rounded-full bg-brand-400 ring-4 ring-surface" aria-hidden="true"></span>
+          <div class="flex flex-col gap-2">
+            {% if m.year %}<p class="text-small font-semibold text-link">{{ m.year }}</p>{% endif %}
+            <h4 class="font-sans font-semibold tracking-tight text-balance text-lead">{{ m.title }}</h4>
+            {% if m.description %}<p class="text-body text-muted">{{ m.description }}</p>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
     </div>
+    {% endif %}
 
   </div>
 </section>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.story-text-wrapper').forEach(function (wrapper) {
-      var textEl = wrapper.querySelector('.story-text');
-      var learnMoreBtn = wrapper.parentElement.querySelector('.story-learn-more');
-
-      if (!textEl || !learnMoreBtn) return;
-
-      // Only show "Learn more" if the text overflows its fixed height
-      if (textEl.scrollHeight > textEl.clientHeight) {
-        learnMoreBtn.classList.remove('hidden');
-      }
-
-      learnMoreBtn.addEventListener('click', function () {
-        var overlay = document.querySelector('.story-modal-overlay');
-        var modalText = overlay.querySelector('.story-modal-text');
-        modalText.textContent = textEl.textContent.trim();
-
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-        document.body.classList.add('overflow-hidden');
-      });
-    });
-
-    var overlay = document.querySelector('.story-modal-overlay');
-    if (overlay) {
-      var closeModal = function () {
-        overlay.classList.add('hidden');
-        overlay.classList.remove('flex');
-        document.body.classList.remove('overflow-hidden');
-      };
-
-      overlay.querySelector('.story-modal-close').addEventListener('click', closeModal);
-
-      // Close when clicking outside the modal box
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeModal();
-      });
-
-      // Close on Escape key
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
-      });
-    }
-  });
-</script>
+{% endwith %}
+{% endif %}

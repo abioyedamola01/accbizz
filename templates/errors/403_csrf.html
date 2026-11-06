@@ -1,19 +1,14 @@
-{# Shown when a form's security token is missing or expired (for example, a login or contact form left open too long).  #}
+{# Shown when a form's security token is missing or expired (for example, a login or contact form left open too long). #}
 {# Django renders this with no context, so keep it free of variables. Settings: CSRF_FAILURE_VIEW can stay the default. #}
-{% extends "errors/_error_layout.html" %}
+{% extends "errors/error_layout.html" %}
 
 {% block title %}This page has expired{% endblock title %}
 {% block code %}403{% endblock code %}
 {% block heading %}This page has expired{% endblock heading %}
-{% block message %}For your security, the form you were using timed out or could not be verified. Go back, refresh the page and try again.{% endblock message %}
+{% block message %}For your security, the form you were using timed out or couldn’t be verified. Go back, refresh the page and send the form again. Your answers may need to be re-entered.{% endblock message %}
 
 {% block actions %}
-<button type="button" onclick="if (history.length > 1) { history.back(); } else { location.href = '/'; }"
-   class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition cursor-pointer">
-  Go back and try again
-</button>
-<a href="/"
-   class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-dark-400/30 text-dark-400 text-sm font-semibold hover:bg-white/10 transition">
-  Go to Home Page
-</a>
+{# Hidden until JS confirms there is a page to go back to. Without it, only the homepage link shows. #}
+{% include "components/_button.html" with label="Go back and try again" variant="primary" size="lg" attrs="data-go-back hidden" %}
+{% include "components/_button.html" with label="Go to homepage" href="/" variant="secondary" size="lg" %}
 {% endblock actions %}

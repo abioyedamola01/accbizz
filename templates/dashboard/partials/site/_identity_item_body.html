@@ -1,0 +1,22 @@
+{# One row of the visual identity card. Params come from _identity_item.html, plus src ("" when nothing is saved). #}
+<div class="vi-item relative flex flex-col gap-4 py-6 first:pt-0 last:pb-0 sm:flex-row sm:gap-6" data-name="{{ name }}" data-field="{{ field.html_name }}" data-label="{{ short }}" data-max-mb="{{ max_mb }}">
+  <div class="grid h-24 w-full shrink-0 place-items-center overflow-hidden rounded-xl border border-line sm:w-40 {{ tile }}">
+    <img class="vi-img {{ img_cls }}" alt="{% if src %}Current {{ short }}{% endif %}" width="160" height="96"{% if src %} src="{{ src }}"{% else %} hidden{% endif %} onerror="this.hidden=true" />
+    <div class="vi-empty flex flex-col items-center gap-1 text-caption"{% if src %} hidden{% endif %}>
+      {% include "components/_icon.html" with name="photo" size=24 %}
+      <span>No {{ short }}</span>
+    </div>
+  </div>
+
+  <div class="flex min-w-0 flex-1 flex-col items-start gap-2">
+    <p class="text-small font-semibold text-ink">{{ label }}</p>
+    <p class="text-caption text-muted">{{ hint }}</p>
+    <p class="vi-note text-caption text-muted" id="{{ input_id }}_note" aria-live="polite">{% if src %}Current {{ short }}{% else %}No {{ short }} uploaded yet.{% endif %}</p>
+    {# The row is "relative" on purpose. sr-only is position:absolute, and without a positioned parent the input is placed against the viewport, so focusing it scrolls the whole app out of view (blank page). #}
+    {# A plain input, not render_field: Django's default file widget would print "Currently: ... Clear / Change:". Visually hidden but still focusable. #}
+    <input type="file" name="{{ field.html_name }}" id="{{ input_id }}" accept="image/*" class="peer sr-only" aria-describedby="{{ input_id }}_note">
+    <label for="{{ input_id }}" class="btn btn-secondary btn-sm cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-link">
+      {% include "components/_icon.html" with name="photo" size=16 %}<span>{% if src %}Replace file{% else %}Choose file{% endif %}</span>
+    </label>
+  </div>
+</div>

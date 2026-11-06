@@ -1,22 +1,22 @@
 {% for testimonial in testimonials %}
-<tbody class="tst-group divide-y divide-gray-100 border-b border-gray-100">
+<tbody class="tst-group divide-y divide-line border-b border-line">
   <tr>
     <td class="py-3 pr-4">
       <div class="flex flex-wrap items-baseline gap-x-2">
         {% if testimonial.name %}
-          <span class="text-sm font-semibold text-dark-900">{{ testimonial.name }}</span>
+          <span class="text-small font-semibold text-ink">{{ testimonial.name }}</span>
         {% else %}
-          <span class="text-sm font-semibold text-gray-400">Anonymous</span>
+          <span class="text-small font-semibold text-muted">Anonymous</span>
         {% endif %}
-        {% if testimonial.title %}<span class="text-xs text-gray-500">{{ testimonial.title }}</span>{% endif %}
+        {% if testimonial.title %}<span class="text-caption text-muted">{{ testimonial.title }}</span>{% endif %}
         {% if not testimonial.is_approved %}<span class="tst-pending-badge">Awaiting approval</span>{% endif %}
       </div>
-      <p class="tst-preview mt-0.5 text-sm text-gray-600">{{ testimonial.quote }}</p>
+      <p class="tst-preview text-small text-muted">{{ testimonial.quote }}</p>
     </td>
-    <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ testimonial.service.title|default:"General" }}</span></td>
-    <td class="py-3 pr-5">
-      <button type="button" onclick="toggleTestimonialRow(this)"
-        class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+    <td class="py-3 pr-4"><span class="text-small text-muted">{{ testimonial.service.title|default:"General" }}</span></td>
+    <td class="py-3 pr-4">
+      <button type="button" onclick="toggleTestimonialRow(this)" aria-label="{% if testimonial.is_approved %}Manage{% else %}Review{% endif %} testimonial from {{ testimonial.name|default:'anonymous' }}"
+        class="btn btn-link btn-sm"
         data-update-url="{% url "dashboard_update_testimonial" testimonial.slug %}"
         data-delete-url="{% url "dashboard_delete_testimonial" testimonial.slug %}"
         data-person-name="{{ testimonial.name|default_if_none:'' }}"

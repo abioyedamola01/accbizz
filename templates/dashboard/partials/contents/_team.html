@@ -2,19 +2,19 @@
 {% load static %}
 
 {# Team Members Table #}
-<div class="bg-white rounded-2xl shadow-card mt-8 p-5 overflow-hidden">
+<div class="card overflow-hidden">
 
   {# ---- Header ---- #}
-  <div class="flex items-center justify-between py-4 border-b border-gray-100">
+  <div class="flex items-center justify-between py-4 border-b border-line">
     <div class="flex items-center gap-2">
-      <h2 class="text-base font-bold text-dark-900">Team</h2>
-      <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ team|length }} members</span>
+      <h2 class="font-sans text-lead font-semibold tracking-tight">Team</h2>
+      <span class="badge">{{ team|length }} member{{ team|length|pluralize }}</span>
     </div>
 
     <div class="flex items-center gap-3">
         <button type="button" onclick="openAddMemberModal()"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="btn btn-primary btn-md">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
         </svg>
         Add member
@@ -26,49 +26,51 @@
   <div id="teamTableScroll" class="overflow-x-auto">
     <table class="w-full min-w-[720px] text-left">
       <thead>
-        <tr class="border-b border-gray-100">
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500"> </th>
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Email address</th>
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Role</th>
-          <th class="w-24 py-3 pr-5"></th>
+        <tr class="border-b border-line">
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted"><span class="sr-only">Member</span></th>
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Email address</th>
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Role</th>
+          <th scope="col" class="w-24 py-3 pr-4"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
 
       {% for member in team %}
-      <tbody class="team-member-group divide-y divide-gray-100 border-b border-gray-100">
+      <tbody class="team-member-group divide-y divide-line border-b border-line">
         <tr>
           <td class="py-3 pr-4">
             <div class="flex items-center gap-3">
-              <img {% if member.avatar %} src="{{ member.avatar.url }}" {% else %} src="{{ member.get_default_avatar }}" {% endif %} alt="{{ member.name }}" class="w-8 h-8 rounded-full object-cover shrink-0" />
+              <img {% if member.avatar %} src="{{ member.avatar.url }}" {% else %} src="{{ member.get_default_avatar }}" {% endif %} alt="" width="32" height="32" class="w-8 h-8 rounded-full object-cover shrink-0 bg-raised" />
               <div class="min-w-0">
-                <p class="text-sm font-semibold text-dark-900 truncate">{{ member.name|title }}</p>
+                <p class="text-small font-semibold text-ink truncate">{{ member.name|title }}</p>
               </div>
             </div>
           </td>
           <td class="py-3 pr-4">
-            <span class="text-sm text-gray-600">{{ member.email }}</span>
+            <span class="text-small text-muted">{{ member.email }}</span>
           </td>
           <td class="py-3 pr-4">
-            <span class="text-sm text-gray-600">{{ member.role|title }}</span>
+            <span class="text-small text-muted">{{ member.role|title }}</span>
           </td>
-          <td class="py-3 pr-5">
-              <div role="button" tabindex="0" onclick="toggleManageRow(this)"
-                class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition-opacity"
+          <td class="py-3 pr-4">
+              <button type="button" onclick="toggleManageRow(this)" aria-label="Manage {{ member.name }}"
+                class="btn btn-link btn-sm"
                 data-update-url="{% url "dashboard_update_team_member" member=member.slug %}"
                 data-delete-url="{% url "dashboard_remove_team_member" member=member.slug %}"
                 data-name="{{ member.name }}"
                 data-email="{{ member.email }}"
                 data-role="{{ member.role }}"
-                data-avatar="{% if member.avatar %}{{ member.avatar.url }}{% else %}{{ member.get_default_avatar }}{% endif %}">
-                Manage
-              </div>
+                data-avatar="{% if member.avatar %}{{ member.avatar.url }}{% else %}{{ member.get_default_avatar }}{% endif %}">Manage</button>
           </td>
         </tr>
 
-        {# ---- Empty placeholder row — JS builds the sticky, viewport-width panel into this <td> on demand ---- #}
+        {# ---- Empty placeholder row: JS builds the sticky, viewport-width panel into this <td> on demand ---- #}
         <tr class="team-manage-row hidden">
           <td colspan="4" class="p-0"></td>
         </tr>
+      </tbody>
+      {% empty %}
+      <tbody>
+        <tr><td colspan="4" class="py-12 text-center text-small text-muted">No team members yet. Use "Add member" to create the first one.</td></tr>
       </tbody>
       {% endfor %}
 
@@ -76,35 +78,35 @@
   </div>
 
   {# ---- Shared delete confirmation modal ---- #}
-  <div id="deleteMemberModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+  <div id="deleteMemberModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="deleteMemberModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-sm p-6 relative">
       <button type="button" onclick="closeDeleteConfirm()"
-        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition" aria-label="Close">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="icon-btn absolute top-4 right-4" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
-        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="w-11 h-11 rounded-full bg-danger-bg flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-danger-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
       </div>
 
-      <h3 class="text-base font-bold text-dark-900 mb-1">Remove team member</h3>
-      <p class="text-sm text-gray-500 mb-6">
-        Are you sure you want to remove <span id="deleteMemberName" class="font-semibold text-dark-900"></span> from the team? This action cannot be undone.
+      <h3 id="deleteMemberModalTitle" class="font-sans text-lead font-semibold tracking-tight">Remove team member</h3>
+      <p class="text-small text-muted mb-6">
+        Are you sure you want to remove <span id="deleteMemberName" class="font-semibold text-ink"></span> from the team? This action cannot be undone.
       </p>
 
       <form method="post" id="deleteMemberForm" action="">
         {% csrf_token %}
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="closeDeleteConfirm()"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit" id="deleteMemberSubmitBtn"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-danger btn-md">
             <svg id="deleteMemberSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -117,56 +119,60 @@
   </div>
 
 {# ---- Add member modal ---- #}
-  <div id="addMemberModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+  <div id="addMemberModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="addMemberModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-lg max-h-[85vh] flex flex-col relative">
 
-      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
-        <h3 class="text-base font-bold text-dark-900">Add team member</h3>
+      <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-line">
+        <h3 id="addMemberModalTitle" class="font-sans text-lead font-semibold tracking-tight">Add team member</h3>
         <button type="button" onclick="closeAddMemberModal()"
-          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          class="icon-btn" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-6 py-5">
+      <div class="flex-1 overflow-y-auto px-6 py-4">
         <form method="post" enctype="multipart/form-data" id="addMemberForm" action="{% url "dashboard_add_team_member" %}">
           {% csrf_token %}
 
-          <div class="flex items-center gap-4 mb-5">
+          <div class="flex items-center gap-4 mb-6">
             <div class="relative w-16 h-16 shrink-0">
-              <img class="add-form-avatar-preview w-16 h-16 rounded-full object-cover bg-gray-200"
-                src="https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000" alt="New member" />
+              <span class="add-form-avatar-placeholder flex h-16 w-16 items-center justify-center rounded-full bg-raised text-muted" aria-hidden="true">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+              </span>
+              <img class="add-form-avatar-preview hidden h-16 w-16 rounded-full bg-raised object-cover" alt="Selected photo" width="64" height="64" />
 
               <label
-                class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
+                class="photo-edit-btn"
                 aria-label="Upload photo">
-                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
                 </svg>
-                {% render_field team_form.avatar class+="add-form-avatar-input add-form-required-field hidden" %}
+                {% render_field team_form.avatar class+="add-form-avatar-input add-form-required-field sr-only" %}
               </label>
 
-              <span class="add-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-4.5 h-4.5 bg-emerald-500 rounded-full ring-2 ring-white items-center justify-center">
-                <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <span class="add-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-5 h-5 bg-success-fg rounded-full ring-2 ring-surface items-center justify-center">
+                <svg class="w-3 h-3 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
               </span>
             </div>
 
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-dark-900">Photo</p>
-              <p class="add-form-avatar-filename text-xs text-gray-500 mt-0.5 truncate">Click the pencil to upload a photo</p>
+              <p class="text-small font-semibold text-ink">Photo</p>
+              <p class="add-form-avatar-filename text-caption text-muted truncate">Click the pencil to upload a photo</p>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {% for field in team_form %}
               {% if field.name != "avatar" %}
-              <div class="min-w-0 {% if field.name == 'name' %}sm:col-span-2{% endif %}">
-                <label class="text-xs font-medium text-gray-500 block mb-1">{{ field.label }}</label>
-                {% render_field field class+="add-form-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+              <div class="min-w-0 {% if field.name == 'name' %} sm:col-span-2 {% endif %}">
+                {% with fid="addMember"|add:field.name %}
+                <label for="{{ fid }}" class="dash-label">{{ field.label }}</label>
+                {% render_field field id=fid class="dash-input add-form-required-field" %}
+                {% endwith %}
               </div>
               {% endif %}
             {% endfor %}
@@ -174,13 +180,13 @@
         </form>
       </div>
 
-      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-line">
         <button type="button" onclick="closeAddMemberModal()"
-          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          class="btn btn-ghost btn-md">
           Cancel
         </button>
         <button type="submit" form="addMemberForm" id="addMemberSaveBtn" disabled
-          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          class="btn btn-primary btn-md">
           <svg id="addMemberSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -193,37 +199,37 @@
   </div>
 </div>
 
-{# ---- Single reusable form template — rendered once, cloned per-member by JS ---- #}
+{# ---- Single reusable form template, rendered once, cloned per-member by JS ---- #}
 <template id="teamMemberFormTemplate">
-  <div class="bg-gray-50 border-t border-gray-100 p-5">
-    <form method="post" enctype="multipart/form-data" class="team-manage-form space-y-4">
+  <div class="bg-raised border-t border-line p-6">
+    <form method="post" enctype="multipart/form-data" class="team-manage-form flex flex-col gap-4">
       {% csrf_token %}
 
       <div class="flex items-center gap-4">
         {# Avatar preview + hidden file input, using the label itself as the edit trigger #}
         <div class="relative w-16 h-16 shrink-0">
-          <img class="team-form-avatar-preview w-16 h-16 rounded-full object-cover bg-gray-200" src="" alt="" />
+          <img class="team-form-avatar-preview w-16 h-16 rounded-full object-cover bg-raised" alt="" width="64" height="64" />
 
           <label
-            class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 hover:bg-brand-600 border-2 border-white text-white flex items-center justify-center cursor-pointer transition-colors"
+            class="photo-edit-btn"
             aria-label="Change photo">
-            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17h3.5L17.87 6.63a1.5 1.5 0 000-2.12l-1.38-1.38a1.5 1.5 0 00-2.12 0L4 13.5z"/>
             </svg>
-            <input type="file" name="avatar" accept="image/*" class="team-form-avatar-input hidden" />
+            <input type="file" name="avatar" accept="image/*" class="team-form-avatar-input sr-only" />
           </label>
 
           {# Shown once a new file is selected, confirming the upload registered #}
-          <span class="team-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-4.5 h-4.5 bg-emerald-500 rounded-full ring-2 ring-white items-center justify-center">
-            <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+          <span class="team-form-avatar-uploaded-badge hidden absolute -top-1 -left-1 w-5 h-5 bg-success-fg rounded-full ring-2 ring-surface items-center justify-center">
+            <svg class="w-3 h-3 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </span>
         </div>
 
         <div class="min-w-0">
-          <p class="text-sm font-semibold text-dark-900">Photo</p>
-          <p class="team-form-avatar-filename text-xs text-gray-500 mt-0.5 truncate">Click the pencil to upload a new photo</p>
+          <p class="text-small font-semibold text-ink">Photo</p>
+          <p class="team-form-avatar-filename text-caption text-muted truncate">Click the pencil to upload a new photo</p>
         </div>
       </div>
 
@@ -231,16 +237,18 @@
         {% for field in team_form %}
           {% if field.name != "avatar" %}
           <div class="min-w-0">
-            <label class="text-xs font-medium text-gray-500 block mb-1">{{ field.label }}</label>
-            {% render_field field class+="team-form-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            {% with fid="editMember"|add:field.name %}
+            <label for="{{ fid }}" class="dash-label">{{ field.label }}</label>
+            {% render_field field id=fid class="dash-input team-form-field" %}
+            {% endwith %}
           </div>
           {% endif %}
         {% endfor %}
       </div>
 
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-        <button type="button" class="team-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openDeleteConfirm(this)">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button type="button" class="btn btn-ghost btn-sm text-danger-fg team-form-delete-btn" onclick="openDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
           </svg>
           Delete member
@@ -248,11 +256,11 @@
 
         <div class="flex items-center gap-3">
           <button type="button" onclick="toggleManageRow(this)"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit"
-            class="team-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-primary btn-md team-form-save-btn">
             <svg class="team-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -407,6 +415,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeDeleteConfirm() {
@@ -414,6 +423,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
   }
 
   document.addEventListener('click', function (event) {
@@ -435,6 +445,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeAddMemberModal() {
@@ -444,6 +455,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
 
     // Reset the form so a re-open starts clean (not mid-"Creating..." state,
     // no stale preview/filename from a previously selected file)
@@ -452,7 +464,11 @@
     document.getElementById('addMemberSaveLabel').textContent = 'Create member';
 
     const preview = form.querySelector('.add-form-avatar-preview');
-    preview.src = "https://img.icons8.com/?size=100&id=tZuAOUGm9AuS&format=png&color=000000";
+    // Back to the neutral placeholder (no hard-coded photo)
+    preview.removeAttribute('src');
+    preview.classList.add('hidden');
+    const placeholder = form.querySelector('.add-form-avatar-placeholder');
+    if (placeholder) placeholder.classList.remove('hidden');
     form.querySelector('.add-form-avatar-uploaded-badge').classList.add('hidden');
     form.querySelector('.add-form-avatar-filename').textContent = 'Click the pencil to upload a photo';
 
@@ -489,10 +505,13 @@
 
     const form = input.closest('form');
     const preview = form.querySelector('.add-form-avatar-preview');
+    const placeholder = form.querySelector('.add-form-avatar-placeholder');
     const badge = form.querySelector('.add-form-avatar-uploaded-badge');
     const filenameEl = form.querySelector('.add-form-avatar-filename');
 
     preview.src = URL.createObjectURL(file);
+    preview.classList.remove('hidden');
+    if (placeholder) placeholder.classList.add('hidden');
     badge.classList.remove('hidden');
     badge.classList.add('flex');
     filenameEl.textContent = file.name;

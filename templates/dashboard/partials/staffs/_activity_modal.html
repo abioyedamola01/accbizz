@@ -1,129 +1,106 @@
-{# Summary cards layout. Plain CSS so it works without a Tailwind rebuild: 1 : 1 : 2 columns (25% / 25% / 50%) from 640px up, stacked below. #}
-<style>
-  .act-summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-  @media (min-width: 640px) {
-    .act-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); }
-  }
-</style>
+{# Activity report modal for one staff member. Behavior: static/js/staff_activity.js (opened with window.openStaffActivity). #}
+{# Sizing: staff_activity.js moves this modal to <body> and sets --act-left to the sidebar's right edge, so the panel fills the free space beside the sidebar and never sits under it. #}
+{# Classes that staff_activity.js adds from script, listed here so Tailwind compiles them (it only scans templates): #}
+{# badge bg-success-bg text-success-fg bg-danger-bg text-danger-fg text-ink text-muted text-success-fg text-danger-fg bg-raised bg-brand-500 bg-danger-fg seg-btn is-active #}
+{# min-w-0 flex flex-col items-baseline justify-between gap-1 gap-2 gap-3 py-3 h-2 truncate shrink-0 text-small text-caption font-semibold font-medium overflow-hidden rounded-full min-w-[1.75rem] px-2 py-1 text-center #}
 
 {% include "dashboard/partials/_time_zone.html" %}
 
-<div id="activityModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4 py-6">
-  <div id="activityOverlay" class="absolute inset-0 bg-dark-900/70"></div>
+<div id="activityModal" class="fixed inset-y-0 right-0 left-[var(--act-left,0px)] z-[var(--z-modal)] hidden bg-dark-900/60">
 
-  <div id="activityDialog" class="relative w-full max-w-4xl max-h-full flex flex-col bg-white rounded-2xl shadow-card overflow-hidden"
+  <div id="activityOverlay" class="absolute inset-0" aria-hidden="true"></div>
+
+  <div id="activityDialog"
+    class="relative flex h-full w-full flex-col overflow-hidden border-l border-line bg-surface"
     role="dialog" aria-modal="true" aria-labelledby="activityTitle">
 
     {# ---- Header ---- #}
-    <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100">
-      <div class="flex items-center gap-3 min-w-0">
-        <img id="actAvatar" src="" alt="" class="w-11 h-11 rounded-xl object-cover shrink-0 bg-gray-100" />
+    <div class="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="flex h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-raised">
+          <img id="actAvatar" hidden alt="" width="44" height="44" class="h-full w-full object-cover" onerror="this.hidden=true" />
+        </span>
         <div class="min-w-0">
-          <h2 id="activityTitle" class="text-base font-bold text-dark-900">Activity report</h2>
-          <p id="actWho" class="text-sm text-gray-500 truncate"></p>
-          <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-            <span id="actRole" class="font-medium text-gray-600"></span>
-            <span id="actStatus" class="rounded-full px-2 py-0.5 font-medium"></span>
+          <h3 id="activityTitle" class="font-sans text-lead font-semibold tracking-tight">Activity report</h3>
+          <p id="actWho" class="truncate text-small text-muted"></p>
+          <p class="mt-1 flex flex-wrap items-center gap-2 text-caption text-muted">
+            <span id="actRole" class="font-medium text-ink"></span>
+            <span id="actStatus"></span>
             <span id="actLastLogin"></span>
           </p>
         </div>
       </div>
 
-      <div class="shrink-0 flex items-center gap-1">
-        {# Full screen / shrink: one button, the script swaps the icon and the label #}
-        <button type="button" id="activityFullscreen" aria-label="Full screen" title="Full screen"
-          class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer">
-          <svg id="actExpandIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/>
-          </svg>
-          <svg id="actShrinkIcon" class="hidden w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"/>
-          </svg>
-        </button>
-
-        <button type="button" id="activityClose"
-          class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+      <div class="flex shrink-0 items-center gap-1">
+        <button type="button" id="activityClose" class="icon-btn" aria-label="Close">
+          {% include "components/_icon.html" with name="x-mark" size=20 %}
         </button>
       </div>
     </div>
 
     {# ---- Filter bar ---- #}
-    <div class="px-5 py-3 border-b border-gray-100">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div id="actRangeTabs" class="inline-flex self-start rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Report period">
-          <button type="button" data-range="7d" class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition">7d</button>
-          <button type="button" data-range="30d" class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition">30d</button>
-          <button type="button" data-range="90d" class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition">90d</button>
-          <button type="button" data-range="custom" aria-expanded="false" aria-controls="actCustomForm" class="px-3.5 py-2 text-sm font-semibold cursor-pointer transition">Custom</button>
+    <div class="flex flex-col gap-4 border-b border-line px-6 py-4">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div id="actRangeTabs" class="seg self-start" role="group" aria-label="Report period">
+          <button type="button" data-range="7d" class="seg-btn" aria-pressed="false">7 days</button>
+          <button type="button" data-range="30d" class="seg-btn" aria-pressed="false">30 days</button>
+          <button type="button" data-range="90d" class="seg-btn" aria-pressed="false">90 days</button>
+          <button type="button" data-range="custom" class="seg-btn" aria-pressed="false" aria-expanded="false" aria-controls="actCustomForm">Custom</button>
         </div>
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          <span id="actRangeLabel" class="text-xs text-gray-500"></span>
-          <span data-tz-notice hidden>
-      <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
-        <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
-        </svg>
-        <span data-tz-text></span>
-      </span>
-    </span>
+        <div class="flex flex-wrap items-center gap-3">
+          <span id="actRangeLabel" class="text-caption text-muted"></span>
+          {# Shown only when the browser is not in the dashboard's zone (see partials/_time_zone.html) #}
+          <span data-tz-notice hidden class="inline-flex items-center gap-2 rounded-full border border-line bg-raised px-3 py-1 text-caption text-muted">
+            {% include "components/_icon.html" with name="clock" size=16 %}
+            <span data-tz-text></span>
+          </span>
         </div>
       </div>
 
-      {# Starts "hidden" and gets "flex" when opened (same as the Reports page) #}
-      <form id="actCustomForm" class="hidden flex-wrap flex-col gap-3 mt-3 sm:flex-row sm:items-end" novalidate>
-        <div>
-          <label for="actFrom" class="block mb-1.5 text-xs font-medium text-gray-700">From</label>
-          <input type="date" id="actFrom" required max="{% now 'Y-m-d' %}"
-            class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
+      {# Starts hidden; the script adds flex when it opens #}
+      <form id="actCustomForm" class="hidden flex-col gap-4 sm:flex-row sm:items-end" novalidate>
+        <div class="flex flex-col gap-2">
+          <label for="actFrom" class="dash-label">From</label>
+          <input type="date" id="actFrom" required max="{% now 'Y-m-d' %}" class="dash-input sm:w-44">
         </div>
-        <div>
-          <label for="actTo" class="block mb-1.5 text-xs font-medium text-gray-700">To</label>
-          <input type="date" id="actTo" required max="{% now 'Y-m-d' %}"
-            class="w-full sm:w-44 h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm text-dark-900 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition">
+        <div class="flex flex-col gap-2">
+          <label for="actTo" class="dash-label">To</label>
+          <input type="date" id="actTo" required max="{% now 'Y-m-d' %}" class="dash-input sm:w-44">
         </div>
-        <button type="submit"
-          class="h-10 px-5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 cursor-pointer transition-colors">Apply</button>
-        <p data-tz-dates-note class="w-full text-xs text-gray-500"></p>
+        <button type="submit" class="btn btn-primary btn-md">Apply</button>
+        <p data-tz-dates-note class="w-full text-caption text-muted sm:order-last"></p>
       </form>
     </div>
 
     {# ---- Body (scrolls) ---- #}
-    <div id="actBody" class="flex-1 overflow-y-auto bg-cream p-4 sm:p-5">
+    <div id="actBody" class="flex-1 overflow-y-auto bg-page p-4 sm:p-6">
 
-      {# Loading skeleton #}
+      {# Loading #}
       <div id="actLoading">
-        <div role="status" class="animate-pulse flex flex-col gap-4">
+        <div role="status" class="flex flex-col gap-4">
           <span class="sr-only">Loading activity report</span>
-          <div class="act-summary">
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <div class="h-3 w-20 rounded bg-gray-200"></div>
-              <div class="mt-3 h-7 w-16 rounded bg-gray-200"></div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <div class="h-3 w-20 rounded bg-gray-200"></div>
-              <div class="mt-3 h-7 w-16 rounded bg-gray-200"></div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <div class="h-3 w-20 rounded bg-gray-200"></div>
-              <div class="mt-3 h-7 w-32 rounded bg-gray-200"></div>
-            </div>
+          <div class="grid grid-cols-1 gap-4 sm:[grid-template-columns:minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+            <div class="card flex flex-col gap-3"><div class="skeleton h-4 w-24"></div><div class="skeleton h-8 w-16"></div></div>
+            <div class="card flex flex-col gap-3"><div class="skeleton h-4 w-24"></div><div class="skeleton h-8 w-16"></div></div>
+            <div class="card flex flex-col gap-3"><div class="skeleton h-4 w-24"></div><div class="skeleton h-8 w-32"></div></div>
           </div>
-          <div class="bg-white rounded-2xl shadow-card p-5"><div class="h-56 rounded-xl bg-gray-100"></div></div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-white rounded-2xl shadow-card p-5"><div class="h-32 rounded-xl bg-gray-100"></div></div>
-            <div class="bg-white rounded-2xl shadow-card p-5"><div class="h-32 rounded-xl bg-gray-100"></div></div>
+          <div class="card"><div class="skeleton h-56 w-full"></div></div>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="card"><div class="skeleton h-32 w-full"></div></div>
+            <div class="card"><div class="skeleton h-32 w-full"></div></div>
           </div>
         </div>
       </div>
 
       {# Error #}
       <div id="actError" hidden>
-        <div class="bg-white rounded-2xl shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p id="actErrorMsg" class="text-sm text-gray-600">Couldn't load the activity report.</p>
-          <button type="button" id="actRetry" class="inline-flex w-fit items-center rounded-xl bg-dark-800 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 cursor-pointer transition">Retry</button>
+        <div class="card flex flex-col items-start gap-4" role="alert">
+          <span class="icon-chip bg-danger-bg text-danger-fg">{% include "components/_icon.html" with name="exclamation-triangle" size=24 %}</span>
+          <p id="actErrorMsg" class="text-small text-ink">Couldn't load the activity report. Check your connection and try again.</p>
+          <button type="button" id="actRetry" class="btn btn-secondary btn-md">
+            {% include "components/_icon.html" with name="arrow-path" size=16 %}
+            Try again
+          </button>
         </div>
       </div>
 
@@ -131,62 +108,63 @@
       <div id="actContent" hidden>
         <div class="flex flex-col gap-4">
 
-          {# Summary cards: 25% / 25% / 50% on wider screens, stacked on phones (see .act-summary at the top of this file) #}
-          <div class="act-summary">
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <p class="text-xs font-medium text-gray-500">Total actions</p>
-              <p id="actTotal" class="mt-2 text-2xl font-extrabold text-dark-900">-</p>
-              <p class="mt-1 text-xs text-gray-500">In the selected period</p>
+          {# Summary cards: 1 : 1 : 2 columns from 640px up, stacked below #}
+          <div class="grid grid-cols-1 gap-4 sm:[grid-template-columns:minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
+            <div class="card flex flex-col gap-1">
+              <p class="text-caption font-medium text-muted">Total actions</p>
+              <p id="actTotal" class="font-sans text-h3 font-semibold tracking-tight">-</p>
+              <p class="text-caption text-muted">In the selected period</p>
             </div>
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <p class="text-xs font-medium text-gray-500">Failed actions</p>
-              <p id="actFailed" class="mt-2 text-2xl font-extrabold text-dark-900">-</p>
-              <p id="actFailedNote" class="mt-1 text-xs text-gray-500"></p>
+            <div class="card flex flex-col gap-1">
+              <p class="text-caption font-medium text-muted">Failed actions</p>
+              <p id="actFailed" class="font-sans text-h3 font-semibold tracking-tight">-</p>
+              <p id="actFailedNote" class="text-caption text-muted"></p>
             </div>
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <p class="text-xs font-medium text-gray-500">Last action</p>
-              <p id="actLastAt" class="mt-2 text-lg font-extrabold text-dark-900">-</p>
-              <p id="actLastLabel" class="mt-1 text-xs text-gray-500 line-clamp-2"></p>
+            <div class="card flex flex-col gap-1">
+              <p class="text-caption font-medium text-muted">Last action</p>
+              <p id="actLastAt" class="font-sans text-lead font-semibold tracking-tight">-</p>
+              <p id="actLastLabel" class="line-clamp-2 text-caption text-muted"></p>
             </div>
           </div>
 
           {# Chart #}
-          <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-dark-900">Actions per day</h3>
-            <div id="actChartBox" class="relative mt-4 h-56">
-              <canvas id="actCanvas" role="img" aria-label="Bar chart of this staff member's actions over time"></canvas>
+          <div class="card flex flex-col gap-4">
+            <h4 class="font-sans text-body font-semibold tracking-tight">Actions per day</h4>
+            <div id="actChartBox" class="relative h-72">
+              <canvas id="actCanvas" role="img" aria-label="Bar chart of this staff member's actions per day, successful and failed"></canvas>
             </div>
-            <p id="actChartEmpty" hidden class="mt-4 text-sm text-gray-500">No activity in this period.</p>
+            <p id="actChartEmpty" hidden class="text-small text-muted">No activity in this period.</p>
           </div>
 
           {# Breakdowns #}
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <h3 class="text-sm font-semibold text-dark-900">Actions by type</h3>
-              <p class="text-xs text-gray-500">Failed attempts are shown in red</p>
-              <ul id="actByType" class="mt-4 flex flex-col gap-3"></ul>
-              <p id="actByTypeEmpty" hidden class="mt-4 text-sm text-gray-500">No activity in this period.</p>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div class="card flex flex-col gap-4">
+              <div class="flex flex-col gap-1">
+                <h4 class="font-sans text-body font-semibold tracking-tight">Actions by type</h4>
+                <p class="text-caption text-muted">Failed attempts are marked in red and counted as failed.</p>
+              </div>
+              <ul id="actByType" class="flex flex-col gap-3"></ul>
+              <p id="actByTypeEmpty" hidden class="text-small text-muted">No activity in this period.</p>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-              <h3 class="text-sm font-semibold text-dark-900">Failures by reason</h3>
-              <ul id="actFailures" class="mt-4 flex flex-col divide-y divide-gray-100"></ul>
-              <p id="actFailuresEmpty" hidden class="mt-4 text-sm font-medium text-green-600">No failed actions in this period.</p>
+            <div class="card flex flex-col gap-4">
+              <h4 class="font-sans text-body font-semibold tracking-tight">Failures by reason</h4>
+              <ul id="actFailures" class="flex flex-col divide-y divide-line"></ul>
+              <p id="actFailuresEmpty" hidden class="text-small font-medium text-success-fg">No failed actions in this period.</p>
             </div>
           </div>
 
           {# Recent actions #}
-          <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-            <h3 class="text-sm font-semibold text-dark-900">Recent actions</h3>
-            <ul id="actRecent" class="mt-3 flex flex-col divide-y divide-gray-100"></ul>
-            <p id="actRecentEmpty" hidden class="mt-4 text-sm text-gray-500">No actions recorded yet.</p>
+          <div class="card flex flex-col gap-4">
+            <h4 class="font-sans text-body font-semibold tracking-tight">Recent actions</h4>
+            <ul id="actRecent" class="flex flex-col divide-y divide-line"></ul>
+            <p id="actRecentEmpty" hidden class="text-small text-muted">No actions recorded yet.</p>
 
-            <div id="actMoreWrap" hidden class="pt-4 text-center">
-              <button type="button" id="actMoreBtn"
-                class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
-                <svg id="actMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <div id="actMoreWrap" hidden class="flex justify-center">
+              <button type="button" id="actMoreBtn" class="btn btn-secondary btn-md">
+                <svg id="actMoreSpinner" class="spinner hidden" width="16" height="16" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
                 <span id="actMoreLabel">See more</span>
               </button>
@@ -198,613 +176,3 @@
     </div>
   </div>
 </div>
-
-{# Chart.js, pinned (same version as the Reports page). Loaded here, before the script below. #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-  (function () {
-    var TZ = (window.DashboardTime && window.DashboardTime.TZ) || 'Africa/Lagos'; // set in partials/_time_zone.html
-    var BRAND = '#EF6B2E';
-    var DANGER = '#ef4444';
-    var DEFAULT_RANGE = '30d';
-    var TIMEOUT_MS = 120000; // 2 minutes: 90d with 6-hour points returns a lot of data
-    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    // ---- Labels you can edit ----
-    var ACTION_LABELS = {
-      'auth.login': 'Logins',
-      'auth.otp.verify': 'OTP verifications',
-      'staff.invite': 'Staff invites',
-      'profile.update': 'Profile updates',
-      'profile.avatar.update': 'Profile picture updates',
-      'site.visuals.update': 'Visual identity updates'
-    };
-
-    function $(id) { return document.getElementById(id); }
-    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
-    function el(tag, className, text) {
-      var node = document.createElement(tag);
-      if (className) node.className = className;
-      if (text !== undefined) node.textContent = text;
-      return node;
-    }
-
-    var modal = $('activityModal');
-    var states = { loading: $('actLoading'), error: $('actError'), content: $('actContent') };
-    function show(name) {
-      Object.keys(states).forEach(function (key) { states[key].hidden = key !== name; });
-    }
-
-    // ---- State for the staff member whose modal is open ----
-    var state = null;          // { email, name, logsUrl, moreUrl, range, from, to, nextPoint, hasMore, seen }
-    var opener = null;         // the Options button to return focus to
-    var controller = null;     // the report request in flight
-    var moreController = null; // the "see more" request in flight
-    var requestId = 0;         // bumped whenever the open staff or the filters change, so late answers are ignored
-    var chart = null;
-    var chartMode = 'empty';   // what the chart area is showing: 'chart' or 'empty'
-    var fullscreen = false;
-
-    // ---- Full screen ----
-    var dialog = $('activityDialog');
-    var DIALOG_NORMAL = ['max-w-4xl', 'max-h-full', 'rounded-2xl'];
-    var DIALOG_FULL = ['max-w-none', 'h-full', 'rounded-none'];
-    var ROOT_NORMAL = ['px-4', 'py-6'];
-    var ROOT_FULL = ['p-0'];
-    var CHART_NORMAL = 'h-56';
-    var CHART_FULL = 'h-80';
-
-    function swapClasses(node, remove, add) {
-      remove.forEach(function (c) { node.classList.remove(c); });
-      add.forEach(function (c) { node.classList.add(c); });
-    }
-
-    function setFullscreen(on) {
-      fullscreen = on;
-      swapClasses(dialog, on ? DIALOG_NORMAL : DIALOG_FULL, on ? DIALOG_FULL : DIALOG_NORMAL);
-      swapClasses(modal, on ? ROOT_NORMAL : ROOT_FULL, on ? ROOT_FULL : ROOT_NORMAL);
-      ['actChartBox'].forEach(function (id) {
-        $(id).classList.remove(on ? CHART_NORMAL : CHART_FULL);
-        $(id).classList.add(on ? CHART_FULL : CHART_NORMAL);
-      });
-      $('actExpandIcon').classList.toggle('hidden', on);
-      $('actShrinkIcon').classList.toggle('hidden', !on);
-      var label = on ? 'Exit full screen' : 'Full screen';
-      $('activityFullscreen').setAttribute('aria-label', label);
-      $('activityFullscreen').title = label;
-      if (chart) chart.resize();
-    }
-
-    // ---- Formatting ----
-    function lagos(opts) { return new Intl.DateTimeFormat('en-GB', Object.assign({ timeZone: TZ }, opts)); }
-    var dateTimeFmt = lagos({ day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
-    var dateTimeYearFmt = lagos({ day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
-    var dayFmt = lagos({ day: 'numeric', month: 'short' });
-    var dayYearFmt = lagos({ day: 'numeric', month: 'short', year: 'numeric' });
-    var yearFmt = lagos({ year: 'numeric' });
-
-    function fmtNumber(n) { return (Number(n) || 0).toLocaleString(); }
-    function fmtDateTime(iso) {
-      var d = new Date(iso);
-      if (isNaN(d.getTime())) return '';
-      var sameYear = yearFmt.format(d) === yearFmt.format(new Date());
-      return (sameYear ? dateTimeFmt : dateTimeYearFmt).format(d);
-    }
-    function titleCase(text) {
-      text = String(text || '').replace(/[-_.]+/g, ' ').trim();
-      return text.charAt(0).toUpperCase() + text.slice(1);
-    }
-    function actionLabel(code) { return ACTION_LABELS[code] || titleCase(code); }
-
-    // "2026-10-26" -> "26 Oct" (split by hand so time zones can't shift the day)
-    function dayLabel(key) {
-      var p = String(key).split('-');
-      return p.length === 3 ? parseInt(p[2], 10) + ' ' + MONTHS[parseInt(p[1], 10) - 1] : String(key);
-    }
-    function nextDay(key) {
-      var p = key.split('-');
-      return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1)).toISOString().slice(0, 10);
-    }
-
-    // ---- Controls ----
-    var TAB_ON = 'bg-dark-800 text-white';
-    var TAB_OFF = 'bg-white text-gray-600 hover:bg-gray-50';
-    var TAB_BASE = 'px-3.5 py-2 text-sm font-semibold transition ';
-
-    // The option that is already selected is disabled, so there is nothing to click to ask for the
-    // same data again. "Custom" stays clickable because it opens the date form to pick new dates.
-    function paintControls() {
-      $('actRangeTabs').querySelectorAll('button').forEach(function (btn) {
-        var on = btn.dataset.range === state.range;
-        var locked = on && btn.dataset.range !== 'custom';
-        btn.disabled = locked;
-        btn.className = TAB_BASE + (on ? TAB_ON : TAB_OFF) + (locked ? ' cursor-default' : ' cursor-pointer');
-        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-    }
-
-    function setCustomFormOpen(open) {
-      var form = $('actCustomForm');
-      form.classList.toggle('hidden', !open);
-      form.classList.toggle('flex', open);
-      $('actRangeTabs').querySelector('[data-range="custom"]').setAttribute('aria-expanded', open ? 'true' : 'false');
-    }
-
-    // "To" can't be earlier than "From"; "From" can't be later than "To"
-    function keepOrder() {
-      var from = $('actFrom'), to = $('actTo');
-      to.min = from.value || '';
-      from.max = to.value || to.getAttribute('max') || '';
-    }
-
-    // ---- Header ----
-    function paintHeaderBasics() {
-      $('actAvatar').src = state.avatar || '';
-      $('actAvatar').alt = state.name || '';
-      $('actWho').textContent = state.name && state.email && state.name !== state.email ? state.name + ' \u00b7 ' + state.email : (state.email || '');
-      $('actRole').textContent = '';
-      $('actStatus').textContent = '';
-      $('actStatus').className = '';
-      $('actLastLogin').textContent = '';
-    }
-
-    function paintHeader(staff) {
-      if (!staff) return;
-      var name = staff.name || state.name;
-      var email = staff.email || state.email;
-      $('actWho').textContent = name && email && name !== email ? name + ' \u00b7 ' + email : (email || '');
-      $('actRole').textContent = staff.role ? titleCase(staff.role) : '';
-
-      var status = $('actStatus');
-      var active = String(staff.status || '').toLowerCase() === 'active';
-      status.textContent = staff.status || '';
-      status.className = 'rounded-full px-2 py-0.5 font-medium ' + (active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500');
-
-      $('actLastLogin').textContent = staff.last_login ? 'Last login ' + fmtDateTime(staff.last_login) : 'Never logged in';
-    }
-
-    function paintRange(info) {
-      var label = $('actRangeLabel');
-      var from = info && new Date(info.range_from);
-      var to = info && new Date(info.range_to);
-      if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) { label.textContent = ''; return; }
-      label.textContent = dayFmt.format(from) + ' to ' + dayYearFmt.format(to);
-    }
-
-    // ---- Summary ----
-    function renderSummary(summary) {
-      summary = summary || {};
-      var total = Number(summary.total_actions) || 0;
-      var failed = Number(summary.failed_actions) || 0;
-
-      $('actTotal').textContent = fmtNumber(total);
-
-      var failedEl = $('actFailed');
-      failedEl.textContent = fmtNumber(failed);
-      failedEl.className = 'mt-2 text-2xl font-extrabold ' + (failed ? 'text-red-500' : 'text-dark-900');
-      var note = $('actFailedNote');
-      if (!total) {
-        note.className = 'mt-1 text-xs text-gray-500';
-        note.textContent = 'No actions in this period';
-      } else if (!failed) {
-        note.className = 'mt-1 text-xs font-medium text-green-600';
-        note.textContent = 'All succeeded';
-      } else {
-        note.className = 'mt-1 text-xs text-gray-500';
-        note.textContent = Math.round((failed / total) * 100) + '% of actions';
-      }
-
-      $('actLastAt').textContent = summary.last_action_at ? fmtDateTime(summary.last_action_at) : 'None';
-      $('actLastLabel').textContent = summary.last_action_at ? (summary.last_action_label || '') : 'No actions in this period';
-    }
-
-    // ---- Chart ----
-    function destroyChart() {
-      if (chart) { chart.destroy(); chart = null; }
-    }
-
-    function applyChartVisibility() {
-      $('actChartBox').hidden = chartMode !== 'chart';
-      $('actChartEmpty').hidden = chartMode === 'chart';
-      if (chart && chartMode === 'chart') chart.resize();
-    }
-
-    // The server only sends the days the staff member did something, each as a date-time. Group them by
-    // the day they fall on in the dashboard's zone, then fill the days in between with zeros so the bars
-    // sit on a real timeline, from the first day of the range to the last.
-    function dailySeries(series, info) {
-      var DT = window.DashboardTime;
-      var points = (series && series.points) || [];
-      var byDay = {};
-      points.forEach(function (p) {
-        var key = DT ? DT.dateKey(p.date) : String(p.date).slice(0, 10);
-        if (!key) return;
-        var day = byDay[key] || (byDay[key] = { count: 0, failed: 0 });
-        day.count += Number(p.count) || 0;     // two points can land on the same day in this zone
-        day.failed += Number(p.failed) || 0;
-      });
-
-      var keys = Object.keys(byDay).sort();
-      if (!keys.length) return [];
-      var first = keys[0];
-      var last = keys[keys.length - 1];
-      var from = DT && info ? DT.dateKey(info.range_from) : '';
-      var to = DT && info ? DT.dateKey(info.range_to) : '';
-      if (from && from < first) first = from;
-      if (to && to > last) last = to;
-
-      var days = [];
-      for (var key = first, guard = 0; key <= last && guard < 800; key = nextDay(key), guard++) {
-        var day = byDay[key] || { count: 0, failed: 0 };
-        days.push({ key: key, count: day.count, failed: day.failed });
-      }
-      return days;
-    }
-
-    function renderChart(series, info) {
-      destroyChart();
-      var empty = $('actChartEmpty');
-      var days = dailySeries(series, info);
-      var total = days.reduce(function (sum, d) { return sum + d.count; }, 0);
-
-      if (!total) {
-        chartMode = 'empty';
-        empty.textContent = 'No activity in this period.';
-        applyChartVisibility();
-        return;
-      }
-      if (!window.Chart) {
-        chartMode = 'empty';
-        empty.textContent = 'The chart could not load. Refresh the page to try again.';
-        applyChartVisibility();
-        return;
-      }
-      chartMode = 'chart';
-      applyChartVisibility();
-
-      // "count" already includes the failed ones, so the two stacks add up to count
-      var labels = days.map(function (d) { return dayLabel(d.key); });
-      var failed = days.map(function (d) { return d.failed; });
-      var ok = days.map(function (d) { return Math.max(0, d.count - d.failed); });
-
-      chart = new window.Chart($('actCanvas'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Successful', data: ok, backgroundColor: BRAND, borderRadius: 3, maxBarThickness: 28 },
-            { label: 'Failed', data: failed, backgroundColor: DANGER, borderRadius: 3, maxBarThickness: 28 }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, color: '#6b7280', font: { size: 11 } } }
-          },
-          scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 8, maxRotation: 0, color: '#9ca3af', font: { size: 11 } } },
-            y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: '#9ca3af', font: { size: 11 } }, grid: { color: '#f3f4f6' } }
-          }
-        }
-      });
-    }
-
-    // ---- Breakdowns ----
-    function renderByType(rows) {
-      var ul = $('actByType');
-      clear(ul);
-      rows = (rows || []).filter(function (r) { return Number(r.count) > 0; })
-        .sort(function (a, b) { return (Number(b.count) || 0) - (Number(a.count) || 0); });
-      $('actByTypeEmpty').hidden = !!rows.length;
-
-      var max = 0;
-      rows.forEach(function (r) { max = Math.max(max, Number(r.count) || 0); });
-
-      rows.forEach(function (r) {
-        var count = Number(r.count) || 0;
-        var failed = Math.min(count, Number(r.failed) || 0);
-        var li = el('li');
-
-        var top = el('div', 'flex items-baseline justify-between gap-3 text-sm');
-        var name = el('span', 'min-w-0 truncate text-gray-700', actionLabel(r.code));
-        name.title = r.code;
-        top.appendChild(name);
-        var amount = el('span', 'shrink-0 font-semibold text-dark-900', fmtNumber(count));
-        if (failed) {
-          var failedTag = el('span', 'text-xs font-medium text-red-500', fmtNumber(failed) + ' failed');
-          failedTag.style.marginLeft = '0.75rem'; // inline, so it doesn't depend on the Tailwind build
-          amount.appendChild(failedTag);
-        }
-        top.appendChild(amount);
-
-        var track = el('div', 'mt-1.5 h-2 rounded-full bg-gray-100 overflow-hidden');
-        var bar = el('div', 'h-2 flex');
-        bar.style.width = Math.max(4, Math.round((count / max) * 100)) + '%';
-        var okPart = el('div', 'h-2 bg-brand-500');
-        okPart.style.width = ((count - failed) / count * 100) + '%';
-        bar.appendChild(okPart);
-        if (failed) {
-          var badPart = el('div', 'h-2 bg-red-500');
-          badPart.style.width = (failed / count * 100) + '%';
-          bar.appendChild(badPart);
-        }
-        track.appendChild(bar);
-
-        li.appendChild(top);
-        li.appendChild(track);
-        ul.appendChild(li);
-      });
-    }
-
-    function renderFailures(rows) {
-      var ul = $('actFailures');
-      clear(ul);
-      rows = (rows || []).slice().sort(function (a, b) { return (Number(b.count) || 0) - (Number(a.count) || 0); });
-      $('actFailuresEmpty').hidden = !!rows.length;
-
-      rows.forEach(function (r) {
-        var li = el('li', 'flex items-start justify-between gap-3 py-2.5 text-sm');
-        li.appendChild(el('span', 'min-w-0 text-gray-700', r.reason || 'No reason given'));
-        li.appendChild(el('span', 'shrink-0 min-w-[1.75rem] rounded-full bg-red-50 px-2 py-0.5 text-center text-xs font-semibold text-red-600', fmtNumber(r.count)));
-        ul.appendChild(li);
-      });
-    }
-
-    // ---- Recent actions ----
-    // The server sends the <li> items already rendered (staffs/_recent_actions.html). They are parsed in a
-    // detached <template>, their times are re-formatted in the dashboard's zone, then they are moved into the list.
-    function appendRecentHtml(html) {
-      var ul = $('actRecent');
-      var holder = document.createElement('template');
-      holder.innerHTML = html || '';
-
-      Array.prototype.slice.call(holder.content.children).forEach(function (li) {
-        var id = li.getAttribute('data-action-id');
-        if (id) {
-          if (state.seen[id]) return; // a batch that overlaps the last one adds nothing twice
-          state.seen[id] = true;
-        }
-        var time = li.querySelector('time.act-time');
-        if (time) {
-          var text = fmtDateTime(time.getAttribute('datetime'));
-          if (text) time.textContent = text; // else the server's text stays
-        }
-        ul.appendChild(li);
-      });
-      $('actRecentEmpty').hidden = !!ul.children.length;
-    }
-
-    function updateMore(recent) {
-      state.hasMore = !!(recent && recent.has_more && recent.next_batch_point);
-      state.nextPoint = state.hasMore ? recent.next_batch_point : null;
-      $('actMoreWrap').hidden = !state.hasMore;
-    }
-
-    function setMoreBusy(busy) {
-      $('actMoreBtn').disabled = busy;
-      $('actMoreSpinner').classList.toggle('hidden', !busy);
-      $('actMoreLabel').textContent = busy ? 'Loading...' : 'See more';
-    }
-
-    // ---- Requests ----
-    // Cancels whatever is in flight and makes any late answer be ignored.
-    function abortAll() {
-      requestId++;
-      if (controller) controller.abort();
-      if (moreController) moreController.abort();
-      controller = null;
-      moreController = null;
-      setMoreBusy(false);
-    }
-
-    // Resolves { ok, data, message } and never rejects. Resolves null when the request was cancelled.
-    function getJson(url, ctl) {
-      var timedOut = false;
-      var timer = setTimeout(function () { timedOut = true; ctl.abort(); }, TIMEOUT_MS);
-
-      return fetch(url, {
-        credentials: 'same-origin',
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        signal: ctl.signal
-      })
-        .then(function (res) {
-          return res.json().catch(function () { return null; }).then(function (data) {
-            var ok = res.ok && data && data.ok !== false;
-            var message = (data && data.message) ||
-              (res.redirected ? 'Your session may have expired. Please refresh and log in again.' :
-              (ok ? '' : "Couldn't load the activity report."));
-            return { ok: !!ok, data: data, message: message };
-          });
-        })
-        .catch(function (err) {
-          if (err && err.name === 'AbortError' && !timedOut) return null; // cancelled on purpose
-          return { ok: false, data: null, message: timedOut ? 'The request timed out. Please try again.' : 'Network error. Check your connection and try again.' };
-        })
-        .then(function (result) { clearTimeout(timer); return result; });
-    }
-
-    // A custom range is two days in the dashboard's zone, sent as the UTC date-times they start and
-    // end at (the server counts what it receives as UTC). The series is always per day, so there is no unit.
-    function reportUrl() {
-      var DT = window.DashboardTime;
-      var url = new URL(state.logsUrl, window.location.origin);
-      url.searchParams.set('range', state.range);
-      if (state.range === 'custom') {
-        url.searchParams.set('from', DT ? DT.dayStartISO(state.from) : state.from);
-        url.searchParams.set('to', DT ? DT.dayEndISO(state.to) : state.to);
-      }
-      return url.toString();
-    }
-
-    // Every request (first open, range change, retry) reloads the whole report behind the skeleton.
-    function load() {
-      abortAll();
-      var id = requestId;
-      var ctl = new AbortController();
-      controller = ctl;
-      show('loading');
-
-      getJson(reportUrl(), ctl).then(function (result) {
-        if (!result || id !== requestId) return; // cancelled, or a newer request replaced this one
-        controller = null;
-
-        if (!result.ok) {
-          $('actErrorMsg').textContent = result.message || "Couldn't load the activity report.";
-          show('error');
-          return;
-        }
-        render(result.data);
-      });
-    }
-
-    function render(data) {
-      paintHeader(data.staff);
-      paintRange(data.range_info);
-      renderSummary(data.summary);
-      renderChart(data.series || data, data.range_info); // the points may also sit at the top level
-      renderByType(data.by_action);
-      renderFailures(data.failures_by_reason);
-
-      // Recent actions start again from the first batch
-      clear($('actRecent'));
-      state.seen = {};
-      var recent = data.recent_actions || {};
-      appendRecentHtml(recent.html);
-      updateMore(recent);
-
-      show('content');
-    }
-
-    function seeMore() {
-      if (!state || !state.hasMore || !state.nextPoint || moreController) return;
-      if (!state.moreUrl) { window.showToast('Could not load more actions.', 'error'); return; }
-
-      var id = requestId;
-      var ctl = new AbortController();
-      moreController = ctl;
-      setMoreBusy(true);
-
-      var url = state.moreUrl.replace('BATCH_POINT', encodeURIComponent(state.nextPoint));
-      getJson(url, ctl).then(function (result) {
-        if (!result || id !== requestId) return; // cancelled, or the modal moved on
-        moreController = null;
-        setMoreBusy(false);
-
-        if (!result.ok) { window.showToast(result.message || 'Could not load more actions.', 'error'); return; }
-        var recent = result.data || {}; // { html, has_more, next_batch_point }
-        appendRecentHtml(recent.html);
-        updateMore(recent);
-      });
-    }
-
-    // ---- Open / close ----
-    window.openStaffActivity = function (button, openerButton) {
-      var d = button.dataset;
-      abortAll(); // a request from the last staff member must never fill this one
-
-      opener = openerButton || (button.closest('.inline-block') && button.closest('.inline-block').querySelector('.staff-actions-btn')) || null;
-      state = {
-        email: d.staffEmail || '',
-        name: d.staffName || '',
-        avatar: d.avatar || '',
-        logsUrl: d.logsUrl,
-        moreUrl: d.moreUrl || '',
-        range: DEFAULT_RANGE,
-        from: '',
-        to: '',
-        nextPoint: null,
-        hasMore: false,
-        seen: {}
-      };
-      chartMode = 'empty';
-
-      // Start clean: nothing from the previous staff member stays on screen
-      destroyChart();
-      clear($('actRecent'));
-      $('actMoreWrap').hidden = true;
-      $('actRangeLabel').textContent = '';
-      $('actFrom').value = '';
-      $('actTo').value = '';
-      if (window.DashboardTime) {            // "today" is today in the dashboard's zone
-        $('actFrom').max = window.DashboardTime.todayKey();
-        $('actTo').max = window.DashboardTime.todayKey();
-      }
-      keepOrder();
-      setCustomFormOpen(false);
-      setFullscreen(false); // always opens at normal size
-      applyChartVisibility();
-      paintHeaderBasics();
-      paintControls();
-
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      document.body.classList.add('overflow-hidden');
-      $('activityClose').focus();
-
-      load();
-    };
-
-    function closeModal() {
-      if (modal.classList.contains('hidden')) return;
-      abortAll(); // closing cancels the request, so nothing is wasted or left to conflict
-      destroyChart();
-      setFullscreen(false);
-      state = null;
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      document.body.classList.remove('overflow-hidden');
-      if (opener) opener.focus();
-      opener = null;
-    }
-
-    // ---- Events ----
-    $('activityClose').addEventListener('click', closeModal);
-    $('activityFullscreen').addEventListener('click', function () { setFullscreen(!fullscreen); });
-    $('activityOverlay').addEventListener('click', closeModal);
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-    });
-
-    $('actRangeTabs').addEventListener('click', function (event) {
-      var btn = event.target.closest('button[data-range]');
-      if (!btn || !state) return;
-
-      if (btn.dataset.range === 'custom') {
-        var open = $('actCustomForm').classList.contains('hidden');
-        setCustomFormOpen(open);
-        if (open) $('actFrom').focus();
-        return;
-      }
-
-      setCustomFormOpen(false);
-      if (btn.dataset.range === state.range) return; // already showing it, no new request
-      state.range = btn.dataset.range;
-      paintControls();
-      load();
-    });
-
-    $('actFrom').addEventListener('change', keepOrder);
-    $('actTo').addEventListener('change', keepOrder);
-
-    $('actCustomForm').addEventListener('submit', function (event) {
-      event.preventDefault();
-      if (!state) return;
-      var from = $('actFrom').value;
-      var to = $('actTo').value;
-      if (!from || !to) { window.showToast('Choose a start and an end date.', 'error'); return; }
-      if (from > to) { window.showToast('The start date can\u2019t be after the end date.', 'error'); return; }
-      if (state.range === 'custom' && state.from === from && state.to === to) return; // same dates, no new request
-
-      state.range = 'custom';
-      state.from = from;
-      state.to = to;
-      paintControls();
-      load();
-    });
-
-    $('actRetry').addEventListener('click', function () { if (state) load(); });
-    $('actMoreBtn').addEventListener('click', seeMore);
-  })();
-</script>

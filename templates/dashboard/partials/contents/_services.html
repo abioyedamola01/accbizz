@@ -1,98 +1,45 @@
 {% load widget_tweaks %}
 
 
-<style>
-  /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */
-
-  /* Search box (same behaviour as the public services search) */
-  .svc-search { position: relative; width: 16rem; max-width: 100%; }
-  .svc-search-icon {
-    position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);
-    width: 1rem; height: 1rem; color: #9ca3af; pointer-events: none;
-  }
-  .svc-search-input {
-    -webkit-appearance: none; appearance: none;
-    width: 100%; height: 2.25rem; padding: 0 2.25rem 0 2.25rem;
-    font-size: 0.875rem; color: #111827; background: #fff;
-    border: 1px solid #e5e7eb; border-radius: 0.5rem;
-    transition: border-color 0.15s ease;
-  }
-  .svc-search-input::-webkit-search-cancel-button { display: none; }
-  .svc-search-clear {
-    position: absolute; right: 0.625rem; top: 50%; transform: translateY(-50%);
-    padding: 0.125rem; color: #9ca3af; background: none; border: 0; cursor: pointer;
-  }
-  .svc-search-clear:hover { color: #374151; }
-  .svc-search-clear.hidden { display: none; }
-
-  /* Switches (Active, Featured). The real checkbox stays in the DOM (it posts); JS paints the track. */
-  .svc-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
-  .svc-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
-  .svc-switch-track { position: relative; flex: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; transition: background-color 0.15s ease; }
-  .svc-switch-knob {
-    position: absolute; top: 0.125rem; left: 0.125rem; width: 1rem; height: 1rem;
-    background: #fff; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-    transition: transform 0.15s ease;
-  }
-  .svc-switch.is-on .svc-switch-knob { transform: translateX(1rem); }
-  .svc-switch-input:focus-visible + .svc-switch-track { outline: 2px solid #9ca3af; outline-offset: 2px; }
-  .svc-switch-text { font-size: 0.875rem; color: #374151; }
-
-  /* Related services: a checklist that drives the real <select multiple> */
-  .svc-related-box {
-    max-height: 11rem; overflow-y: auto; padding: 0.25rem;
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem;
-  }
-  .svc-related-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
-  .svc-related-row {
-    display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.625rem;
-    font-size: 0.875rem; color: #374151; border-radius: 0.375rem; cursor: pointer;
-  }
-  .svc-related-row:hover { background: #f9fafb; }
-  .svc-related-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
-  .svc-related-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .svc-related-empty { padding: 0.5rem 0.625rem; font-size: 0.875rem; color: #9ca3af; }
-</style>
-
-<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+<div class="card">
 
   {# ---- Header ---- #}
-  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-line">
     <div class="flex items-center gap-2">
-      <h2 class="text-base font-bold text-dark-900">Services</h2>
-      <span id="serviceCountBadge" data-total="{{ services|length }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ services|length }} service{{ services|length|pluralize }}</span>
+      <h2 class="font-sans text-lead font-semibold tracking-tight">Services</h2>
+      <span id="serviceCountBadge" data-total="{{ services|length }}" class="badge">{{ services|length }} service{{ services|length|pluralize }}</span>
       {# Filled in by the script (it counts the rows marked featured), so it is always the overall number #}
-      <span id="serviceFeaturedBadge" class="hidden text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full"></span>
+      <span id="serviceFeaturedBadge" class="hidden badge bg-brand-500/15 text-link"></span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
 
       {# ---- Featured filter (client side only) ---- #}
-      <div id="serviceTabs" class="inline-flex rounded-lg border border-gray-200 overflow-hidden" role="group" aria-label="Filter services">
-        <button type="button" data-filter="all" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-dark-800 text-white">All</button>
-        <button type="button" data-filter="featured" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Featured</button>
-        <button type="button" data-filter="notfeatured" class="svc-tab px-3 py-2 text-sm font-semibold cursor-pointer transition bg-white text-gray-600 hover:bg-gray-50">Not featured</button>
+      <div id="serviceTabs" class="seg" role="group" aria-label="Filter services by featured">
+        <button type="button" data-filter="all" class="svc-tab seg-btn is-active" aria-pressed="true">All</button>
+        <button type="button" data-filter="featured" class="svc-tab seg-btn" aria-pressed="false">Featured</button>
+        <button type="button" data-filter="notfeatured" class="svc-tab seg-btn" aria-pressed="false">Not featured</button>
       </div>
 
       {# ---- Search (client side only): matches title and blurb ---- #}
       <div class="svc-search">
         <label for="serviceSearch" class="sr-only">Search services</label>
-        <svg class="svc-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <svg class="svc-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <circle cx="11" cy="11" r="7"/>
           <path stroke-linecap="round" d="M20 20l-3.5-3.5"/>
         </svg>
         <input id="serviceSearch" type="search" autocomplete="off" placeholder="Search services"
-          class="svc-search-input placeholder:text-gray-400 focus:outline-none focus:border-brand-400" />
+          class="svc-search-input" />
         <button id="serviceSearchClear" type="button" aria-label="Clear search" class="svc-search-clear hidden">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
       </div>
 
       <button type="button" onclick="openAddServiceModal()"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="btn btn-primary btn-md">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
         </svg>
         Add service
@@ -104,28 +51,29 @@
   <div id="serviceTableScroll" class="overflow-x-auto">
     <table class="w-full min-w-[480px] text-left">
       <thead>
-        <tr class="border-b border-gray-100">
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Title</th>
-          <th class="w-24 py-3 pr-5"></th>
+        <tr class="border-b border-line">
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Title</th>
+          <th scope="col" class="w-24 py-3 pr-4"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
 
       {% for service in services %}
-      <tbody class="svc-group divide-y divide-gray-100 border-b border-gray-100"
+      <tbody class="svc-group divide-y divide-line border-b border-line"
         data-title="{{ service.title }}"
         data-blurb="{{ service.blurb }}"
         data-featured="{% if service.is_featured %}1{% else %}0{% endif %}">
         <tr>
-          <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ service.title }}</span></td>
-          <td class="py-3 pr-5">
-            <button type="button" onclick="toggleServiceRow(this)"
-              class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+          <td class="py-3 pr-4"><span class="text-small font-semibold text-ink">{{ service.title }}</span></td>
+          <td class="py-3 pr-4">
+            <button type="button" onclick="toggleServiceRow(this)" aria-label="Manage {{ service.title }}"
+              class="btn btn-link btn-sm"
               data-update-url="{% url "dashboard_update_service" service.slug %}"
               data-delete-url="{% url "dashboard_delete_service" service.slug %}"
               data-service-id="{{ service.id }}"
               data-title="{{ service.title }}"
               data-blurb="{{ service.blurb }}"
               data-description="{{ service.description }}"
+              data-img="{% if service.img %}{{ service.img.url|cut:' ' }}{% endif %}"
               data-active="{% if service.is_active %}1{% else %}0{% endif %}"
               data-featured="{% if service.is_featured %}1{% else %}0{% endif %}"
               data-related="{% for related in service.related_services.all %}{{ related.id }}{% if not forloop.last %},{% endif %}{% endfor %}">Manage</button>
@@ -136,48 +84,48 @@
       </tbody>
       {% empty %}
       <tbody>
-        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services yet. Use "Add service" to create the first one.</td></tr>
+        <tr><td colspan="2" class="py-12 text-center text-small text-muted">No services yet. Use "Add service" to create the first one.</td></tr>
       </tbody>
       {% endfor %}
 
       {# Shown when the search and filter together match no service #}
       <tbody id="serviceSearchEmpty" class="hidden">
-        <tr><td colspan="2" class="py-10 text-center text-sm text-gray-500">No services match your search or filter. Try a different word, or change the filter.</td></tr>
+        <tr><td colspan="2" class="py-12 text-center text-small text-muted">No services match your search or filter. Try a different word, or change the filter.</td></tr>
       </tbody>
 
     </table>
   </div>
 
   {# ---- Shared delete confirmation modal ---- #}
-  <div id="deleteServiceModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+  <div id="deleteServiceModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="deleteServiceModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-sm p-6 relative">
       <button type="button" onclick="closeServiceDeleteConfirm()"
-        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="icon-btn absolute top-4 right-4" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
-        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="w-11 h-11 rounded-full bg-danger-bg flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-danger-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
       </div>
 
-      <h3 class="text-base font-bold text-dark-900 mb-1">Delete service</h3>
-      <p class="text-sm text-gray-500 mb-6">
-        Are you sure you want to delete <span id="deleteServiceTitle" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      <h3 id="deleteServiceModalTitle" class="font-sans text-lead font-semibold tracking-tight">Delete service</h3>
+      <p class="text-small text-muted mb-6">
+        Are you sure you want to delete <span id="deleteServiceTitle" class="font-semibold text-ink"></span>? This action cannot be undone.
       </p>
 
       <form method="post" id="deleteServiceForm" action="" novalidate>
         {% csrf_token %}
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="closeServiceDeleteConfirm()"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit" id="deleteServiceSubmitBtn"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-danger btn-md">
             <svg id="deleteServiceSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -190,49 +138,51 @@
   </div>
 
   {# ---- Add service modal ---- #}
-  <div id="addServiceModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+  <div id="addServiceModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="addServiceModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-lg max-h-[85vh] flex flex-col relative">
 
-      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
-        <h3 class="text-base font-bold text-dark-900">Add service</h3>
+      <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-line">
+        <h3 id="addServiceModalTitle" class="font-sans text-lead font-semibold tracking-tight">Add service</h3>
         <button type="button" onclick="closeAddServiceModal()"
-          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          class="icon-btn" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-6 py-5">
+      <div class="flex-1 overflow-y-auto px-6 py-4">
         {# novalidate: related_services is hidden, so the server's field errors are shown inline instead of the browser's #}
-        <form method="post" id="addServiceForm" action="{% url "dashboard_add_service" %}" class="space-y-4" novalidate>
+        <form method="post" id="addServiceForm" action="{% url "dashboard_add_service" %}" class="flex flex-col gap-4" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
 
           <div class="svc-field">
             <div class="flex items-center justify-between mb-1">
-              <label for="addServiceTitle" class="text-xs font-medium text-gray-500">Title</label>
-              <span class="svc-counter text-xs text-gray-400"></span>
+              <label for="addServiceTitle" class="dash-label">Title</label>
+              <span class="svc-counter text-caption text-muted"></span>
             </div>
-            {% render_field service_form.title id="addServiceTitle" class="svc-limited svc-required w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            {% render_field service_form.title id="addServiceTitle" class="dash-input svc-limited svc-required" %}
           </div>
 
           <div class="svc-field">
             <div class="flex items-center justify-between mb-1">
-              <label for="addServiceBlurb" class="text-xs font-medium text-gray-500">Blurb</label>
-              <span class="svc-counter text-xs text-gray-400"></span>
+              <label for="addServiceBlurb" class="dash-label">Blurb</label>
+              <span class="svc-counter text-caption text-muted"></span>
             </div>
-            {% render_field service_form.blurb id="addServiceBlurb" class="svc-limited svc-required w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            {% render_field service_form.blurb id="addServiceBlurb" class="dash-input svc-limited svc-required" %}
           </div>
 
           <div class="svc-field">
-            <label for="addServiceDescription" class="text-xs font-medium text-gray-500 block mb-1">Description</label>
-            {% render_field service_form.description id="addServiceDescription" rows="5" class="svc-required w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+            <label for="addServiceDescription" class="dash-label">Description</label>
+            {% render_field service_form.description id="addServiceDescription" rows="5" class="dash-input dash-textarea svc-required min-h-28" %}
           </div>
+
+          {% if service_form.img %}{% include "dashboard/partials/contents/_service_image_field.html" with field=service_form.img input_id="addServiceImg" %}{% endif %}
 
           <div>
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs font-medium text-gray-500">Related services</span>
-              <span class="svc-related-count text-xs text-gray-400"></span>
+              <span class="dash-label">Related services</span>
+              <span class="svc-related-count text-caption text-muted"></span>
             </div>
             {# The real field stays in the DOM (so it posts) but is hidden; the checklist below drives it #}
             <div class="hidden">{% render_field service_form.related_services id="addServiceRelated" %}</div>
@@ -243,26 +193,26 @@
           <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
             <label class="svc-switch">
               {% render_field service_form.is_active id="addServiceActive" class="svc-switch-input" %}
-              <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+              <span class="svc-switch-track bg-muted"><span class="svc-switch-knob"></span></span>
               <span class="svc-switch-text" data-on-text="Active" data-off-text="Inactive">Active</span>
             </label>
 
             <label class="svc-switch">
               {% render_field service_form.is_featured id="addServiceFeatured" class="svc-switch-input" %}
-              <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+              <span class="svc-switch-track bg-muted"><span class="svc-switch-knob"></span></span>
               <span class="svc-switch-text" data-on-text="Featured" data-off-text="Not featured">Not featured</span>
             </label>
           </div>
         </form>
       </div>
 
-      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-line">
         <button type="button" onclick="closeAddServiceModal()"
-          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          class="btn btn-ghost btn-md">
           Cancel
         </button>
         <button type="submit" form="addServiceForm" id="addServiceSaveBtn" disabled
-          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          class="btn btn-primary btn-md">
           <svg id="addServiceSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -277,36 +227,38 @@
 
 {# ---- Single reusable edit form: rendered once, cloned per service by JS ---- #}
 <template id="serviceFormTemplate">
-  <div class="bg-gray-50 border-t border-gray-100 p-5">
-    <form method="post" class="svc-manage-form space-y-4" novalidate>
+  <div class="bg-raised border-t border-line p-6">
+    <form method="post" class="svc-manage-form flex flex-col gap-4" enctype="multipart/form-data" novalidate>
       {% csrf_token %}
 
       <div class="grid grid-cols-1 gap-4">
         <div class="svc-field min-w-0">
           <div class="flex items-center justify-between mb-1">
-            <label for="editServiceTitle" class="text-xs font-medium text-gray-500">Title</label>
-            <span class="svc-counter text-xs text-gray-400"></span>
+            <label for="editServiceTitle" class="dash-label">Title</label>
+            <span class="svc-counter text-caption text-muted"></span>
           </div>
-          {% render_field service_form.title id="editServiceTitle" class="svc-limited w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          {% render_field service_form.title id="editServiceTitle" class="dash-input svc-limited" %}
         </div>
 
         <div class="svc-field min-w-0">
           <div class="flex items-center justify-between mb-1">
-            <label for="editServiceBlurb" class="text-xs font-medium text-gray-500">Blurb</label>
-            <span class="svc-counter text-xs text-gray-400"></span>
+            <label for="editServiceBlurb" class="dash-label">Blurb</label>
+            <span class="svc-counter text-caption text-muted"></span>
           </div>
-          {% render_field service_form.blurb id="editServiceBlurb" class="svc-limited w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          {% render_field service_form.blurb id="editServiceBlurb" class="dash-input svc-limited" %}
         </div>
 
         <div class="svc-field min-w-0">
-          <label for="editServiceDescription" class="text-xs font-medium text-gray-500 block mb-1">Description</label>
-          {% render_field service_form.description id="editServiceDescription" rows="6" class="w-full min-h-[130px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+          <label for="editServiceDescription" class="dash-label">Description</label>
+          {% render_field service_form.description id="editServiceDescription" rows="6" class="dash-input dash-textarea min-h-32" %}
         </div>
+
+        {% if service_form.img %}{% include "dashboard/partials/contents/_service_image_field.html" with field=service_form.img input_id="editServiceImg" %}{% endif %}
 
         <div class="min-w-0">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-medium text-gray-500">Related services</span>
-            <span class="svc-related-count text-xs text-gray-400"></span>
+            <span class="dash-label">Related services</span>
+            <span class="svc-related-count text-caption text-muted"></span>
           </div>
           {# Hidden real field: preselected from the trigger's data-related, then kept in sync by the checklist #}
           <div class="hidden">{% render_field service_form.related_services id="editServiceRelated" %}</div>
@@ -317,21 +269,21 @@
         <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
           <label class="svc-switch">
             {% render_field service_form.is_active id="editServiceActive" class="svc-switch-input" %}
-            <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+            <span class="svc-switch-track bg-muted"><span class="svc-switch-knob"></span></span>
             <span class="svc-switch-text" data-on-text="Active" data-off-text="Inactive">Active</span>
           </label>
 
           <label class="svc-switch">
             {% render_field service_form.is_featured id="editServiceFeatured" class="svc-switch-input" %}
-            <span class="svc-switch-track bg-gray-300"><span class="svc-switch-knob"></span></span>
+            <span class="svc-switch-track bg-muted"><span class="svc-switch-knob"></span></span>
             <span class="svc-switch-text" data-on-text="Featured" data-off-text="Not featured">Not featured</span>
           </label>
         </div>
       </div>
 
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-        <button type="button" class="svc-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openServiceDeleteConfirm(this)">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button type="button" class="btn btn-ghost btn-sm text-danger-fg svc-form-delete-btn" onclick="openServiceDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
           </svg>
           Delete service
@@ -339,11 +291,11 @@
 
         <div class="flex items-center gap-3">
           <button type="button" onclick="toggleServiceRow(this)"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit"
-            class="svc-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-primary btn-md svc-form-save-btn">
             <svg class="svc-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -365,6 +317,7 @@
   // Field errors for the hidden / custom controls go under the visible control
   function serviceFieldTarget(name, form) {
     if (name === 'related_services') return form.querySelector('.svc-related-box');
+    if (name === 'img') return form.querySelector('[data-img-row]');
     if (name === 'is_active' || name === 'is_featured') {
       const input = form.querySelector('[name="' + name + '"]');
       return input ? input.closest('.svc-switch') : null;
@@ -402,7 +355,7 @@
     const text = wrap.querySelector('.svc-switch-text');
     wrap.classList.toggle('is-on', input.checked);
     track.classList.toggle('bg-brand-500', input.checked);
-    track.classList.toggle('bg-gray-300', !input.checked);
+    track.classList.toggle('bg-muted', !input.checked);
     if (text) {
       text.textContent = input.checked
         ? (text.dataset.onText || 'On')
@@ -487,6 +440,80 @@
     return { select: select, sync: sync };
   }
 
+  // Image field (Add modal and Manage panel). Shows the chosen file, or the saved image (currentSrc),
+  // or an empty surface. Only the file input posts, so nothing is sent unless a file is chosen.
+  function initServiceImage(form, currentSrc) {
+    const wrap = form.querySelector('[data-img-field]');
+    if (!wrap) return null;
+    const input = wrap.querySelector('[data-img-input]');
+    const img = wrap.querySelector('[data-img-preview]');
+    const placeholder = wrap.querySelector('[data-img-placeholder]');
+    const nameEl = wrap.querySelector('[data-img-name]');
+    const clearBtn = wrap.querySelector('[data-img-clear]');
+    if (!input || !img || !placeholder || !nameEl || !clearBtn) return null;
+
+    const savedSrc = currentSrc || '';
+    let objectUrl = null;
+
+    function show(src, alt) {
+      if (src) {
+        img.src = src;
+        img.alt = alt;
+        img.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+      } else {
+        img.removeAttribute('src');
+        img.alt = '';
+        img.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+      }
+    }
+
+    function render() {
+      if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+      const file = input.files && input.files[0];
+      if (file) {
+        objectUrl = URL.createObjectURL(file);
+        show(objectUrl, 'Preview of the chosen image');
+        nameEl.textContent = file.name;
+        clearBtn.classList.remove('hidden');
+      } else {
+        show(savedSrc, 'Current service image');
+        nameEl.textContent = savedSrc ? 'Current image. Choose a new one to replace it.' : 'No image chosen';
+        clearBtn.classList.add('hidden');
+      }
+    }
+
+    input.addEventListener('change', function () {
+      const file = input.files && input.files[0];
+      if (file && file.type && file.type.indexOf('image/') !== 0) {
+        window.showToast('Please choose an image file.', 'error');
+        input.value = '';
+      }
+      // A new choice clears an older server error on this field
+      wrap.querySelectorAll('.field-error').forEach(function (el) { el.remove(); });
+      const row = wrap.querySelector('[data-img-row]');
+      if (row) { row.style.borderColor = ''; row.removeAttribute('data-has-error'); row.removeAttribute('aria-invalid'); }
+      render();
+    });
+
+    clearBtn.addEventListener('click', function () {
+      input.value = '';
+      render();
+      input.dispatchEvent(new Event('input', { bubbles: true })); // keeps the Add button state in step
+      input.focus();
+    });
+
+    // A saved image that fails to load leaves the plain surface, no broken-image icon
+    img.addEventListener('error', function () { show('', ''); });
+
+    // form.reset() (closing the Add modal) clears the file input, so redraw
+    form.addEventListener('reset', function () { window.setTimeout(render, 0); });
+
+    render();
+    return { input: input, render: render };
+  }
+
   // ---- Manage row (edit) ----
 
   // Toggles the hidden manage row for a service: builds the edit form from the
@@ -540,6 +567,7 @@
 
     initSwitch(form);
     initCounters(form);
+    initServiceImage(form, trigger.dataset.img);
 
     const deleteBtn = fragment.querySelector('.svc-form-delete-btn');
     deleteBtn.dataset.deleteUrl = trigger.dataset.deleteUrl;
@@ -592,6 +620,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeServiceDeleteConfirm() {
@@ -599,6 +628,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
   }
 
   // Delete posts with fetch too (the form only carries the CSRF token; the
@@ -622,12 +652,16 @@
   const addServicePicker = initRelatedPicker(addServiceForm, null);
   initSwitch(addServiceForm);
   initCounters(addServiceForm);
+  const addServiceImage = initServiceImage(addServiceForm, '');
+  // If the form field is required, the Create button waits for a file too
+  if (addServiceImage && addServiceImage.input.required) addServiceImage.input.classList.add('svc-required');
 
   function openAddServiceModal() {
     const modal = document.getElementById('addServiceModal');
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeAddServiceModal() {
@@ -636,6 +670,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
 
     // Reset so a re-open starts clean (not mid-"Creating..." state)
     addServiceForm.reset();
@@ -748,11 +783,8 @@
       activeFilter = tab.dataset.filter;
       tabs.querySelectorAll('.svc-tab').forEach((t) => {
         const on = t === tab;
-        t.classList.toggle('bg-dark-800', on);
-        t.classList.toggle('text-white', on);
-        t.classList.toggle('bg-white', !on);
-        t.classList.toggle('text-gray-600', !on);
-        t.classList.toggle('hover:bg-gray-50', !on);
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-pressed', String(on));
       });
       applyFilter();
     });

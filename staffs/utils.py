@@ -61,7 +61,8 @@ def create_otp(user, verify_purpose):
 
 
 def send_otp_mail(user_name, user_email, raw_code, verify_purpose):
-    logo_url = SiteModel.objects.first().logo.url
+    logo = SiteModel.objects.first().logo
+    logo_url = logo.url if logo else None
 
     context = {
         "user_name": user_name,
@@ -102,7 +103,8 @@ def verify_otp(input_otp, otp_instance):
 
 
 def send_password_reset_mail(email, name, url):
-    logo_url = SiteModel.objects.first().logo.url
+    logo = SiteModel.objects.first().logo
+    logo_url = logo.url if logo else None
 
     context = {
         "user_name": name,
@@ -123,7 +125,8 @@ def send_password_reset_mail(email, name, url):
 
 
 def send_email_change_mails(user_name, current_email, new_email, change_url, revert_url):
-    logo_url = SiteModel.objects.first().logo.url
+    logo = SiteModel.objects.first().logo
+    logo_url = logo.url if logo else None
 
     context = {
         "user_name": user_name,

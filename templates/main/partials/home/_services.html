@@ -1,58 +1,43 @@
-{# Services #}
-<section class="relative overflow-hidden">
+{# Services preview #}
+{% url "main_services" as services_url %}
+<section class="section" aria-labelledby="services-title">
+  <div class="wrap">
 
-  <div class="relative max-w-6xl mx-auto px-4 lg:px-6 pb-16">
-
-    {# ---- Section heading ---- #}
-    <div class="max-w-2xl mx-auto text-center mb-12 lg:mb-16">
-      <h2 class="text-3xl sm:text-4xl font-bold text-dark-900">What we do</h2>
-      <p class="mt-4 text-[15px] text-gray-600 leading-relaxed">
-        Explore our range of academic services designed to support your learning, strengthen your skills, and help you achieve academic success with confidence.
-      </p>
+    <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div data-reveal>
+        {% include "components/_section_header.html" with eyebrow="Services" title_html='What we <span class="text-link">do</span>' intro="Explore our range of academic services designed to support your learning, strengthen your skills, and help you achieve academic success with confidence." id="services-title" %}
+      </div>
+      {% if services %}
+      <div data-reveal>
+        <a href="{{ services_url }}" class="link-slide">View all services {% include "components/_icon.html" with name="arrow-right" size=16 cls="nudge-icon" %}</a>
+      </div>
+      {% endif %}
     </div>
 
-    {# ---- Cards grid ---- #}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% if services %}
+    {# auto-fill, not auto-fit: a single service keeps a normal card width instead of stretching across the row #}
+    <ul class="mt-12 grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17.5rem),1fr))]" role="list">
       {% for service in services %}
-        <a href="{% url "main_service_detail" service_slug=service.slug %}">
-          <div class="group relative bg-white rounded-2xl shadow-card border border-gray-100 px-6 py-8 sm:px-8 sm:py-10 overflow-hidden hover:bg-dark-900 hover:border-dark-900 hover:shadow-2xl transition-all duration-300">
-
-            {% comment %} <div class="w-11 h-11 flex items-center justify-center rounded-xl bg-brand-50 group-hover:bg-dark-800 transition-colors duration-300 mb-6">
-              <svg class="w-5 h-5 text-brand-500 group-hover:text-brand-400 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="{{ item.icon }}" />
-              </svg>
-            </div> {% endcomment %}
-
-            <h3 class="text-base font-semibold text-dark-900 group-hover:text-white transition-colors duration-300">{{ service.title }}</h3>
-
-            <p class="mt-3 text-sm text-justify text-gray-500 group-hover:text-gray-300 leading-relaxed transition-colors duration-300">{{ service.blurb }}</p>
-
-            <span
-              class="mt-6 inline-flex items-center gap-1.5 text-sm text-dark-900 group-hover:text-brand-400 transition-colors duration-300">
-              Learn more
-              <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </span>
-
-          </div>
+      <li data-reveal>
+        <a href="{% url "main_service_detail" service_slug=service.slug %}" class="card card-link">
+          <h3 class="font-sans font-semibold tracking-tight text-balance text-lead line-clamp-2">{{ service.title }}</h3>
+          <p class="mt-3 text-body text-muted line-clamp-3">{{ service.blurb }}</p>
+          <span class="mt-auto pt-6 inline-flex items-center gap-2 text-small font-semibold text-link">
+            Learn more {% include "components/_icon.html" with name="arrow-right" size=16 cls="nudge-icon" %}
+          </span>
         </a>
+      </li>
       {% endfor %}
+    </ul>
+    {% else %}
+    <div class="mt-12 empty-state" data-reveal>
+      <span class="icon-chip">{% include "components/_icon.html" with name="book-open" size=20 %}</span>
+      <p class="text-body font-semibold text-ink">We are updating our services</p>
+      <p class="text-body text-muted measure">New services will appear here soon. In the meantime, contact us to ask what we can help with.</p>
+      {% url "main_contact" as empty_contact_url %}
+      {% include "components/_button.html" with href=empty_contact_url|add:"#contact-us" label="Contact us" variant="secondary" size="md" %}
     </div>
-
-    {# ---- Link to the full catalogue (this section is only a preview) ---- #}
-    <div class="mt-10 text-center">
-      <a href="{% url "main_services" %}"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-brand-500 hover:underline underline-offset-4 decoration-brand-500 hover:text-brand-600 hover:decoration-brand-600 transition">
-        View all services
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
-      </a>
-    </div>
-
-
-    
+    {% endif %}
 
   </div>
 </section>

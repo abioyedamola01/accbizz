@@ -1,69 +1,18 @@
 {% load widget_tweaks %}
 
-<style>
-  /* Service filter: plain CSS so the spacing never depends on the Tailwind build */
-  .faq-filter-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.875rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-  }
-  .faq-filter-btn:hover { background: #f9fafb; }
-
-  .faq-filter-panel {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: 0.5rem;
-    width: 17rem;
-    max-width: 90vw;
-    padding: 0.5rem;
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-    z-index: 30;
-  }
-  .faq-filter-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.625rem 0.75rem;
-    font-size: 0.875rem;
-    color: #374151;
-    border-radius: 0.5rem;
-    cursor: pointer;
-  }
-  .faq-filter-row:hover { background: #f9fafb; }
-  .faq-filter-row--all { font-weight: 600; color: #111827; }
-  .faq-filter-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
-  .faq-filter-divider { margin: 0.375rem 0.25rem; border-top: 1px solid #f3f4f6; }
-  .faq-filter-options { max-height: 15rem; overflow-y: auto; }
-  .faq-filter-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .faq-filter-count { flex: none; font-size: 0.75rem; color: #9ca3af; }
-</style>
-
 {# Service list for the dropdowns: [{'id': 4, 'title': '...'}, ...] -> read by the JS below #}
 {{ services|json_script:"faqServicesData" }}
 
-<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+<div class="card">
 
   {# ---- Header ---- #}
-  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-line">
     <div class="flex flex-wrap items-center gap-2">
-      <h2 class="text-base font-bold text-dark-900">FAQs</h2>
+      <h2 class="font-sans text-lead font-semibold tracking-tight">FAQs</h2>
       {# Total of every FAQ, from the faqs_count context processor #}
-      <span id="faqCountBadge" data-total="{{ faqs_count|default:0 }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ faqs_count|default:0 }} FAQs</span>
+      <span id="faqCountBadge" data-total="{{ faqs_count|default:0 }}" class="badge">{{ faqs_count|default:0 }} FAQs</span>
       {# How many are on the page right now. The script keeps it up to date (See more, service filter) and hides it once everything is loaded and shown. #}
-      <span id="faqLoadedBadge" class="text-xs font-medium text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full{% if faqs|length >= faqs_count %} hidden{% endif %}">{{ faqs|length }} loaded</span>
+      <span id="faqLoadedBadge" class="badge border border-line {% if faqs|length >= faqs_count %} hidden{% endif %}">{{ faqs|length }} loaded</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -72,11 +21,11 @@
       <div id="faqFilter" class="relative">
         <button type="button" id="faqFilterBtn" aria-haspopup="true" aria-expanded="false"
           class="faq-filter-btn">
-          <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
           </svg>
           <span id="faqFilterLabel">All services</span>
-          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
           </svg>
         </button>
@@ -94,8 +43,8 @@
       </div>
 
       <button type="button" onclick="openAddFaqModal()"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="btn btn-primary btn-md">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
         </svg>
         Add FAQ
@@ -107,10 +56,10 @@
   <div id="faqTableScroll" class="overflow-x-auto">
     <table class="w-full min-w-[480px] text-left">
       <thead>
-        <tr class="border-b border-gray-100">
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Question</th>
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Service</th>
-          <th class="w-24 py-3 pr-5"></th>
+        <tr class="border-b border-line">
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Question</th>
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Service</th>
+          <th scope="col" class="w-24 py-3 pr-4"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
 
@@ -120,13 +69,13 @@
       {# Nothing at all yet #}
       {% if not faqs %}
       <tbody>
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs yet. Use "Add FAQ" to create the first one.</td></tr>
+        <tr><td colspan="3" class="py-12 text-center text-small text-muted">No FAQs yet. Use "Add FAQ" to create the first one.</td></tr>
       </tbody>
       {% endif %}
 
       {# Shown by the filter when no FAQ matches the selected services #}
       <tbody id="faqFilterEmpty" class="hidden">
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No FAQs match the selected services.<span id="faqFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
+        <tr><td colspan="3" class="py-12 text-center text-small text-muted">No FAQs match the selected services.<span id="faqFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
       </tbody>
 
     </table>
@@ -134,52 +83,52 @@
 
   {# ---- See more: only when has_more is true and there is a next_batch_point (both can be None or missing) ---- #}
   {% if has_more and next_batch_point is not None %}
-  <div id="faqMoreWrap" class="pt-5 text-center">
+  <div id="faqMoreWrap" class="pt-6 text-center">
     {# The URL is built with a placeholder number that the script swaps for the current batch point (an FAQ id) #}
     <button type="button" id="faqMoreBtn"
       data-more-url="{% url "dashboard_get_faqs_batch" 123456789 %}"
       data-next="{{ next_batch_point }}"
-      class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+      class="btn btn-secondary btn-md">
       <svg id="faqMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
       </svg>
       <span id="faqMoreLabel">See more</span>
     </button>
-    <p class="mt-2 text-xs text-gray-400">The service filter covers the FAQs loaded so far.</p>
+    <p class="mt-2 text-caption text-muted">The service filter covers the FAQs loaded so far.</p>
   </div>
   {% endif %}
 
   {# ---- Shared delete confirmation modal ---- #}
-  <div id="deleteFaqModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+  <div id="deleteFaqModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="deleteFaqModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-sm p-6 relative">
       <button type="button" onclick="closeDeleteConfirm()"
-        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="icon-btn absolute top-4 right-4" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
-        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="w-11 h-11 rounded-full bg-danger-bg flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-danger-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
       </div>
 
-      <h3 class="text-base font-bold text-dark-900 mb-1">Delete FAQ</h3>
-      <p class="text-sm text-gray-500 mb-6">
-        Are you sure you want to delete <span id="deleteFaqQuestion" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      <h3 id="deleteFaqModalTitle" class="font-sans text-lead font-semibold tracking-tight">Delete FAQ</h3>
+      <p class="text-small text-muted mb-6">
+        Are you sure you want to delete <span id="deleteFaqQuestion" class="font-semibold text-ink"></span>? This action cannot be undone.
       </p>
 
       <form method="post" id="deleteFaqForm" action="">
         {% csrf_token %}
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="closeDeleteConfirm()"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit" id="deleteFaqSubmitBtn"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-danger btn-md">
             <svg id="deleteFaqSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -192,55 +141,55 @@
   </div>
 
   {# ---- Add FAQ modal ---- #}
-  <div id="addFaqModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+  <div id="addFaqModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="addFaqModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-lg max-h-[85vh] flex flex-col relative">
 
-      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
-        <h3 class="text-base font-bold text-dark-900">Add FAQ</h3>
+      <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-line">
+        <h3 id="addFaqModalTitle" class="font-sans text-lead font-semibold tracking-tight">Add FAQ</h3>
         <button type="button" onclick="closeAddFaqModal()"
-          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          class="icon-btn" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-6 py-5">
-        <form method="post" id="addFaqForm" action="{% url "dashboard_add_faq" %}" class="space-y-4">
+      <div class="flex-1 overflow-y-auto px-6 py-4">
+        <form method="post" id="addFaqForm" action="{% url "dashboard_add_faq" %}" class="flex flex-col gap-4">
           {% csrf_token %}
 
           <div>
-            <label for="addFaqQuestion" class="text-xs font-medium text-gray-500 block mb-1">Question</label>
-            {% render_field faq_form.question id="addFaqQuestion" class="add-faq-required-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+            <label for="addFaqQuestion" class="dash-label">Question</label>
+            {% render_field faq_form.question id="addFaqQuestion" class="dash-input add-faq-required-field" %}
           </div>
 
           <div>
-            <label for="addFaqAnswer" class="text-xs font-medium text-gray-500 block mb-1">Answer</label>
-            {% render_field faq_form.answer id="addFaqAnswer" class="add-faq-required-field w-full min-h-[60px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+            <label for="addFaqAnswer" class="dash-label">Answer</label>
+            {% render_field faq_form.answer id="addFaqAnswer" class="dash-input dash-textarea add-faq-required-field min-h-16" %}
           </div>
 
           <div>
-            <label for="addFaqServiceSelect" class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+            <label for="addFaqServiceSelect" class="dash-label">Service</label>
 
             {# The real form field stays in the DOM (so it posts) but is hidden; the dropdown below fills it with the chosen service id #}
             <div class="hidden">{% render_field faq_form.service id="addFaqService" %}</div>
 
             {# No name attribute, so the dropdown itself is never posted #}
             <select id="addFaqServiceSelect"
-              class="w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+              class="dash-input">
               <option value="">General</option>
             </select>
           </div>
         </form>
       </div>
 
-      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-line">
         <button type="button" onclick="closeAddFaqModal()"
-          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          class="btn btn-ghost btn-md">
           Cancel
         </button>
         <button type="submit" form="addFaqForm" id="addFaqSaveBtn" disabled
-          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          class="btn btn-primary btn-md">
           <svg id="addFaqSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -255,38 +204,38 @@
 
 {# ---- Single reusable edit form: rendered once, cloned per-FAQ by JS ---- #}
 <template id="faqFormTemplate">
-  <div class="bg-gray-50 border-t border-gray-100 p-5">
-    <form method="post" class="faq-manage-form space-y-4">
+  <div class="bg-raised border-t border-line p-6">
+    <form method="post" class="faq-manage-form flex flex-col gap-4">
       {% csrf_token %}
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="min-w-0 sm:col-span-2">
-          <label class="text-xs font-medium text-gray-500 block mb-1">Question</label>
-          {% render_field faq_form.question id="editFaqQuestion" class="faq-form-field w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          <label for="editFaqQuestion" class="dash-label">Question</label>
+          {% render_field faq_form.question id="editFaqQuestion" class="dash-input faq-form-field" %}
         </div>
 
         <div class="min-w-0 sm:col-span-2">
-          <label class="text-xs font-medium text-gray-500 block mb-1">Answer</label>
-          {% render_field faq_form.answer id="editFaqAnswer" class="faq-form-field w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+          <label for="editFaqAnswer" class="dash-label">Answer</label>
+          {% render_field faq_form.answer id="editFaqAnswer" class="dash-input dash-textarea faq-form-field min-h-28" %}
         </div>
 
         <div class="min-w-0">
-          <label class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+          <label class="dash-label">Service</label>
 
           {# Hidden real field: filled with the trigger's data-service, then kept in sync by the dropdown #}
           <div class="hidden">{% render_field faq_form.service id="editFaqService" class="faq-form-field" %}</div>
 
           {# No name attribute, so the dropdown itself is never posted #}
           <select
-            class="faq-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+            class="dash-input faq-service-select" aria-label="Service">
             <option value="">General</option>
           </select>
         </div>
       </div>
 
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-        <button type="button" class="faq-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openDeleteConfirm(this)">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button type="button" class="btn btn-ghost btn-sm text-danger-fg faq-form-delete-btn" onclick="openDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
           </svg>
           Delete FAQ
@@ -294,11 +243,11 @@
 
         <div class="flex items-center gap-3">
           <button type="button" onclick="toggleManageRow(this)"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit"
-            class="faq-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-primary btn-md faq-form-save-btn">
             <svg class="faq-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -471,6 +420,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeDeleteConfirm() {
@@ -478,6 +428,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
   }
 
   // Delete posts with fetch too (the form only carries the CSRF token; the
@@ -507,6 +458,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeAddFaqModal() {
@@ -516,6 +468,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
 
     // Reset so a re-open starts clean (not mid-"Creating..." state).
     // This also puts the hidden service field and the dropdown back to General.

@@ -1,0 +1,6 @@
+{# Params: eyebrow, title (escaped) or title_html (trusted markup, e.g. a <span class="text-link">), intro, id (for aria-labelledby), align ("center" or default left), level (2 default; use 1 on page heroes). #}
+<div class="{% if align == 'center' %}mx-auto text-center items-center{% endif %} flex flex-col gap-3 max-w-2xl">
+  {% if eyebrow %}<p class="eyebrow">{{ eyebrow }}</p>{% endif %}
+  <h{{ level|default:2 }} {% if id %}id="{{ id }}"{% endif %} class="font-sans font-semibold tracking-tight text-balance leading-tight text-h3 sm:text-h2">{% if title_html %}{{ title_html|safe }}{% else %}{{ title }}{% endif %}</h{{ level|default:2 }}>
+  {% if intro %}<p class="lead">{{ intro }}</p>{% endif %}
+</div>

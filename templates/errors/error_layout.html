@@ -4,109 +4,87 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex" />
-  <title>{% block title %}Error{% endblock title %} · {{ site_info.display_name|title|default:"Accbizz" }}</title>
+  <meta name="color-scheme" content="light dark" />
+  {# Same two hex values as main/base.html (they mirror --page in base.css). #}
+  <meta name="theme-color" content="#F5F0E7" data-light="#F5F0E7" data-dark="#181523" />
+
+  {# Before first paint: same theme logic as the public base (no flash). Error pages stay self-contained on purpose: they must still work when ui.js or the database is unavailable. #}
+  <script>
+    (function () {
+      var d = document.documentElement, pref = 'system';
+      try { var v = localStorage.getItem('theme'); if (v === 'light' || v === 'dark') pref = v; } catch (e) {}
+      var dark = pref === 'system' ? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : pref === 'dark';
+      var theme = dark ? 'dark' : 'light';
+      d.setAttribute('data-theme', theme);
+      d.setAttribute('data-theme-pref', pref);
+      d.classList.add('js');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', m.getAttribute('data-' + theme));
+    })();
+  </script>
+
+  <title>{% block title %}Error{% endblock title %} · {{ site_info.display_name|default:"Accbizz"|title }}</title>
   {% if site_info.favicon %}<link rel="icon" href="{{ site_info.favicon.url }}" />{% endif %}
 
-  <!-- Tailwind compiled CSS -->
+  {# Compiled Tailwind. base.css is imported inside it, so it is not linked separately. #}
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
-  <!-- Global design tokens -->
-  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
-  <style>
-    /* Only what Tailwind can't do: the glowing horizon and the gradient code. Colours come from the site's tokens. */
-    :root {
-      --err-brand: var(--color-brand-500, #EF6B2E);
-      --err-glow-10: color-mix(in srgb, var(--err-brand) 10%, transparent);
-      --err-glow-20: color-mix(in srgb, var(--err-brand) 20%, transparent);
-      --err-glow-30: color-mix(in srgb, var(--err-brand) 30%, transparent);
-      --err-glow-75: color-mix(in srgb, var(--err-brand) 75%, transparent);
-      --err-code-size: clamp(6.5rem, 24vw, 16rem);
-    }
-
-    .err-stage {
-      background:
-        radial-gradient(ellipse 55% 45% at 50% 28%, var(--err-glow-20), transparent 70%),
-        var(--color-cream, #f4eee3);
-    }
-
-    /* The big code. It fades toward the bottom so it sinks into the horizon. */
-    .err-code {
-      font-size: var(--err-code-size); line-height: 0.8; letter-spacing: -0.02em; color: transparent;
-      background: linear-gradient(180deg, var(--err-brand) 8%, color-mix(in srgb, var(--err-brand) 70%, white) 55%, var(--err-glow-20) 100%);
-      -webkit-background-clip: text; background-clip: text;
-      filter: drop-shadow(0 0.5rem 2rem var(--err-glow-30));
-    }
-
-    /* Everything under the code sits on the horizon. ::before is the planet, ::after a bigger, dimmer one behind it. */
-    .err-below { margin-top: calc(var(--err-code-size) * -0.24); padding: clamp(3.5rem, 9vw, 5.5rem) 1.25rem 3rem; }
-    .err-below::before, .err-below::after {
-      content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); border-radius: 50%; pointer-events: none;
-    }
-    .err-below::before {
-      z-index: 0; width: max(150vw, 56rem); aspect-ratio: 1 / 1;
-      background: linear-gradient(180deg, #ffffff 0%, #fffaf5 30%, var(--color-cream, #f4eee3) 70%);
-      box-shadow:
-        0 -2px 0 var(--err-glow-75),
-        0 -12px 36px var(--err-glow-30),
-        0 -36px 110px var(--err-glow-20),
-        inset 0 18px 50px var(--err-glow-10);
-    }
-    .err-below::after {
-      z-index: -1; top: -2.75rem; width: max(220vw, 80rem); aspect-ratio: 1 / 1;
-      box-shadow: 0 -2px 0 var(--err-glow-30), 0 -30px 90px var(--err-glow-10);
-    }
-    .err-below > * { position: relative; z-index: 1; }
-  </style>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 </head>
-<body class="min-h-screen flex flex-col font-sans text-dark-900 antialiased bg-cream">
+<body class="relative min-h-dvh flex flex-col bg-page font-sans text-body text-ink antialiased">
+  <a href="#main" class="skip-link">Skip to main content</a>
 
-  {# ---- Top bar: the logo, or the name when there is none (same as the public navbar) ---- #}
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur shadow-card">
-    <div class="max-w-6xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
-      <a href="/" class="flex items-center gap-2 shrink-0">
-        {% if site_info.logo %}
-        <img src="{{ site_info.logo.url }}" alt="{{ site_info.display_name|default:'Accbizz' }} logo" class="h-12 w-auto object-contain shrink-0" />
-        {% else %}
-        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-          <span class="text-white font-extrabold text-sm">{{ site_info.display_name|default:"Accbizz"|first|upper }}</span>
-        </div>
-        <span class="text-lg font-bold text-dark-900">{{ site_info.display_name|title|default:"Accbizz" }}</span>
-        {% endif %}
+  {# Top bar: logo or letter mark. A plain link home, no navbar, so the page never depends on the nav context. #}
+  <header class="border-b border-line bg-surface">
+    <div class="wrap h-16 flex items-center">
+      <a href="/" class="flex items-center gap-2 shrink-0 rounded-xl" aria-label="{{ site_info.display_name|default:'Accbizz' }} home">
+        {% include "components/_logo.html" with cls="h-10" %}
       </a>
     </div>
   </header>
 
-  <main class="err-stage relative flex-1 flex flex-col items-center overflow-hidden text-center pt-8 sm:pt-16">
-    <p class="err-code relative z-[1] m-0 font-extrabold">{% block code %}{% endblock code %}</p>
+  <main id="main" class="relative flex-1 section overflow-hidden page-in" tabindex="-1">
+    <div class="glow pointer-events-none absolute -right-24 top-0 w-[520px] h-[520px] rounded-full" aria-hidden="true"></div>
 
-    <div class="err-below relative z-[2] flex-1 w-full flex flex-col items-center">
-      <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-dark-900">{% block heading %}{% endblock heading %}</h1>
-      <p class="mt-3 max-w-md text-sm sm:text-base text-gray-600 leading-relaxed">{% block message %}{% endblock message %}</p>
+    <div class="wrap relative">
+      <div class="flex flex-col items-start gap-6">
+        <p class="eyebrow">Error {% block code %}{% endblock code %}</p>
+        <h1 class="font-sans font-semibold tracking-tight text-balance leading-tight text-h2 lg:text-h1">{% block heading %}{% endblock heading %}</h1>
+        <p class="lead measure">{% block message %}{% endblock message %}</p>
 
-      <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-        {% block actions %}
-        {# The same two buttons as the site's call-to-action section #}
-        <a href="/"
-           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition">
-          Go to Home Page
-        </a>
-        {# Staff only. Needs request in the context, so it shows on 404, 403 and 429, never on 400, 500 or the CSRF page. #}
-        {% if request.user.is_authenticated and request.user.is_staff_member %}
-        <a href="{% url "dashboard_home" %}"
-           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-dark-400/30 text-dark-400 text-sm font-semibold hover:bg-white/10 transition">
-          Go to Dashboard
-        </a>
-        {% endif %}
-        <button type="button" onclick="if (history.length > 1) { history.back(); } else { location.href = '/'; }"
-           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-dark-400/30 text-dark-400 text-sm font-semibold hover:bg-white/10 transition cursor-pointer">
-          Go back
-        </button>
-        {% endblock actions %}
+        <div class="flex flex-wrap items-center gap-4">
+          {% block actions %}
+          {% include "components/_button.html" with label="Go to homepage" href="/" variant="primary" size="lg" %}
+          {# Staff only. Needs request in the context, so it shows on 404, 403 and 429, never on 400, 500 or the CSRF page. #}
+          {% if request.user.is_authenticated and request.user.is_staff_member %}
+          {% url "dashboard_home" as dashboard_home_url %}
+          {% include "components/_button.html" with label="Go to dashboard" href=dashboard_home_url variant="secondary" size="lg" %}
+          {% endif %}
+          {% include "components/_button.html" with label="Go back" variant="ghost" size="lg" attrs="data-go-back hidden" %}
+          {% endblock actions %}
+        </div>
       </div>
     </div>
   </main>
+
+  {# The only script on the page. Both controls are hidden until this runs, so without JS the page shows just the home link. #}
+  <script>
+    (function () {
+      var back = document.querySelectorAll('[data-go-back]');
+      var retry = document.querySelectorAll('[data-reload]');
+      var canBack = window.history.length > 1;
+      back.forEach(function (el) {
+        if (!canBack) return;
+        el.hidden = false;
+        el.addEventListener('click', function () { window.history.back(); });
+      });
+      retry.forEach(function (el) {
+        el.hidden = false;
+        el.addEventListener('click', function () { window.location.reload(); });
+      });
+    })();
+  </script>
 </body>
 </html>

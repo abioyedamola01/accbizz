@@ -1,87 +1,90 @@
-<section aria-labelledby="enquiriesHeading">
-  <h2 id="enquiriesHeading" class="text-xs font-bold uppercase tracking-wider text-gray-500">Enquiries</h2>
+{# Enquiries section. Context: by_service, by_weekday, peak, response_perf, summary, enquiries_series. Behavior: static/js/dashboard_reports.js. #}
+{# Classes that dashboard_reports.js adds from script, listed so Tailwind compiles them (it only scans templates): #}
+{# flex items-baseline justify-between gap-3 text-small min-w-0 truncate text-muted text-ink shrink-0 font-semibold text-caption font-normal mt-2 h-2 rounded-full bg-raised overflow-hidden bg-brand-500 bg-muted/50 opacity-50 mt-4 link-slide text-link flex flex-col gap-4 #}
 
-  <div class="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
+<section aria-labelledby="enquiriesHeading" class="flex flex-col gap-4">
+  <h2 id="enquiriesHeading" class="font-sans text-h3 font-semibold tracking-tight text-balance">Enquiries</h2>
+
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 
     {# ---- Messages over time (line chart) ---- #}
-    <div class="lg:col-span-2 bg-white rounded-2xl shadow-card p-4 sm:p-5">
-      <h3 class="text-sm font-semibold text-dark-900">Messages over time</h3>
-      <div id="enqSeriesChart" class="relative mt-4 h-56">
+    <div class="card flex flex-col gap-4 lg:col-span-2">
+      <h3 class="font-sans text-body font-semibold tracking-tight">Messages over time</h3>
+      <div id="enqSeriesChart" class="relative h-56">
         <canvas id="enqSeriesCanvas" role="img" aria-label="Line chart of messages received per day"></canvas>
       </div>
-      <p id="enqSeriesEmpty" hidden class="mt-4 text-sm text-gray-500">No enquiries in this period.</p>
+      <p id="enqSeriesEmpty" hidden class="text-small text-muted">No enquiries in this period.</p>
     </div>
 
-    {# ---- Enquiries by service: the busiest 5 + "Other", the full list in a modal (see the script below) ---- #}
-    <div class="bg-white rounded-2xl shadow-card p-4 sm:p-5">
-      <h3 class="text-sm font-semibold text-dark-900">Enquiries by service</h3>
+    {# ---- Enquiries by service: the busiest 5 + "Other", the full list in a modal (see the script) ---- #}
+    <div class="card flex flex-col gap-4">
+      <h3 class="font-sans text-body font-semibold tracking-tight">Enquiries by service</h3>
       {% if by_service %}
-      <ul id="enqServiceList" class="mt-4 flex flex-col gap-3">
+      <ul id="enqServiceList" class="flex flex-col gap-3">
         {% for row in by_service %}
         <li data-count="{{ row.count }}" data-title="{{ row.title }}">
-          <div class="flex items-baseline justify-between gap-3 text-sm">
-            <span class="min-w-0 truncate text-gray-700" title="{{ row.title }}">{{ row.title }}</span>
-            <span class="shrink-0 font-semibold text-dark-900">{{ row.count }}</span>
+          <div class="flex items-baseline justify-between gap-3 text-small">
+            <span class="min-w-0 truncate text-ink" title="{{ row.title }}">{{ row.title }}</span>
+            <span class="shrink-0 font-semibold text-ink">{{ row.count }}</span>
           </div>
-          <div class="mt-1.5 h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div data-bar class="h-2 rounded-full bg-brand-500 transition-all duration-500" style="width:0%"></div>
+          <div class="mt-2 h-2 overflow-hidden rounded-full bg-raised">
+            <div data-bar class="h-2 w-0 rounded-full bg-brand-500"></div>
           </div>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="mt-4 text-sm text-gray-500">No enquiries in this period.</p>
+      <p class="text-small text-muted">No enquiries in this period.</p>
       {% endif %}
     </div>
 
     {# ---- Response performance (managers only, same permission as the Staffs sidebar link) ---- #}
     {% if perms.staffs.manage_staffs %}
-    <div class="lg:col-span-2 bg-white rounded-2xl shadow-card p-4 sm:p-5">
-      <h3 class="text-sm font-semibold text-dark-900">Response performance</h3>
+    <div class="card flex flex-col gap-4 lg:col-span-2">
+      <h3 class="font-sans text-body font-semibold tracking-tight">Response performance</h3>
 
-      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {# Block 1: attended per staff. The top 5 show here; with more than 5 the full list opens in a modal. #}
-        <div class="rounded-xl bg-gray-50 p-4">
-          <p class="text-xs font-medium text-gray-500">Attended per staff</p>
+        <div class="flex flex-col gap-3 rounded-xl bg-raised p-4">
+          <p class="text-caption font-medium text-muted">Attended per staff</p>
           {% if response_perf.attended_by_staff %}
-          <ul class="mt-3 flex flex-col divide-y divide-gray-200">
+          <ul class="flex flex-col divide-y divide-line">
             {% for s in response_perf.attended_by_staff|dictsortreversed:"attended"|slice:":5" %}
-            <li class="flex items-center justify-between gap-3 py-2.5 text-sm">
+            <li class="flex items-center justify-between gap-3 py-3 text-small">
               <div class="min-w-0">
-                <p class="truncate text-gray-700" title="{{ s.name }}">{{ s.name }}</p>
-                {% if s.email %}<p class="truncate text-xs text-gray-500" title="{{ s.email }}">{{ s.email }}</p>{% endif %}
+                <p class="truncate text-ink" title="{{ s.name }}">{{ s.name }}</p>
+                {% if s.email %}<p class="truncate text-caption text-muted" title="{{ s.email }}">{{ s.email }}</p>{% endif %}
               </div>
-              <span class="shrink-0 font-semibold text-dark-900">{{ s.attended }}</span>
+              <span class="shrink-0 font-semibold text-ink">{{ s.attended }}</span>
             </li>
             {% endfor %}
           </ul>
           {% if response_perf.attended_by_staff|length > 5 %}
-          <button type="button" id="attStaffViewAll"
-            class="mt-3 text-xs font-semibold text-brand-500 hover:text-brand-600 transition cursor-pointer">View all {{ response_perf.attended_by_staff|length }} staff</button>
+          <button type="button" id="attStaffViewAll" class="btn btn-link btn-sm self-start" aria-haspopup="dialog">View all {{ response_perf.attended_by_staff|length }} staff</button>
           {% endif %}
           {% else %}
-          <p class="mt-3 text-sm text-gray-500">No enquiries attended in this period.</p>
+          <p class="text-small text-muted">No enquiries attended in this period.</p>
           {% endif %}
         </div>
 
-        <div class="flex flex-col gap-4 sm:gap-6">
+        <div class="flex flex-col gap-4">
           {# Block 2: unattended over 24h #}
-          <div class="rounded-xl bg-gray-50 p-4">
-            <p class="text-xs font-medium text-gray-500">Unattended over 24h</p>
-            <p class="mt-2 flex items-baseline gap-3">
-              <span class="text-2xl font-extrabold {% if response_perf.unattended_over_24h %}text-brand-500{% else %}text-dark-900{% endif %}">{{ response_perf.unattended_over_24h|default:0 }}</span>
+          <div class="flex flex-col gap-2 rounded-xl bg-raised p-4">
+            <p class="text-caption font-medium text-muted">Unattended over 24h</p>
+            <p class="flex items-baseline gap-3">
+              <span class="font-sans text-h3 font-semibold tracking-tight {% if response_perf.unattended_over_24h %}text-link{% endif %}">{{ response_perf.unattended_over_24h|default:0 }}</span>
               {% if response_perf.unattended_over_24h %}
-              <a href="{% url "dashboard_communication" %}" class="text-xs font-semibold text-brand-500 hover:text-brand-600 transition">View list</a>
+              <a href="{% url "dashboard_communication" %}" class="link-slide text-caption font-semibold text-link">View list</a>
               {% else %}
-              <span class="text-xs font-medium text-green-600">All caught up</span>
+              <span class="text-caption font-medium text-success-fg">All caught up</span>
               {% endif %}
             </p>
           </div>
 
           {# Block 3: oldest unattended #}
-          <div class="rounded-xl bg-gray-50 p-4">
-            <p class="text-xs font-medium text-gray-500">Oldest unattended</p>
-            <p class="mt-2 text-sm font-semibold text-dark-900">
+          <div class="flex flex-col gap-2 rounded-xl bg-raised p-4">
+            <p class="text-caption font-medium text-muted">Oldest unattended</p>
+            <p class="text-small font-semibold text-ink">
               {% if not summary.unattended %}None
               {% elif summary.oldest_unattended_days == 0 %}Today
               {% else %}{{ summary.oldest_unattended_days }} day{{ summary.oldest_unattended_days|pluralize }}{% endif %}
@@ -93,82 +96,76 @@
     {% endif %}
 
     {# ---- Busiest days (summary line + one bar per weekday) ---- #}
-    <div class="{% if not perms.staffs.manage_staffs %}lg:col-span-3 {% endif %}bg-white rounded-2xl shadow-card p-4 sm:p-5">
-      <h3 class="text-sm font-semibold text-dark-900">Busiest days</h3>
+    <div class="card flex flex-col gap-4 {% if not perms.staffs.manage_staffs %}lg:col-span-3{% endif %}">
+      <h3 class="font-sans text-body font-semibold tracking-tight">Busiest days</h3>
       {% if peak.busiest_days %}
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="text-small text-muted">
         {% if peak.busiest_days|length == by_weekday|length %}
         Enquiries are spread evenly across the week ({{ peak.busiest_days_count }} each).
         {% else %}
-        {% for d in peak.busiest_days %}<span class="font-semibold text-dark-900">{{ d }}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %} and {% else %}, {% endif %}{% endif %}{% endfor %} {% if peak.busiest_days|length > 1 %}are{% else %}is{% endif %} busiest with {{ peak.busiest_days_count }} enquir{{ peak.busiest_days_count|pluralize:"y,ies" }}{% if peak.busiest_days|length > 1 %} each{% endif %}{% if peak.quietest_days and peak.quietest_days != peak.busiest_days %}; {% for d in peak.quietest_days %}<span class="font-semibold text-dark-900">{{ d }}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %} and {% else %}, {% endif %}{% endif %}{% endfor %} {% if peak.quietest_days|length > 1 %}are{% else %}is{% endif %} quietest{% endif %}.
+        {% for d in peak.busiest_days %}<span class="font-semibold text-ink">{{ d }}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %} and {% else %}, {% endif %}{% endif %}{% endfor %} {% if peak.busiest_days|length > 1 %}are{% else %}is{% endif %} busiest with {{ peak.busiest_days_count }} enquir{{ peak.busiest_days_count|pluralize:"y,ies" }}{% if peak.busiest_days|length > 1 %} each{% endif %}{% if peak.quietest_days and peak.quietest_days != peak.busiest_days %}; {% for d in peak.quietest_days %}<span class="font-semibold text-ink">{{ d }}</span>{% if not forloop.last %}{% if forloop.revcounter == 2 %} and {% else %}, {% endif %}{% endif %}{% endfor %} {% if peak.quietest_days|length > 1 %}are{% else %}is{% endif %} quietest{% endif %}.
         {% endif %}
       </p>
-      <ul id="enqWeekdayList" class="mt-4 flex flex-col gap-2.5">
+      <ul id="enqWeekdayList" class="flex flex-col gap-3">
         {% for label, count in by_weekday.items %}
-        <li data-count="{{ count }}" class="flex items-center gap-3 text-sm">
-          <span class="w-9 shrink-0 text-gray-500">{{ label }}</span>
-          <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div data-bar class="h-2 rounded-full bg-brand-500 transition-all duration-500" style="width:0%"></div>
+        <li data-count="{{ count }}" class="flex items-center gap-3 text-small">
+          <span class="w-10 shrink-0 text-muted">{{ label }}</span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-raised">
+            <div data-bar class="h-2 w-0 rounded-full bg-brand-500"></div>
           </div>
-          <span class="w-7 shrink-0 text-right font-semibold text-dark-900">{{ count }}</span>
+          <span class="w-8 shrink-0 text-right font-semibold text-ink">{{ count }}</span>
         </li>
         {% endfor %}
       </ul>
       {% else %}
-      <p class="mt-4 text-sm text-gray-500">No enquiries in this period.</p>
+      <p class="text-small text-muted">No enquiries in this period.</p>
       {% endif %}
     </div>
 
   </div>
 </section>
 
-{# ---- All services (opened from "View all" on the Enquiries by service card; filled by the script below) ---- #}
-<div id="enqServicesModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4 py-6">
-  <div id="enqServicesOverlay" class="absolute inset-0 bg-dark-900/70"></div>
-  <div class="relative w-full max-w-md max-h-full flex flex-col bg-white rounded-2xl shadow-card overflow-hidden"
+{# ---- All services (opened from "View all" on the Enquiries by service card; filled by the script) ---- #}
+<div id="enqServicesModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4 py-6">
+  <div id="enqServicesOverlay" class="absolute inset-0" aria-hidden="true"></div>
+  <div class="relative flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-xl dark:shadow-none"
     role="dialog" aria-modal="true" aria-labelledby="enqServicesTitle">
-    <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100">
+    <div class="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
       <div class="min-w-0">
-        <h2 id="enqServicesTitle" class="text-base font-bold text-dark-900">Enquiries by service</h2>
-        <p id="enqServicesSummary" class="mt-0.5 text-sm text-gray-500"></p>
+        <h3 id="enqServicesTitle" class="font-sans text-lead font-semibold tracking-tight">Enquiries by service</h3>
+        <p id="enqServicesSummary" class="text-small text-muted"></p>
       </div>
-      <button type="button" id="enqServicesClose"
-        class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
+      <button type="button" id="enqServicesClose" class="icon-btn shrink-0" aria-label="Close">
+        {% include "components/_icon.html" with name="x-mark" size=20 %}
       </button>
     </div>
-    <ul id="enqServicesList" class="flex-1 overflow-y-auto flex flex-col gap-4 px-5 py-4" style="min-height:0"></ul>
+    <ul id="enqServicesList" class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4"></ul>
   </div>
 </div>
 
 {# ---- All staff (opened from "View all" on the Attended per staff block; managers only, and only when there are more than 5) ---- #}
 {% if perms.staffs.manage_staffs and response_perf.attended_by_staff|length > 5 %}
-<div id="attStaffModal" class="fixed inset-0 z-50 hidden items-center justify-center px-4 py-6">
-  <div id="attStaffOverlay" class="absolute inset-0 bg-dark-900/70"></div>
-  <div class="relative w-full max-w-md max-h-full flex flex-col bg-white rounded-2xl shadow-card overflow-hidden"
+<div id="attStaffModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4 py-6">
+  <div id="attStaffOverlay" class="absolute inset-0" aria-hidden="true"></div>
+  <div class="relative flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-xl dark:shadow-none"
     role="dialog" aria-modal="true" aria-labelledby="attStaffTitle">
-    <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100">
+    <div class="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
       <div class="min-w-0">
-        <h2 id="attStaffTitle" class="text-base font-bold text-dark-900">Attended per staff</h2>
-        <p class="mt-0.5 text-sm text-gray-500">{{ response_perf.attended_by_staff|length }} staff in the selected period</p>
+        <h3 id="attStaffTitle" class="font-sans text-lead font-semibold tracking-tight">Attended per staff</h3>
+        <p class="text-small text-muted">{{ response_perf.attended_by_staff|length }} staff in the selected period</p>
       </div>
-      <button type="button" id="attStaffClose"
-        class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 cursor-pointer" aria-label="Close">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
+      <button type="button" id="attStaffClose" class="icon-btn shrink-0" aria-label="Close">
+        {% include "components/_icon.html" with name="x-mark" size=20 %}
       </button>
     </div>
-    <ul class="flex-1 overflow-y-auto flex flex-col divide-y divide-gray-100 px-5 py-2" style="min-height:0">
+    <ul class="flex min-h-0 flex-1 flex-col divide-y divide-line overflow-y-auto px-6 py-2">
       {% for s in response_perf.attended_by_staff|dictsortreversed:"attended" %}
-      <li class="flex items-center justify-between gap-3 py-3 text-sm">
+      <li class="flex items-center justify-between gap-3 py-3 text-small">
         <div class="min-w-0">
-          <p class="truncate text-gray-700" title="{{ s.name }}">{{ s.name }}</p>
-          {% if s.email %}<p class="truncate text-xs text-gray-500" title="{{ s.email }}">{{ s.email }}</p>{% endif %}
+          <p class="truncate text-ink" title="{{ s.name }}">{{ s.name }}</p>
+          {% if s.email %}<p class="truncate text-caption text-muted" title="{{ s.email }}">{{ s.email }}</p>{% endif %}
         </div>
-        <span class="shrink-0 font-semibold text-dark-900">{{ s.attended }}</span>
+        <span class="shrink-0 font-semibold text-ink">{{ s.attended }}</span>
       </li>
       {% endfor %}
     </ul>
@@ -176,209 +173,6 @@
 </div>
 {% endif %}
 
-{# Data for the scripts. json_script escapes it safely. It only holds the days that have enquiries; #}
-{# the script adds the empty days (ReportCharts.fillDays in reports.html). #}
+{# Data for the script. json_script escapes it safely. It only holds the days that have enquiries; #}
+{# the script adds the empty days (ReportCharts.fillDays in dashboard_reports.js). #}
 {{ enquiries_series|json_script:"enqSeriesData" }}
-
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    function readJson(id) {
-      var el = document.getElementById(id);
-      if (!el) return [];
-      try {
-        var value = JSON.parse(el.textContent);
-        return Array.isArray(value) ? value : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    // ---- 1. Messages over time ----
-    (function () {
-      var series = readJson('enqSeriesData');
-      var box = document.getElementById('enqSeriesChart');
-      var empty = document.getElementById('enqSeriesEmpty');
-      var total = series.reduce(function (sum, p) { return sum + (Number(p.count) || 0); }, 0);
-
-      if (!total) {
-        box.hidden = true;
-        empty.hidden = false;
-        return;
-      }
-      if (!window.ReportCharts || !window.Chart) {
-        box.hidden = true;
-        empty.textContent = 'The chart could not load. Refresh the page to try again.';
-        empty.hidden = false;
-        return;
-      }
-      // Only days with enquiries come from the server; add the empty ones so the line runs through the whole range
-      var days = window.ReportCharts.fillDays(series, window.ReportCharts.rangeBounds());
-      window.ReportCharts.line(
-        document.getElementById('enqSeriesCanvas'),
-        days.map(function (d) { return window.ReportCharts.shortDate(d.date); }),
-        days.map(function (d) { return d.count; }),
-        'Messages'
-      );
-    })();
-
-    // ---- 2. Enquiries by service: the busiest 5 + "Other", everything in a modal ----
-    (function () {
-      var TOP = 5;           // rows shown on the card
-      var OTHER_COLOR = '#d1d5db';
-      var list = document.getElementById('enqServiceList');
-      if (!list) return;
-
-      var rows = Array.prototype.map.call(list.children, function (li, i) {
-        return { title: li.dataset.title || '', count: Number(li.dataset.count) || 0, order: i };
-      });
-      rows.sort(function (a, b) { return (b.count - a.count) || (a.order - b.order); });
-
-      function el(tag, className, text) {
-        var node = document.createElement(tag);
-        if (className) node.className = className;
-        if (text !== undefined) node.textContent = text;
-        return node;
-      }
-
-      // One row: name, count (and share when asked for), and a bar. animate = grow from 0 like the other bars.
-      function serviceRow(title, count, max, options) {
-        options = options || {};
-        var li = el('li');
-        var top = el('div', 'flex items-baseline justify-between gap-3 text-sm');
-        var name = el('span', 'min-w-0 truncate ' + (options.muted ? 'text-gray-500' : 'text-gray-700'), title);
-        name.title = title;
-        var amount = el('span', 'shrink-0 font-semibold text-dark-900', String(count));
-        if (options.share !== undefined) {
-          var share = el('span', 'text-xs font-normal text-gray-500', options.share + '%');
-          share.style.marginLeft = '0.75rem'; // inline, so it doesn't depend on the Tailwind build
-          amount.appendChild(share);
-        }
-        top.appendChild(name);
-        top.appendChild(amount);
-
-        var track = el('div', 'mt-1.5 h-2 rounded-full bg-gray-100 overflow-hidden');
-        var bar = el('div', 'h-2 rounded-full transition-all duration-500' + (options.muted ? '' : ' bg-brand-500'));
-        if (options.muted) bar.style.backgroundColor = OTHER_COLOR;
-        var pct = count && max ? Math.max(4, Math.round((count / max) * 100)) : 0;
-        if (options.animate) {
-          bar.style.width = '0%';
-          requestAnimationFrame(function () { requestAnimationFrame(function () { bar.style.width = pct + '%'; }); });
-        } else {
-          bar.style.width = pct + '%';
-        }
-        track.appendChild(bar);
-        li.appendChild(top);
-        li.appendChild(track);
-        return li;
-      }
-
-      var total = rows.reduce(function (sum, r) { return sum + r.count; }, 0);
-
-      // A short list stays as the page rendered it: only the bar widths are set
-      if (rows.length <= TOP + 1) {
-        var max = rows.length ? rows[0].count : 0;
-        if (!max) return;
-        Array.prototype.forEach.call(list.children, function (li) {
-          var count = Number(li.dataset.count) || 0;
-          var pct = count ? Math.max(4, Math.round((count / max) * 100)) : 0;
-          li.querySelector('[data-bar]').style.width = pct + '%';
-        });
-        return;
-      }
-
-      // A long one: the busiest 5, then everything else added up as one row
-      var shown = rows.slice(0, TOP);
-      var rest = rows.slice(TOP);
-      var otherCount = rest.reduce(function (sum, r) { return sum + r.count; }, 0);
-      var biggest = Math.max(shown[0].count, otherCount); // so no bar runs past its track
-
-      while (list.firstChild) list.removeChild(list.firstChild);
-      shown.forEach(function (r) { list.appendChild(serviceRow(r.title, r.count, biggest, { animate: true })); });
-      list.appendChild(serviceRow('Other (' + rest.length + ' services)', otherCount, biggest, { animate: true, muted: true }));
-
-      var viewAll = el('button', 'mt-4 text-xs font-semibold text-brand-500 hover:text-brand-600 transition cursor-pointer', 'View all ' + rows.length + ' services');
-      viewAll.type = 'button';
-      list.insertAdjacentElement('afterend', viewAll);
-
-      // ---- The modal with every service ----
-      var modal = document.getElementById('enqServicesModal');
-      var modalList = document.getElementById('enqServicesList');
-      var maxCount = rows[0].count;
-
-      function fillModal() {
-        while (modalList.firstChild) modalList.removeChild(modalList.firstChild);
-        rows.forEach(function (r) {
-          modalList.appendChild(serviceRow(r.title, r.count, maxCount, { share: total ? Math.round((r.count / total) * 100) : undefined }));
-        });
-        document.getElementById('enqServicesSummary').textContent =
-          rows.length + ' services \u00b7 ' + total + ' enquir' + (total === 1 ? 'y' : 'ies') + ' in the selected period';
-      }
-
-      function openModal() {
-        fillModal();
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.classList.add('overflow-hidden');
-        modalList.scrollTop = 0;
-        document.getElementById('enqServicesClose').focus();
-      }
-      function closeModal() {
-        if (modal.classList.contains('hidden')) return;
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.classList.remove('overflow-hidden');
-        viewAll.focus();
-      }
-
-      viewAll.addEventListener('click', openModal);
-      document.getElementById('enqServicesClose').addEventListener('click', closeModal);
-      document.getElementById('enqServicesOverlay').addEventListener('click', closeModal);
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-      });
-    })();
-
-    // ---- 3. Busiest days: bar widths relative to the busiest day; the busiest day is full strength ----
-    (function () {
-      var rows = document.querySelectorAll('#enqWeekdayList > li');
-      var max = 0;
-      rows.forEach(function (li) { max = Math.max(max, Number(li.dataset.count) || 0); });
-      if (!max) return;
-      rows.forEach(function (li) {
-        var count = Number(li.dataset.count) || 0;
-        var bar = li.querySelector('[data-bar]');
-        bar.style.width = (count ? Math.max(4, Math.round((count / max) * 100)) : 0) + '%';
-        if (count !== max) bar.style.opacity = '0.45';
-      });
-    })();
-
-    // ---- 4. Attended per staff: the full list in a modal (only rendered when there are more than 5) ----
-    (function () {
-      var modal = document.getElementById('attStaffModal');
-      var openBtn = document.getElementById('attStaffViewAll');
-      var closeBtn = document.getElementById('attStaffClose');
-      if (!modal || !openBtn || !closeBtn) return;
-
-      function openModal() {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.classList.add('overflow-hidden');
-        closeBtn.focus();
-      }
-      function closeModal() {
-        if (modal.classList.contains('hidden')) return;
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.body.classList.remove('overflow-hidden');
-        openBtn.focus();
-      }
-
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-      document.getElementById('attStaffOverlay').addEventListener('click', closeModal);
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-      });
-    })();
-  });
-</script>

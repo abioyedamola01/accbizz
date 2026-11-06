@@ -2,14 +2,27 @@
 
 {% block title %}{{ service.title }} · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
+{% block meta_description %}{% if service.blurb %}<meta name="description" content="{{ service.blurb|truncatechars:160 }}" />{% elif service.description %}<meta name="description" content="{{ service.description|truncatechars:160 }}" />{% elif site_info.tagline %}<meta name="description" content="{{ site_info.tagline }}" />{% endif %}{% endblock meta_description %}
+
+{# Long page: show the reading progress bar #}
+{% block reading_progress %}<div class="read-progress" aria-hidden="true"></div>{% endblock reading_progress %}
+
 {% block content %}
-    {% include "main/partials/service_detail/_hero.html" %}
-    {% include "main/partials/service_detail/_overview.html" %}
-    {% include "main/partials/service_detail/_expect.html" %}
-    {% url "main_testimonials" as all_url %}
-    {% if testimonials|length %}{% include "main/partials/testimonials/_slider.html" with all_testimonials_url=all_url %}{% endif %}
-    {% include "main/partials/service_detail/_related.html" %}
-    {% if faqs|length %}
-        {% include "main/partials/faqs/_sect.html" %}
-    {% endif %}
+  {% include "main/partials/service_detail/_hero.html" %}
+  {% include "main/partials/service_detail/_overview.html" %}
+  {% include "main/partials/service_detail/_expect.html" %}
+  {% include "main/partials/service_detail/_related.html" %}
+
+  {# Restyled Home slider. It resolves the "View all testimonials" link itself and only enables refresh on Home. #}
+  {% url "main_testimonials" as all_url %}
+  {% if testimonials|length %}{% include "main/partials/home/_testimonials.html" with all_testimonials_url=all_url hide_pause=True %}{% endif %}
+
+  {% if faqs|length %}
+    {% include "main/partials/faqs/_sect.html" %}
+  {% endif %}
+
+  {# Closing call to action. Text is hard-coded for now (see notes). #}
+  {% url "main_services" as services_url %}
+  {% url "main_contact" as contact_url %}
+  {% include "main/partials/_cta.html" with headings="Ready to get started?" text="Tell us what you need and when you need it, and we will suggest where to begin." label1="Contact us" url1=contact_url|add:"#contact-us" label2="Explore services" url2=services_url %}
 {% endblock content %}

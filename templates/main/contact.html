@@ -1,11 +1,37 @@
 {% extends "base/main/base.html" %}
+{% load static %}
 
 {% block title %}Contact us · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
+{# Hard-coded description, flagged for the database (see notes) #}
+{% block meta_description %}<meta name="description" content="Send us a message about what you need and when you need it. We read every enquiry and reply by email." />{% endblock meta_description %}
+
 {% block content %}
-    {% include "main/partials/contact/_intro.html" %}
-    <div id="contact-us"></div>
-    {% include "main/partials/contact/_form.html" %}
-    {% include "main/partials/contact/_details.html" %}
-    {% include "main/partials/contact/_faqs.html" %}
+  {% include "main/partials/contact/_intro.html" %}
+
+  {# #contact-us is the target of every "Contact us" link on the site #}
+  <section id="contact-us" class="scroll-mt-24 pb-16 lg:pb-24" aria-label="Send a message">
+    <div class="wrap">
+      {% if site_info.email or site_info.whatsapp or site_info.location %}
+      <div class="grid gap-12 lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-16">
+        {% include "main/partials/contact/_form.html" %}
+        {% include "main/partials/contact/_details.html" %}
+      </div>
+      {% else %}
+      {# No contact details set: the form stands alone, centered #}
+      <div class="mx-auto max-w-2xl">
+        {% include "main/partials/contact/_form.html" %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% include "main/partials/contact/_faqs.html" %}
+
+  {# Closing call to action. Text is hard-coded for now (see notes). #}
+  {% url "main_services" as services_url %}
+  {% url "main_about" as about_url %}
+  {% include "main/partials/_cta.html" with headings="Not sure where to start?" text="Browse our services to see how we can help, or learn more about who we are." label1="Explore services" url1=services_url label2="About us" url2=about_url %}
 {% endblock content %}
+
+{% block extra_js %}<script src="{% static 'js/contact.js' %}" defer></script>{% endblock extra_js %}

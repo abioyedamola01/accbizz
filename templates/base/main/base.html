@@ -4,33 +4,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  {# The two hex values below must mirror --page in base.css (light and dark). They are the only hex outside CSS. #}
+  <meta name="theme-color" content="#F5F0E7" data-light="#F5F0E7" data-dark="#181523" />
 
-  <!-- Unami analytics track -->
+  {# Runs before first paint: sets data-theme (no flash of the wrong theme), marks JS as available, decides on the first-visit splash #}
+  <script>
+    (function () {
+      var d = document.documentElement, pref = 'system';
+      try { var v = localStorage.getItem('theme'); if (v === 'light' || v === 'dark') pref = v; } catch (e) {}
+      var dark = pref === 'system' ? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : pref === 'dark';
+      var theme = dark ? 'dark' : 'light';
+      d.setAttribute('data-theme', theme);
+      d.setAttribute('data-theme-pref', pref);
+      d.classList.add('js');
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m) m.setAttribute('content', m.getAttribute('data-' + theme));
+      try {
+        var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!calm && !localStorage.getItem('splash-seen')) { d.classList.add('show-splash'); localStorage.setItem('splash-seen', '1'); }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Umami analytics -->
   <script defer src="https://umami-zeta-drab.vercel.app/script.js" data-website-id="013c8cfa-724c-4382-a8e2-5cc65716b059"></script>
   <title>{% block title %}{{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}</title>
+  {% block meta_description %}{% if site_info.tagline %}<meta name="description" content="{{ site_info.tagline }}" />{% endif %}{% endblock meta_description %}
   {% if site_info.favicon %}<link rel="icon" href="{{ site_info.favicon.url }}" />{% endif %}
 
-  <!-- Tailwind compiled CSS -->
+  {# Compiled Tailwind. base.css is imported inside it, so it is not linked separately. #}
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
-  <!-- Global design tokens -->
-  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
   {% block extra_css %}{% endblock extra_css %}
 </head>
-<body class="font-sans text-dark-900 antialiased bg-cream">
-  {% include "base/_preloader.html" %}
+<body id="top" class="relative min-h-dvh flex flex-col bg-page font-sans text-body text-ink antialiased">
+  <a href="#main" class="skip-link" data-no-progress>Skip to main content</a>
+
+  {% include "base/main/partials/_splash.html" %}
+  <div class="nav-progress" aria-hidden="true"></div>
+  {% block reading_progress %}{% endblock reading_progress %}
+
+  {# Sentinels for IntersectionObserver (header shadow, back-to-top) #}
+  <div data-scroll-sentinel aria-hidden="true" class="absolute inset-x-0 top-0 h-2 pointer-events-none"></div>
+  <div data-top-sentinel aria-hidden="true" class="absolute left-0 top-[600px] h-px w-px pointer-events-none"></div>
+
   {% include "base/main/partials/_navbar.html" %}
 
-  <main>
+  <main id="main" class="flex-1 page-in" tabindex="-1">
     {% block content %}{% endblock content %}
   </main>
 
   {% include "base/main/partials/_footer.html" %}
 
-{% block extra_js %}{% endblock extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"></script>
+  <a href="#top" data-to-top tabindex="-1" class="to-top" aria-label="Back to top">
+    {% include "components/_icon.html" with name="arrow-up" size=20 %}
+  </a>
+
+  <script src="{% static 'js/motion.js' %}" defer></script>
+  <script src="{% static 'js/ui.js' %}" defer></script>
+  <script src="{% static 'js/loading.js' %}" defer></script>
+  {# Flowbite: no public template uses it. If a public page needs a component, load the local v4 build here, e.g. <script src="{% static 'vendor/flowbite.min.js' %}" defer></script> #}
+  {% block extra_js %}{% endblock extra_js %}
 </body>
 </html>

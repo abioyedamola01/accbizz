@@ -1,0 +1,3 @@
+{# Letter-mark fallback when no logo file exists. Shown with the visible site name. #}
+<span class="inline-grid place-items-center w-8 h-8 rounded-xl bg-brand-500 text-white dark:bg-brand-400 dark:text-dark-900 font-sans font-semibold text-body" aria-hidden="true">{{ site_info.display_name|default:"Accbizz"|slice:":1"|upper }}</span>
+<span class="font-sans font-semibold text-lead text-ink">{{ site_info.display_name|default:"Accbizz" }}</span>

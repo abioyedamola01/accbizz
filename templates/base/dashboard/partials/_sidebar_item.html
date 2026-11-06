@@ -1,0 +1,10 @@
+{# One sidebar link. Params: href, key (the value of `current` that marks it active), label, icon, #}
+{# and optionally badge_attr (data attribute name other pages use to find the badge), badge_count, badge_title. #}
+<a href="{{ href }}" class="sb-item" data-sb-item{% if current == key %} aria-current="page"{% endif %}>
+  {% include "components/_icon.html" with name=icon size=20 cls="sb-icon" %}
+  <span class="sb-label">{{ label }}</span>
+  {% if badge_attr %}
+    {# Always in the page so a page can show it again when the count goes from 0 to 1. Hidden with an inline style because other pages set style.display. #}
+    <span {{ badge_attr }} title="{{ badge_title }}" class="sb-badge"{% if not badge_count %} style="display:none"{% endif %}>{% if badge_count > 99 %}99+{% else %}{{ badge_count }}{% endif %}</span>
+  {% endif %}
+</a>

@@ -1,0 +1,9 @@
+{# Resolves the saved image URL for one identity row, empty-safe. Reading .url on an empty file field raises, so it is read only after checking the field has a value. #}
+{# Params: field (bound form field), name, label, short, hint, input_id, max_mb, tile, img_cls, btn_label #}
+{% if field.value %}
+  {% with src=field.value.url|cut:" " %}
+    {% include "dashboard/partials/site/_identity_item_body.html" with src=src %}
+  {% endwith %}
+{% else %}
+  {% include "dashboard/partials/site/_identity_item_body.html" with src="" %}
+{% endif %}

@@ -4,7 +4,8 @@ from django.utils.html import strip_tags
 from dashboard.utils import SiteModel
 
 def send_contact_message(site_info, name, email, message, phone=None, service=None):
-    logo_url = SiteModel.objects.first().logo.url
+    logo = SiteModel.objects.first().logo
+    logo_url = logo.url if logo else None
 
     context = {
         'name': name,

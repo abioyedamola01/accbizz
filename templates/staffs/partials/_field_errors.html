@@ -1,0 +1,2 @@
+{# Error list under a field. Expects: id (the element id the input points to with aria-describedby), errors (optional, server errors). The script fills it for client-side errors. #}
+<div id="{{ id }}" data-field-errors class="flex flex-col gap-1">{% for error in errors %}<p data-server-error class="flex items-start gap-2 text-small text-danger-fg">{% include "components/_icon.html" with name="exclamation-circle" size=16 cls="mt-1" %}<span>{{ error }}</span></p>{% endfor %}</div>

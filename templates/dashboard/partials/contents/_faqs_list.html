@@ -1,11 +1,11 @@
 {% for faq in faqs %}
-<tbody class="faq-group divide-y divide-gray-100 border-b border-gray-100">
+<tbody class="faq-group divide-y divide-line border-b border-line">
   <tr>
-    <td class="py-3 pr-4"><span class="text-sm font-semibold text-dark-900">{{ faq.question }}</span></td>
-    <td class="py-3 pr-4"><span class="text-sm text-gray-600">{{ faq.service.title|default:"General" }}</span></td>
-    <td class="py-3 pr-5">
-      <button type="button" onclick="toggleManageRow(this)"
-        class="inline-flex items-center text-sm font-semibold text-brand-500 hover:text-brand-600 cursor-pointer select-none transition"
+    <td class="py-3 pr-4"><span class="text-small font-semibold text-ink">{{ faq.question }}</span></td>
+    <td class="py-3 pr-4"><span class="text-small text-muted">{{ faq.service.title|default:"General" }}</span></td>
+    <td class="py-3 pr-4">
+      <button type="button" onclick="toggleManageRow(this)" aria-label="Manage FAQ: {{ faq.question|truncatechars:60 }}"
+        class="btn btn-link btn-sm"
         data-update-url="{% url "dashboard_update_faq" faq.slug %}"
         data-delete-url="{% url "dashboard_delete_faq" faq.slug %}"
         data-question="{{ faq.question }}"

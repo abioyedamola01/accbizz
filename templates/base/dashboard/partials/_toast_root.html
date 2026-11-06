@@ -1,0 +1,4 @@
+{# Toast container for the dashboard. Styles: .app-toast in input.css. Behavior: showToast in static/js/dashboard.js. #}
+{# Success and info toasts are announced politely through this region. Error toasts carry role="alert" themselves. #}
+<div id="toastRoot" role="status" aria-live="polite" aria-atomic="false"
+  class="pointer-events-none fixed right-4 top-4 z-[var(--z-toast)] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2"></div>

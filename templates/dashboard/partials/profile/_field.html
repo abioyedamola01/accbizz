@@ -1,0 +1,16 @@
+{# One field of the edit profile form. Params: field (bound form field), label, autocomplete, inputmode (optional). #}
+{# The error slot is always in the page (hidden when empty), so aria-describedby always points at a real element. #}
+{% load widget_tweaks %}
+{% with fid=field.id_for_label %}
+  {% with err_id=fid|add:"-error" %}
+    <div class="flex min-w-0 flex-col gap-2" data-field="{{ field.html_name }}">
+      <label for="{{ fid }}" class="field-label">{{ label }}</label>
+      {% if inputmode %}
+        {% render_field field class+="field-input" autocomplete=autocomplete inputmode=inputmode aria-describedby=err_id %}
+      {% else %}
+        {% render_field field class+="field-input" autocomplete=autocomplete aria-describedby=err_id %}
+      {% endif %}
+      {% include "main/partials/contact/_field_msg.html" with fid=fid error=field.errors.0 %}
+    </div>
+  {% endwith %}
+{% endwith %}

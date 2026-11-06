@@ -1,9 +1,10 @@
+{# "vs prior" line. Params: value (percent change), good ("up" or "down": which direction is good news). Direction is shown with an arrow and the sign, never by color alone. #}
 {% if value is None or value == "" %}
-  <p class="text-xs text-gray-400">No prior data</p>
+  <p class="text-caption text-muted">No prior data</p>
 {% elif value == 0 %}
-  <p class="text-xs text-gray-500">No change vs prior</p>
+  <p class="text-caption text-muted">No change vs prior</p>
 {% elif value > 0 %}
-  <p class="text-xs font-medium {% if good == 'up' %}text-green-600{% else %}text-red-500{% endif %}">&uarr; +{{ value|floatformat:"0" }}% vs prior</p>
+  <p class="text-caption font-medium {% if good == 'up' %}text-success-fg{% else %}text-danger-fg{% endif %}"><span aria-hidden="true">&uarr;</span> +{{ value|floatformat:"0" }}% vs prior</p>
 {% else %}
-  <p class="text-xs font-medium {% if good == 'down' %}text-green-600{% else %}text-red-500{% endif %}">&darr; {{ value|floatformat:"0" }}% vs prior</p>
+  <p class="text-caption font-medium {% if good == 'down' %}text-success-fg{% else %}text-danger-fg{% endif %}"><span aria-hidden="true">&darr;</span> {{ value|floatformat:"0" }}% vs prior</p>
 {% endif %}

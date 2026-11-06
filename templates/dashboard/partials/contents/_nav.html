@@ -1,30 +1,19 @@
-{# Horizontal sub-nav for the Contents page — mirrors the public navbar's active-link style. #}
-<nav class="flex items-center gap-8 text-sm font-medium text-gray-600 border-b border-gray-100 mb-6 px-1">
-  <a href="?tab=home" {% if content_tab == "home" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    Home
-    {% if content_tab == "home" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
-  </a>
-  <a href="?tab=about" {% if content_tab == "about" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    About
-    {% if content_tab == "about" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
-  </a>
-  <a href="?tab=services" {% if content_tab == "services" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    Services
-    {% if content_tab == "services" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
-  </a>
-  <a href="?tab=faqs" {% if content_tab == "faqs" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    FAQs
-    {% if content_tab == "faqs" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
-  </a>
-  <a href="?tab=testimonials" {% if content_tab == "testimonials" %} class="relative py-3 font-bold text-brand-500 transition" {% else %} class="relative py-3 hover:text-brand-500 transition-colors" {% endif %}>
-    <span class="inline-flex items-center gap-2">
-      Testimonials
-      {# unapproved_count comes from the testimonials_count context processor #}
-      {% if unapproved_count %}
-      <span title="Testimonials awaiting approval"
-        class="min-w-4 h-4 px-1 rounded-full bg-brand-500 text-white text-[10px] font-semibold leading-none inline-flex items-center justify-center">{% if unapproved_count > 99 %}99+{% else %}{{ unapproved_count }}{% endif %}</span>
-      {% endif %}
-    </span>
-    {% if content_tab == "testimonials" %} <span class="absolute bottom-0 left-1/4 h-0.5 w-1/2 bg-brand-500 rounded"></span> {% endif %}
+{# Horizontal sub-nav for the Contents page. The active tab gets aria-current, an ink label and a brand underline. #}
+<nav aria-label="Contents sections" class="flex items-center gap-6 overflow-x-auto border-b border-line px-1 sm:gap-8">
+  <a href="?tab=home" {% if content_tab == "home" %}aria-current="page"{% endif %}
+    class="-mb-px inline-flex min-h-11 items-center whitespace-nowrap border-b-2 text-small font-medium {% if content_tab == "home" %}border-brand-500 font-semibold text-ink{% else %}border-transparent text-muted hover:text-ink{% endif %}">Home</a>
+  <a href="?tab=about" {% if content_tab == "about" %}aria-current="page"{% endif %}
+    class="-mb-px inline-flex min-h-11 items-center whitespace-nowrap border-b-2 text-small font-medium {% if content_tab == "about" %}border-brand-500 font-semibold text-ink{% else %}border-transparent text-muted hover:text-ink{% endif %}">About</a>
+  <a href="?tab=services" {% if content_tab == "services" %}aria-current="page"{% endif %}
+    class="-mb-px inline-flex min-h-11 items-center whitespace-nowrap border-b-2 text-small font-medium {% if content_tab == "services" %}border-brand-500 font-semibold text-ink{% else %}border-transparent text-muted hover:text-ink{% endif %}">Services</a>
+  <a href="?tab=faqs" {% if content_tab == "faqs" %}aria-current="page"{% endif %}
+    class="-mb-px inline-flex min-h-11 items-center whitespace-nowrap border-b-2 text-small font-medium {% if content_tab == "faqs" %}border-brand-500 font-semibold text-ink{% else %}border-transparent text-muted hover:text-ink{% endif %}">FAQs</a>
+  <a href="?tab=testimonials" {% if content_tab == "testimonials" %}aria-current="page"{% endif %}
+    class="-mb-px inline-flex min-h-11 items-center gap-2 whitespace-nowrap border-b-2 text-small font-medium {% if content_tab == "testimonials" %}border-brand-500 font-semibold text-ink{% else %}border-transparent text-muted hover:text-ink{% endif %}">
+    Testimonials
+    {# unapproved_count comes from the testimonials_count context processor #}
+    {% if unapproved_count %}
+    <span title="Testimonials awaiting approval" class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-caption font-semibold leading-none text-white dark:text-dark-900">{% if unapproved_count > 99 %}99+{% else %}{{ unapproved_count }}{% endif %}<span class="sr-only"> awaiting approval</span></span>
+    {% endif %}
   </a>
 </nav>

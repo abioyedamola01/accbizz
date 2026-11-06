@@ -1,0 +1,6 @@
+{# Avatar picture with an initial behind it. Params: src ("" when there is nothing to show), initial (one letter). #}
+{# The initial shows when there is no picture or it fails to load. onload brings the image back after a failed one is replaced by a new upload. #}
+<span class="relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-raised">
+  <span class="text-h3 font-semibold text-muted" aria-hidden="true">{{ initial }}</span>
+  <img id="profileAvatarImg" alt="" width="64" height="64" class="absolute inset-0 h-full w-full object-cover"{% if src %} src="{{ src }}"{% else %} hidden{% endif %} onerror="this.hidden=true" onload="this.hidden=false" />
+</span>

@@ -1,14 +1,17 @@
 {% extends "base/dashboard/base.html" %}
+{% load static %}
 
 {% block title %}Reports · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
 {% block content %}
 
+{# Context: range, summary, by_service, by_weekday, peak, response_perf, enquiries_series, health. Scripts: static/js/dashboard_reports.js (page) and dashboard_analytics.js (Umami section). #}
+
 {# The zone the report uses, its "Times shown in ..." flag, and the day <-> UTC date-time helpers. #}
-{# Included first because the filters script below needs it while the page is still loading. #}
+{# Included first because the filters script needs it while the page is still loading. #}
 {% include "dashboard/partials/_time_zone.html" %}
 
-<div class="flex flex-col gap-4">
+<div class="mt-8 flex flex-col gap-12">
 
   {# 1. Date filter #}
   {% include "dashboard/partials/reports/_filters.html" %}
@@ -16,162 +19,21 @@
   {# 2. Summary cards #}
   {% include "dashboard/partials/reports/_summary.html" %}
 
-  {# 3. Enquiries section #}
+  {# 3. Enquiries #}
   {% include "dashboard/partials/reports/_enquiries.html" %}
 
-  {# 4. Website analytics from Umami (public site; loads after the page via dashboard_get_site_analytics) #}
+  {# 4. Website analytics from Umami (loads after the page through dashboard_get_site_analytics) #}
   {% include "dashboard/partials/reports/_analytics.html" %}
 
   {# 5. Content health (needs the `health` context variable, see _content_health.html) #}
   {% include "dashboard/partials/reports/_content_health.html" %}
 
-  {# 6. Staff activity           #}
-
 </div>
 {% endblock content %}
 
 {% block extra_js %}
-{# Chart.js, pinned. Loaded here (end of body) so partial scripts wait for DOMContentLoaded. #}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-  // Shared by every chart on this page (enquiries and analytics).
-  window.ReportCharts = (function () {
-    var BRAND = '#EF6B2E';
-    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    // "2026-10-22" -> "22 Oct" (split by hand so time zones can't shift the day)
-    function shortDate(iso) {
-      var p = String(iso).split('-');
-      if (p.length !== 3) return String(iso);
-      return parseInt(p[2], 10) + ' ' + MONTHS[parseInt(p[1], 10) - 1];
-    }
-
-    function nextDay(key) {
-      var p = key.split('-');
-      return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + 1)).toISOString().slice(0, 10);
-    }
-
-    // The days the page is showing, as "YYYY-MM-DD" days in the dashboard's zone, read from the address:
-    // ?range=7d / 30d / 90d (30d when there is none, like the filters) or ?range=custom&from=...&to=...
-    // Returns null when it can't tell.
-    function rangeBounds() {
-      var DT = window.DashboardTime;
-      if (!DT) return null;
-      var q = new URLSearchParams(window.location.search);
-      var range = q.get('range') || '30d';
-      if (range === 'custom') {
-        var from = DT.dateKey(q.get('from'));
-        var to = DT.dateKey(q.get('to'));
-        return from && to ? { from: from, to: to } : null;
-      }
-      var m = /^(\d+)d$/.exec(range);
-      if (!m) return null;
-      var start = new Date(Date.now() - parseInt(m[1], 10) * 86400000);
-      return { from: DT.dateKey(start.toISOString()), to: DT.todayKey() };
-    }
-
-    // The server only sends days that have something in them ({ date, count }). Group them by day (a
-    // date-time falls on its day in the dashboard's zone, a plain "YYYY-MM-DD" stays as it is), then add
-    // the empty days with a count of 0, from the first day of the range to the last.
-    function fillDays(points, bounds) {
-      var DT = window.DashboardTime;
-      var byDay = {};
-      (points || []).forEach(function (p) {
-        var key = DT ? DT.dateKey(p.date) : String(p.date).slice(0, 10);
-        if (!key) return;
-        byDay[key] = (byDay[key] || 0) + (Number(p.count) || 0);
-      });
-
-      var keys = Object.keys(byDay).sort();
-      if (!keys.length) return [];
-      var first = keys[0];
-      var last = keys[keys.length - 1];
-      if (bounds && bounds.from && bounds.from < first) first = bounds.from;
-      if (bounds && bounds.to && bounds.to > last) last = bounds.to;
-
-      var days = [];
-      for (var key = first, guard = 0; key <= last && guard < 800; key = nextDay(key), guard++) {
-        days.push({ date: key, count: byDay[key] || 0 });
-      }
-      return days;
-    }
-
-    // One-series line chart in the brand colour.
-    function line(canvas, labels, values, label) {
-      if (!window.Chart || !canvas) return null;
-      return new window.Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: label,
-            data: values,
-            borderColor: BRAND,
-            backgroundColor: 'rgba(239, 107, 46, 0.12)',
-            fill: true,
-            tension: 0.35,
-            borderWidth: 2,
-            pointRadius: values.length > 31 ? 0 : 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: BRAND
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { display: false }, ticks: { maxTicksLimit: 8, maxRotation: 0, color: '#9ca3af', font: { size: 11 } } },
-            y: { beginAtZero: true, ticks: { precision: 0, color: '#9ca3af', font: { size: 11 } }, grid: { color: '#f3f4f6' } }
-          }
-        }
-      });
-    }
-
-    // Several lines on one chart (page views and sessions).
-    // datasets: [{ label, data, color, fill }]. A legend shows when there is more than one.
-    function lines(canvas, labels, datasets) {
-      if (!window.Chart || !canvas) return null;
-      return new window.Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: datasets.map(function (d) {
-            return {
-              label: d.label,
-              data: d.data,
-              borderColor: d.color,
-              backgroundColor: d.fill ? 'rgba(239, 107, 46, 0.12)' : 'transparent',
-              fill: !!d.fill,
-              tension: 0.35,
-              borderWidth: 2,
-              pointRadius: labels.length > 31 ? 0 : 3,
-              pointHoverRadius: 5,
-              pointBackgroundColor: d.color
-            };
-          })
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              display: datasets.length > 1,
-              position: 'bottom',
-              labels: { usePointStyle: true, boxWidth: 8, color: '#6b7280', font: { size: 11 } }
-            }
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { maxTicksLimit: 8, maxRotation: 0, color: '#9ca3af', font: { size: 11 } } },
-            y: { beginAtZero: true, ticks: { precision: 0, color: '#9ca3af', font: { size: 11 } }, grid: { color: '#f3f4f6' } }
-          }
-        }
-      });
-    }
-
-    return { line: line, lines: lines, shortDate: shortDate, rangeBounds: rangeBounds, fillDays: fillDays };
-  })();
-</script>
+{# Chart.js, pinned. Order matters: Chart.js, then the page scripts. #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="{% static 'js/dashboard_reports.js' %}" defer></script>
+<script src="{% static 'js/dashboard_analytics.js' %}" defer></script>
 {% endblock extra_js %}

@@ -1,6 +1,7 @@
 {% extends "errors/error_layout.html" %}
 
+{# Django renders 400 with no context and no request: keep this free of variables. #}
 {% block title %}Bad request{% endblock title %}
 {% block code %}400{% endblock code %}
-{% block heading %}Bad request{% endblock heading %}
-{% block message %}We couldn’t understand that request. Please go back and try again.{% endblock message %}
+{% block heading %}We couldn’t understand that request{% endblock heading %}
+{% block message %}Something in the address or the form you sent wasn’t valid. Go back and try again, or start from the homepage.{% endblock message %}

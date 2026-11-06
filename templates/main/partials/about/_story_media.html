@@ -1,0 +1,4 @@
+{# Story photo. Expects src (already empty-safe). A failed load leaves the plain themed surface. #}
+<figure class="m-0 aspect-[4/3] overflow-hidden rounded-2xl border border-line bg-raised">
+  <img src="{{ src }}" alt="{{ about.img1_alt|default:'Tutors collaborating together' }}" width="1000" height="750" loading="lazy" decoding="async" class="h-full w-full object-cover" onerror="this.hidden=true" />
+</figure>

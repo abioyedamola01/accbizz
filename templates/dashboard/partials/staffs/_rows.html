@@ -1,17 +1,20 @@
+{# Staff table rows. Context: staffs (each with profile, email, is_staff_member, id), request.user. Also rendered by the page itself, so keep it free of page-only variables. #}
 {% for staff in staffs %}
 <tr class="staff-row">
 
   {# ---- Staff: avatar, name, email under the name ---- #}
   <td class="py-3 pr-4">
     <div class="flex items-center gap-3">
-      <img {% if staff.profile.avatar %}src="{{ staff.profile.avatar.url }}"{% else %}src="{{ staff.profile.get_default_avatar }}"{% endif %} alt="" class="w-9 h-9 rounded-lg object-cover shrink-0" />
+      <span class="flex h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-raised">
+        <img {% if staff.profile.avatar %}src="{{ staff.profile.avatar.url }}"{% else %}src="{{ staff.profile.get_default_avatar }}"{% endif %} alt="" width="36" height="36" loading="lazy" class="h-full w-full object-cover" onerror="this.hidden=true" />
+      </span>
       <div class="min-w-0">
-        <p class="text-sm font-semibold text-dark-900 truncate">
-          {{ staff.profile.username }}
-          {% if staff.id == request.user.id %}<span class="ml-1 align-middle text-[11px] font-medium text-brand-600 bg-brand-100 px-1.5 py-0.5 rounded-full">You</span>{% endif %}
+        <p class="flex items-center gap-2 text-small font-semibold text-ink">
+          <span class="truncate">{{ staff.profile.username }}</span>
+          {% if staff.id == request.user.id %}<span class="badge shrink-0 bg-brand-500/15 text-link">You</span>{% endif %}
         </p>
         {# Shown in full, wrapping if it is long, instead of being cut off #}
-        <p class="text-xs text-gray-500 break-all">{% firstof staff.email staff.user.email %}</p>
+        <p class="text-caption text-muted break-all">{% firstof staff.email staff.user.email %}</p>
       </div>
     </div>
   </td>
@@ -19,26 +22,24 @@
   {# ---- Role: only staff have one ---- #}
   <td class="py-3 pr-4">
     {% if staff.is_staff_member %}
-    <span class="inline-flex items-center text-xs font-medium py-1 rounded-full whitespace-nowrap text-gray-600">{{ staff.profile.get_role_display }}</span>
+    <span class="text-small text-ink whitespace-nowrap">{{ staff.profile.get_role_display }}</span>
     {% else %}
-    <span class="inline-flex items-center text-xs font-medium py-1 rounded-full whitespace-nowrap text-gray-400">Not a staff</span>
+    <span class="text-small text-muted whitespace-nowrap">Not staff</span>
     {% endif %}
   </td>
 
-  {# ---- Options: actions dropdown ---- #}
+  {# ---- Options: actions menu ---- #}
   <td class="py-3 pr-1 text-right">
-    <div class="inline-block text-left">
-      <button type="button" class="staff-actions-btn inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer transition"
-        aria-haspopup="menu" aria-expanded="false" aria-label="Options for {% firstof staff.profile.username staff.email %}">
+    <div class="staff-menu-wrap inline-block text-left">
+      <button type="button" class="staff-actions-btn btn btn-secondary btn-sm"
+        aria-haspopup="menu" aria-expanded="false" aria-controls="staffMenu{{ forloop.counter }}" aria-label="Options for {% firstof staff.profile.username staff.email %}">
         Options
-        <svg class="w-3 h-3 text-gray-500" viewBox="0 0 10 6" fill="none" aria-hidden="true">
-          <path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m1 1 4 4 4-4"/>
-        </svg>
+        {% include "components/_icon.html" with name="chevron-down" size=16 %}
       </button>
 
-      {# Opened by the script on the page, which places it with position: fixed so the table cannot clip it #}
-      <div class="staff-actions-menu hidden z-30 w-48 bg-white rounded-xl border border-gray-100 shadow-card py-1 text-sm" role="menu">
-        {# Opens the activity report modal (see partials/staffs/_activity_modal.html). A button, not a link: nothing navigates. #}
+      {# Opened by static/js/dashboard_staffs.js, which places it with position: fixed so the table cannot clip it #}
+      <div id="staffMenu{{ forloop.counter }}" class="staff-actions-menu dash-pop z-[var(--z-dropdown)] w-56" role="menu" hidden>
+        {# Opens the activity report modal (partials/staffs/_activity_modal.html). A button, not a link: nothing navigates. #}
         {# data-more-url holds the text BATCH_POINT where the batch point goes; the script swaps it in. #}
         <button type="button" role="menuitem"
           data-logs-url="{% url "dashboard_get_staff_action_logs" staff.email %}"
@@ -46,34 +47,34 @@
           data-staff-name="{% firstof staff.profile.username staff.email %}"
           data-staff-email="{{ staff.email }}"
           data-avatar="{% if staff.profile.avatar %}{{ staff.profile.avatar.url }}{% else %}{{ staff.profile.get_default_avatar }}{% endif %}"
-          class="staff-activity-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">View activity report</button>
-        {# Opens the reset-password modal (see staffs.html). It is a button, not a link: nothing navigates. #}
+          class="staff-activity-btn dash-pop-item">View activity report</button>
+        {# Opens the reset-password modal (staffs.html) #}
         <button type="button" role="menuitem"
           data-reset-url="{% url "staff_reset_password" staff.email %}"
           data-staff-name="{% firstof staff.profile.username staff.email %}"
           data-staff-email="{{ staff.email }}"
-          class="staff-reset-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reset password</button>
-        {# Opens the change-email modal (see staffs.html). A button, not a link: nothing navigates. #}
+          class="staff-reset-btn dash-pop-item">Reset password</button>
+        {# Opens the change-email modal (staffs.html) #}
         <button type="button" role="menuitem"
           data-staff-name="{% firstof staff.profile.username staff.email %}"
           data-staff-email="{{ staff.email }}"
-          class="staff-change-email-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Change email</button>
+          class="staff-change-email-btn dash-pop-item">Change email</button>
         {# Not on your own row #}
         {% if staff.id != request.user.id %}
-        <div class="my-1 border-t border-gray-100" role="separator"></div>
+        <div class="dash-pop-sep" role="separator"></div>
         {% if staff.is_staff_member %}
-        {# Opens the confirm modal (see staffs.html); the modal posts to the url below #}
+        {# Opens the confirm modal (staffs.html); the modal posts to the url below #}
         <button type="button" role="menuitem"
           data-action="remove"
           data-action-url="{% url "staff_remove_staff" staff.email %}"
           data-staff-name="{% firstof staff.profile.username staff.email %}"
-          class="staff-confirm-btn block w-full text-left px-3 py-2 text-red-500 hover:bg-gray-50 cursor-pointer">Remove as staff</button>
+          class="staff-confirm-btn dash-pop-item dash-pop-item--danger">Remove as staff</button>
         {% else %}
         <button type="button" role="menuitem"
           data-action="reinstate"
           data-action-url="{% url "staff_reinstate_staff" staff.email %}"
           data-staff-name="{% firstof staff.profile.username staff.email %}"
-          class="staff-confirm-btn block w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 cursor-pointer">Reinstate as staff</button>
+          class="staff-confirm-btn dash-pop-item">Reinstate as staff</button>
         {% endif %}
         {% endif %}
       </div>
@@ -82,6 +83,13 @@
 </tr>
 {% empty %}
 <tr>
-  <td colspan="3" class="py-10 text-center text-sm text-gray-500">No staff members yet.</td>
+  <td colspan="3" class="py-12">
+    <div class="empty-state flex flex-col items-center gap-3 text-center">
+      <span class="icon-chip">{% include "components/_icon.html" with name="users" size=24 %}</span>
+      <p class="font-sans text-lead font-semibold tracking-tight">No staff members yet</p>
+      <p class="measure text-small text-muted">Staff you add will appear here. Each person gets an email link to create their password and finish setting up their account.</p>
+      <button type="button" class="btn btn-primary btn-md" data-open-add-staff>Add staff</button>
+    </div>
+  </td>
 </tr>
 {% endfor %}

@@ -1,7 +1,12 @@
+import os
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from staffs.roles import ROLES
+from urllib.parse import urlparse
+from django.core.files import File
+import requests
+from io import BytesIO
 
 # Create your models here.
 
@@ -14,6 +19,32 @@ class HeroSectionModel(models.Model):
     img =  models.ImageField(upload_to="hero/%y/%m/%d/", default="")
 
 
+    def save_img(self, url):
+        if not url:
+            return False
+
+        try:
+            response = requests.get(url, stream=True, timeout=10)
+            
+            if response.status_code == 200:
+                parsed_url = urlparse(url)
+                file_name = os.path.basename(parsed_url.path)
+                
+                if not file_name or '.' not in file_name:
+                    file_name = "downloaded_image.jpg"
+
+                image_buffer = BytesIO()
+                for chunk in response.iter_content(chunk_size=1024):
+                    image_buffer.write(chunk)
+
+                self.img.save(file_name, File(image_buffer), save=True)
+                return True
+                
+        except requests.RequestException as e:
+            pass
+
+        return False
+
 
 
 
@@ -21,10 +52,45 @@ class HeroSectionModel(models.Model):
 
 class AboutSectionModel(models.Model):
     name = models.CharField(max_length=50, default="about")
+    intro = models.TextField(default="Dummy intro text 1 | Dummy intro text 2 | Dummy intro text 3")
     description = models.TextField(default="About section has been created successfully and its fields have been prepopulated withdummy values. Ensure you add original values.")
     story =  models.TextField(default="About section has been created successfully and its fields have been prepopulated withdummy values. Ensure you add original values.")
     mission = models.TextField(default="About section has been created successfully and its fields have been prepopulated withdummy values. Ensure you add original values.")
     vision = models.TextField(default="About section has been created successfully and its fields have been prepopulated withdummy values. Ensure you add original values.")
+    img1 = models.ImageField(upload_to="about/%y/%m/%d/", default="")
+    img2 = models.ImageField(upload_to="about/%y/%m/%d/", default="")
+
+
+    def save_img(self, url, img):
+        if not url:
+            return False
+
+        try:
+            response = requests.get(url, stream=True, timeout=10)
+            
+            if response.status_code == 200:
+                parsed_url = urlparse(url)
+                file_name = os.path.basename(parsed_url.path)
+                
+                if not file_name or '.' not in file_name:
+                    file_name = "downloaded_image.jpg"
+
+                image_buffer = BytesIO()
+                for chunk in response.iter_content(chunk_size=1024):
+                    image_buffer.write(chunk)
+
+                if img == "img1":
+                    self.img1.save(file_name, File(image_buffer), save=True)
+                    return True
+                elif img == "img2":
+                    self.img1.save(file_name, File(image_buffer), save=True)
+                    return True
+                
+        except requests.RequestException as e:
+            pass
+
+        return False
+
 
 
 
@@ -70,6 +136,7 @@ class SiteModel(models.Model):
 
     # visual identity
     logo = models.ImageField(upload_to="visual_identity/logo/%y/%m/%d/", blank=True, null=True)
+    logo_dark = models.ImageField(upload_to="visual_identity/logo/%y/%m/%d/", blank=True, null=True)
     favicon = models.ImageField(upload_to="visual_identity/favicon/%y/%m/%d/", blank=True, null=True)
     
     def __str__(self):
@@ -114,6 +181,7 @@ class ServiceModel(models.Model):
     slug = models.SlugField(unique=True, default="")
     blurb = models.CharField(max_length=125)
     description = models.TextField()
+    img = models.ImageField(upload_to="services/%y/%m/%d/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     site = models.ForeignKey("dashboard.SiteModel", on_delete=models.CASCADE, related_name="services", null=True)
@@ -223,7 +291,7 @@ class ContactMessageModel(models.Model):
 class AddStaffModel(models.Model):
     first_name = models.CharField(max_length=150, blank=True, null=True)
     last_name = models.CharField(max_length=150, blank=True, null=True)
-    email = models.CharField(max_length=150)
+    email = models.EmailField()
     role = models.CharField(max_length=70, choices=ROLES[1:])
     is_used = models.BooleanField(default=False)
     is_valid = models.BooleanField(default=True)

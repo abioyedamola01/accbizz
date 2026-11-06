@@ -1,0 +1,26 @@
+{% load widget_tweaks %}
+{# Service image field, used by the Add service modal and the Manage panel (both in _services.html). Params: field (service_form.img), input_id. The real file input is visually hidden but keyboard reachable; the round button is its label (same pattern as the hero image). The script in _services.html (initServiceImage) fills the preview. Existing image: the Manage trigger's data-img. #}
+<div class="svc-field min-w-0" data-img-field>
+  <label for="{{ input_id }}" class="dash-label mb-1 block">Image</label>
+
+  <div class="flex flex-wrap items-end gap-4" data-img-row>
+    <div class="relative shrink-0">
+      <div class="grid h-24 w-40 place-items-center overflow-hidden rounded-xl border border-line bg-raised text-muted">
+        <span data-img-placeholder>{% include "components/_icon.html" with name="photo" size=24 %}</span>
+        <img src="" alt="" width="160" height="96" class="hidden h-full w-full object-cover" data-img-preview>
+      </div>
+      {% render_field field id=input_id accept="image/*" class="peer sr-only" data-img-input="1" %}
+      <label for="{{ input_id }}" class="photo-edit-btn">
+        <span class="sr-only">Choose service image</span>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/>
+        </svg>
+      </label>
+    </div>
+
+    <div class="flex min-w-0 flex-col items-start gap-1">
+      <p class="max-w-full break-words text-caption text-muted" data-img-name aria-live="polite">No image chosen</p>
+      <button type="button" class="link-slide hidden text-caption font-semibold text-link" data-img-clear>Clear selection</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+{# Decorative photo panel. Expects: fallback_src. Database image first (hero_section.img when the view provides it), the hard-coded URL only when it is missing, empty or blank. The frame is a themed surface, so a failed image leaves a plain panel with no broken icon and no layout shift. #}
+<div class="h-full min-h-[20rem] overflow-hidden rounded-2xl border border-line bg-raised">
+  {% if hero_section.img %}
+    {% with db_src=hero_section.img.url|cut:" " %}
+      {% with src=db_src|default:fallback_src %}
+        <img src="{{ src }}" alt="" width="1400" height="1000" class="h-full w-full object-cover object-center" decoding="async" onerror="this.hidden=true" />
+      {% endwith %}
+    {% endwith %}
+  {% else %}
+    <img src="{{ fallback_src }}" alt="" width="1400" height="1000" class="h-full w-full object-cover object-center" decoding="async" onerror="this.hidden=true" />
+  {% endif %}
+</div>

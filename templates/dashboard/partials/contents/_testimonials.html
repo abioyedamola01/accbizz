@@ -1,77 +1,17 @@
 {% load widget_tweaks %}
 
-<style>
-  /* Plain CSS so spacing and the custom controls never depend on the Tailwind build */
-
-  /* Service filter (same as the FAQs one) */
-  .tst-filter-btn {
-    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.875rem;
-    font-size: 0.875rem; font-weight: 600; color: #374151; background: #fff;
-    border: 1px solid #e5e7eb; border-radius: 0.5rem; cursor: pointer; transition: background-color 0.15s ease;
-  }
-  .tst-filter-btn:hover { background: #f9fafb; }
-  .tst-filter-panel {
-    position: absolute; right: 0; top: 100%; margin-top: 0.5rem; width: 17rem; max-width: 90vw; padding: 0.5rem;
-    background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12); z-index: 30;
-  }
-  .tst-filter-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; font-size: 0.875rem; color: #374151; border-radius: 0.5rem; cursor: pointer; }
-  .tst-filter-row:hover { background: #f9fafb; }
-  .tst-filter-row--all { font-weight: 600; color: #111827; }
-  .tst-filter-row input { flex: none; width: 1rem; height: 1rem; margin: 0; cursor: pointer; }
-  .tst-filter-divider { margin: 0.375rem 0.25rem; border-top: 1px solid #f3f4f6; }
-  .tst-filter-options { max-height: 15rem; overflow-y: auto; }
-  .tst-filter-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tst-filter-count { flex: none; font-size: 0.75rem; color: #9ca3af; }
-
-  /* Two-line preview of the quote in the table */
-  .tst-preview {
-    max-width: 32rem; overflow: hidden;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  }
-
-  /* "Stay anonymous" switch. The checkbox is not posted; JS paints the track. */
-  .tst-switch { position: relative; display: inline-flex; align-items: center; gap: 0.625rem; cursor: pointer; user-select: none; }
-  .tst-switch-input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
-  .tst-switch-track { position: relative; flex: none; width: 2.25rem; height: 1.25rem; border-radius: 9999px; transition: background-color 0.15s ease; }
-  .tst-switch-knob {
-    position: absolute; top: 0.125rem; left: 0.125rem; width: 1rem; height: 1rem;
-    background: #fff; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s ease;
-  }
-  .tst-switch.is-on .tst-switch-knob { transform: translateX(1rem); }
-  .tst-switch-input:focus-visible + .tst-switch-track { outline: 2px solid #9ca3af; outline-offset: 2px; }
-  .tst-switch-text { font-size: 0.875rem; color: #374151; }
-
-  /* Status filter: All / Pending / Approved */
-  .tst-seg { display: inline-flex; padding: 0.125rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
-  .tst-seg-btn {
-    display: inline-flex; align-items: center; padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 600;
-    color: #6b7280; background: none; border: 0; border-radius: 0.375rem; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease;
-  }
-  .tst-seg-btn:hover { color: #111827; }
-  .tst-seg-btn.is-active { color: #111827; background: #f3f4f6; }
-  .tst-seg-count { margin-left: 0.375rem; padding: 0 0.375rem; font-size: 0.75rem; line-height: 1.25rem; color: #92400e; background: #fef3c7; border-radius: 9999px; }
-  .tst-seg-count.is-empty { display: none; }
-
-  /* Pending markers */
-  .tst-pending-badge { padding: 0.125rem 0.5rem; font-size: 0.6875rem; font-weight: 600; color: #92400e; background: #fef3c7; border-radius: 9999px; }
-  .tst-notice {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
-    margin-bottom: 1rem; padding: 0.75rem 1rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.75rem;
-  }
-</style>
-
 {# Service list for the dropdowns: [{'id': 4, 'title': '...'}, ...] -> read by the JS below #}
 {{ services|json_script:"testimonialServicesData" }}
 
-<div class="bg-white rounded-2xl shadow-card mt-8 p-5">
+<div class="card">
 
   {# ---- Header ---- #}
-  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-gray-100">
+  <div class="flex flex-wrap items-center justify-between gap-3 py-4 border-b border-line">
     <div class="flex flex-wrap items-center gap-2">
-      <h2 class="text-base font-bold text-dark-900">Testimonials</h2>
+      <h2 class="font-sans text-lead font-semibold tracking-tight">Testimonials</h2>
       {# Both numbers come from the testimonials_count context processor, so they cover every testimonial, not just the loaded ones #}
-      <span id="testimonialCountBadge" data-count="{{ testimonials_count|default:0 }}" class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ testimonials_count|default:0 }} testimonial{{ testimonials_count|default:0|pluralize }}</span>
-      <span id="testimonialUnapprovedBadge" data-count="{{ unapproved_count|default:0 }}" class="text-xs font-medium text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">{{ unapproved_count|default:0 }} unapproved</span>
+      <span id="testimonialCountBadge" data-count="{{ testimonials_count|default:0 }}" class="badge">{{ testimonials_count|default:0 }} testimonial{{ testimonials_count|default:0|pluralize }}</span>
+      <span id="testimonialUnapprovedBadge" data-count="{{ unapproved_count|default:0 }}" class="badge bg-brand-500 text-white dark:text-dark-900">{{ unapproved_count|default:0 }} unapproved</span>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -79,18 +19,18 @@
       {# ---- Status filter (client side only): All / Pending / Approved ---- #}
       <div id="testimonialStatus" class="tst-seg" role="group" aria-label="Filter testimonials by status">
         <button type="button" class="tst-seg-btn is-active" data-status="all" aria-pressed="true">All</button>
-        <button type="button" class="tst-seg-btn" data-status="pending" aria-pressed="false">Pending<span class="tst-seg-count{% if not unapproved_count %} is-empty{% endif %}" data-count="{{ unapproved_count|default:0 }}">{{ unapproved_count|default:0 }}</span></button>
+        <button type="button" class="tst-seg-btn" data-status="pending" aria-pressed="false">Pending<span class="tst-seg-count {% if not unapproved_count %} is-empty {% endif %}" data-count="{{ unapproved_count|default:0 }}">{{ unapproved_count|default:0 }}</span></button>
         <button type="button" class="tst-seg-btn" data-status="approved" aria-pressed="false">Approved</button>
       </div>
 
       {# ---- Service filter (client side only): multi-select dropdown, everything selected by default ---- #}
       <div id="testimonialFilter" class="relative">
         <button type="button" id="testimonialFilterBtn" aria-haspopup="true" aria-expanded="false" class="tst-filter-btn">
-          <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/>
           </svg>
           <span id="testimonialFilterLabel">All services</span>
-          <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
           </svg>
         </button>
@@ -107,8 +47,8 @@
       </div>
 
       <button type="button" onclick="openAddTestimonialModal()"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-dark-800 rounded-lg px-3.5 py-2 hover:bg-dark-900 cursor-pointer transition">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="btn btn-primary btn-md">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14"/>
         </svg>
         Add testimonial
@@ -120,10 +60,10 @@
   <div id="testimonialTableScroll" class="overflow-x-auto">
     <table class="w-full min-w-[480px] text-left">
       <thead>
-        <tr class="border-b border-gray-100">
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Testimonial</th>
-          <th class="py-3 pr-4 text-xs font-medium text-gray-500">Service</th>
-          <th class="w-24 py-3 pr-5"></th>
+        <tr class="border-b border-line">
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Testimonial</th>
+          <th scope="col" class="py-3 pr-4 text-small font-medium text-muted">Service</th>
+          <th scope="col" class="w-24 py-3 pr-4"><span class="sr-only">Actions</span></th>
         </tr>
       </thead>
 
@@ -133,13 +73,13 @@
       {# Nothing at all yet #}
       {% if not testimonials %}
       <tbody>
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials yet. Use "Add testimonial" to create the first one.</td></tr>
+        <tr><td colspan="3" class="py-12 text-center text-small text-muted">No testimonials yet. Use "Add testimonial" to create the first one.</td></tr>
       </tbody>
       {% endif %}
 
       {# Shown by the filter when no testimonial matches the selected services #}
       <tbody id="testimonialFilterEmpty" class="hidden">
-        <tr><td colspan="3" class="py-10 text-center text-sm text-gray-500">No testimonials match the current filters.<span id="testimonialFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
+        <tr><td colspan="3" class="py-12 text-center text-small text-muted">No testimonials match the current filters.<span id="testimonialFilterEmptyHint" class="hidden"> Use See more to check the rest.</span></td></tr>
       </tbody>
 
     </table>
@@ -147,52 +87,52 @@
 
   {# ---- See more: only when has_more is true and there is a next_batch_point (both can be None or missing) ---- #}
   {% if has_more and next_batch_point %}
-  <div id="testimonialMoreWrap" class="pt-5 text-center">
+  <div id="testimonialMoreWrap" class="pt-6 text-center">
     {# data-more-url has the text BATCH_POINT where the batch point goes; the script swaps it in #}
     <button type="button" id="testimonialMoreBtn" data-more-url="{% url "dashboard_get_testimonials_batch" "BATCH_POINT" %}"
-      class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition">
+      class="btn btn-secondary btn-md">
       <svg id="testimonialMoreSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
       </svg>
       <span id="testimonialMoreLabel">See more</span>
     </button>
-    <p class="mt-2 text-xs text-gray-400">Filters cover the testimonials loaded so far.</p>
+    <p class="mt-2 text-caption text-muted">Filters cover the testimonials loaded so far.</p>
     {# The datetime goes through json_script so it reaches the script in the same format the JSON endpoint uses #}
     {{ next_batch_point|json_script:"testimonialNextBatchPoint" }}
   </div>
   {% endif %}
 
   {# ---- Shared delete confirmation modal ---- #}
-  <div id="deleteTestimonialModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative">
+  <div id="deleteTestimonialModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="deleteTestimonialModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-sm p-6 relative">
       <button type="button" onclick="closeTestimonialDeleteConfirm()"
-        class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        class="icon-btn absolute top-4 right-4" aria-label="Close">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      <div class="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
-        <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div class="w-11 h-11 rounded-full bg-danger-bg flex items-center justify-center mb-4">
+        <svg class="w-5 h-5 text-danger-fg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
       </div>
 
-      <h3 class="text-base font-bold text-dark-900 mb-1">Delete testimonial</h3>
-      <p class="text-sm text-gray-500 mb-6">
-        Are you sure you want to delete <span id="deleteTestimonialWho" class="font-semibold text-dark-900"></span>? This action cannot be undone.
+      <h3 id="deleteTestimonialModalTitle" class="font-sans text-lead font-semibold tracking-tight">Delete testimonial</h3>
+      <p class="text-small text-muted mb-6">
+        Are you sure you want to delete <span id="deleteTestimonialWho" class="font-semibold text-ink"></span>? This action cannot be undone.
       </p>
 
       <form method="post" id="deleteTestimonialForm" action="" novalidate>
         {% csrf_token %}
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="closeTestimonialDeleteConfirm()"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit" id="deleteTestimonialSubmitBtn"
-            class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-danger btn-md">
             <svg id="deleteTestimonialSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -205,21 +145,21 @@
   </div>
 
   {# ---- Add testimonial modal ---- #}
-  <div id="addTestimonialModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 px-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col relative">
+  <div id="addTestimonialModal" class="fixed inset-0 z-[var(--z-modal)] hidden items-center justify-center bg-dark-900/60 px-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="addTestimonialModalTitle" class="bg-surface rounded-2xl shadow-xl dark:shadow-none border border-line w-full max-w-lg max-h-[85vh] flex flex-col relative">
 
-      <div class="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-gray-100">
-        <h3 class="text-base font-bold text-dark-900">Add testimonial</h3>
+      <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-line">
+        <h3 id="addTestimonialModalTitle" class="font-sans text-lead font-semibold tracking-tight">Add testimonial</h3>
         <button type="button" onclick="closeAddTestimonialModal()"
-          class="text-gray-400 hover:text-gray-700 cursor-pointer transition" aria-label="Close">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          class="icon-btn" aria-label="Close">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-6 py-5">
-        <form method="post" id="addTestimonialForm" action="{% url "dashboard_add_testimonial" %}" class="space-y-4" novalidate>
+      <div class="flex-1 overflow-y-auto px-6 py-4">
+        <form method="post" id="addTestimonialForm" action="{% url "dashboard_add_testimonial" %}" class="flex flex-col gap-4" novalidate>
           {% csrf_token %}
           {# Added from the dashboard, so approved straight away (JS ticks it) #}
           <div class="hidden">{% render_field testimonial_form.is_approved id="addTestimonialApproved" %}</div>
@@ -227,51 +167,51 @@
           <div>
             <label class="tst-switch">
               <input type="checkbox" class="tst-switch-input tst-anon-input" id="addTestimonialAnon" />
-              <span class="tst-switch-track bg-gray-300"><span class="tst-switch-knob"></span></span>
+              <span class="tst-switch-track bg-muted"><span class="tst-switch-knob"></span></span>
               <span class="tst-switch-text">Stay anonymous</span>
             </label>
-            <p class="mt-1 text-xs text-gray-400">Hides the name and title on the public page.</p>
+            <p class="mt-1 text-caption text-muted">Hides the name and title on the public page.</p>
           </div>
 
           {# Name and title: hidden (and cleared) while Stay anonymous is on #}
           <div class="tst-identity grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="min-w-0">
-              <label for="addTestimonialName" class="text-xs font-medium text-gray-500 block mb-1">Name</label>
-              {% render_field testimonial_form.name id="addTestimonialName" class="tst-name w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+              <label for="addTestimonialName" class="dash-label">Name</label>
+              {% render_field testimonial_form.name id="addTestimonialName" class="dash-input tst-name" %}
             </div>
             <div class="min-w-0">
-              <label for="addTestimonialTitle" class="text-xs font-medium text-gray-500 block mb-1">Title</label>
-              {% render_field testimonial_form.title id="addTestimonialTitle" class="w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+              <label for="addTestimonialTitle" class="dash-label">Title</label>
+              {% render_field testimonial_form.title id="addTestimonialTitle" class="dash-input" %}
             </div>
           </div>
 
           <div>
-            <label for="addTestimonialQuote" class="text-xs font-medium text-gray-500 block mb-1">Quote</label>
-            {% render_field testimonial_form.quote id="addTestimonialQuote" rows="5" class="tst-quote w-full min-h-[110px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+            <label for="addTestimonialQuote" class="dash-label">Quote</label>
+            {% render_field testimonial_form.quote id="addTestimonialQuote" rows="5" class="dash-input dash-textarea tst-quote min-h-28" %}
           </div>
 
           <div>
-            <label for="addTestimonialServiceSelect" class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+            <label for="addTestimonialServiceSelect" class="dash-label">Service</label>
 
             {# The real form field stays in the DOM (so it posts) but is hidden; the dropdown below fills it with the chosen service id #}
             <div class="hidden">{% render_field testimonial_form.service id="addTestimonialService" %}</div>
 
             {# No name attribute, so the dropdown itself is never posted #}
             <select id="addTestimonialServiceSelect"
-              class="tst-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+              class="dash-input tst-service-select" aria-label="Service">
               <option value="">General</option>
             </select>
           </div>
         </form>
       </div>
 
-      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-6 py-5 border-t border-gray-100">
+      <div class="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t border-line">
         <button type="button" onclick="closeAddTestimonialModal()"
-          class="text-sm font-semibold text-gray-500 hover:text-gray-700 px-4 py-2 cursor-pointer transition">
+          class="btn btn-ghost btn-md">
           Cancel
         </button>
         <button type="submit" form="addTestimonialForm" id="addTestimonialSaveBtn" disabled
-          class="inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg px-4 py-2 transition">
+          class="btn btn-primary btn-md">
           <svg id="addTestimonialSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -286,16 +226,16 @@
 
 {# ---- Single reusable edit form: rendered once, cloned per testimonial by JS ---- #}
 <template id="testimonialFormTemplate">
-  <div class="bg-gray-50 border-t border-gray-100 p-5">
+  <div class="bg-raised border-t border-line p-6">
 
     {# Only for pending testimonials (JS removes it for approved ones) #}
     <div class="tst-notice">
       <div class="min-w-0">
-        <p class="text-sm font-semibold text-dark-900">Awaiting approval</p>
-        <p class="text-xs text-gray-600">Submitted from the website. It is not shown on the site until you approve it. Edit it first if it needs fixing.</p>
+        <p class="text-small font-semibold text-ink">Awaiting approval</p>
+        <p class="text-caption text-muted">Submitted from the website. It is not shown on the site until you approve it. Edit it first if it needs fixing.</p>
       </div>
       <button type="button"
-        class="tst-approve-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+        class="btn btn-primary btn-md tst-approve-btn">
         <svg class="tst-approve-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -304,7 +244,7 @@
       </button>
     </div>
 
-    <form method="post" class="tst-manage-form space-y-4" novalidate>
+    <form method="post" class="tst-manage-form flex flex-col gap-4" novalidate>
       {% csrf_token %}
       {# The real approval field: unchecked while pending, ticked by the Approve button #}
       <div class="hidden">{% render_field testimonial_form.is_approved id="editTestimonialApproved" %}</div>
@@ -312,43 +252,43 @@
       <div>
         <label class="tst-switch">
           <input type="checkbox" class="tst-switch-input tst-anon-input" />
-          <span class="tst-switch-track bg-gray-300"><span class="tst-switch-knob"></span></span>
+          <span class="tst-switch-track bg-muted"><span class="tst-switch-knob"></span></span>
           <span class="tst-switch-text">Stay anonymous</span>
         </label>
-        <p class="mt-1 text-xs text-gray-400">Hides the name and title on the public page.</p>
+        <p class="mt-1 text-caption text-muted">Hides the name and title on the public page.</p>
       </div>
 
       <div class="tst-identity grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="min-w-0">
-          <label for="editTestimonialName" class="text-xs font-medium text-gray-500 block mb-1">Name</label>
-          {% render_field testimonial_form.name id="editTestimonialName" class="tst-name w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          <label for="editTestimonialName" class="dash-label">Name</label>
+          {% render_field testimonial_form.name id="editTestimonialName" class="dash-input tst-name" %}
         </div>
         <div class="min-w-0">
-          <label for="editTestimonialTitle" class="text-xs font-medium text-gray-500 block mb-1">Title</label>
-          {% render_field testimonial_form.title id="editTestimonialTitle" class="w-full h-9 leading-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition" %}
+          <label for="editTestimonialTitle" class="dash-label">Title</label>
+          {% render_field testimonial_form.title id="editTestimonialTitle" class="dash-input" %}
         </div>
       </div>
 
       <div class="min-w-0">
-        <label for="editTestimonialQuote" class="text-xs font-medium text-gray-500 block mb-1">Quote</label>
-        {% render_field testimonial_form.quote id="editTestimonialQuote" rows="6" class="w-full min-h-[130px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition resize-y" %}
+        <label for="editTestimonialQuote" class="dash-label">Quote</label>
+        {% render_field testimonial_form.quote id="editTestimonialQuote" rows="6" class="dash-input dash-textarea min-h-32" %}
       </div>
 
       <div class="min-w-0 sm:w-1/2">
-        <label class="text-xs font-medium text-gray-500 block mb-1">Service</label>
+        <label class="dash-label">Service</label>
 
         {# Hidden real field: filled with the trigger's data-service, then kept in sync by the dropdown #}
         <div class="hidden">{% render_field testimonial_form.service id="editTestimonialService" %}</div>
 
         {# No name attribute, so the dropdown itself is never posted #}
-        <select class="tst-service-select w-full h-9 border border-gray-200 rounded-lg px-3 text-sm text-dark-900 bg-white focus:outline-none focus:border-brand-400 transition">
+        <select class="dash-input tst-service-select" aria-label="Service">
           <option value="">General</option>
         </select>
       </div>
 
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-        <button type="button" class="tst-form-delete-btn inline-flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 cursor-pointer transition" onclick="openTestimonialDeleteConfirm(this)">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button type="button" class="btn btn-ghost btn-sm text-danger-fg tst-form-delete-btn" onclick="openTestimonialDeleteConfirm(this)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m2 0v13a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"/>
           </svg>
           Delete testimonial
@@ -356,11 +296,11 @@
 
         <div class="flex items-center gap-3">
           <button type="button" onclick="toggleTestimonialRow(this)"
-            class="text-sm font-semibold text-gray-500 hover:text-gray-700 cursor-pointer transition">
+            class="btn btn-ghost btn-md">
             Cancel
           </button>
           <button type="submit"
-            class="tst-form-save-btn inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer transition">
+            class="btn btn-primary btn-md tst-form-save-btn">
             <svg class="tst-form-save-spinner hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -434,7 +374,7 @@
     const track = wrap.querySelector('.tst-switch-track');
     wrap.classList.toggle('is-on', input.checked);
     track.classList.toggle('bg-brand-500', input.checked);
-    track.classList.toggle('bg-gray-300', !input.checked);
+    track.classList.toggle('bg-muted', !input.checked);
   }
 
   // Turning it on hides name and title and clears them (so they post blank and
@@ -624,6 +564,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeTestimonialDeleteConfirm() {
@@ -631,6 +572,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
   }
 
   // Delete posts with fetch too (the form only carries the CSRF token; the
@@ -665,6 +607,7 @@
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     document.body.classList.add('overflow-hidden');
+    if (window.dashModal) window.dashModal.opened(modal);
   }
 
   function closeAddTestimonialModal() {
@@ -673,6 +616,7 @@
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     document.body.classList.remove('overflow-hidden');
+    if (window.dashModal) window.dashModal.closed(modal);
 
     // Reset so a re-open starts clean (not mid-"Creating..." state).
     // This also puts the hidden service field and the dropdown back to General.

@@ -14,7 +14,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import (urlsafe_base64_encode, urlsafe_base64_decode,)
 from django.utils.crypto import get_random_string
 from dashboard.models import (SiteModel, AddStaffModel,)
-from dashboard.utils import (toast_json_ok, toast_json_error, add_staff_token_generator, log_staff_action,)
+from dashboard.utils import (toast_json_ok, toast_json_error, check_staff_email, add_staff_token_generator, log_staff_action,)
 from .models import (OTPVerifyModel, CustomUserModel, ChangeEmailTrackModel, RevertEmailChangeModel,)
 from .forms import (StaffLoginForm, VerifyOTPForm, ChangePasswordForm, PasswordForm, ChangeEmailForm,)
 from .utils import (create_otp, send_otp_mail, verify_otp, send_password_reset_mail, change_email_token_generator, send_email_change_mails, delete_staff_sessions, delete_staff_other_sessions,)
@@ -85,9 +85,6 @@ def verify_staff_otp_view(request):
 
     otp_instance = OTPVerifyModel.objects.select_related("user").filter(id=otp_verify_info["otp_id"], purpose=otp_verify_info["purpose"], is_valid=True).first()
 
-    if otp_instance and otp_instance.is_expired():
-        request.session.pop("otp_verify_info", None)
-        return redirect("main_home")
     
     site_info = model_to_dict(SiteModel.objects.first())
         
@@ -271,7 +268,7 @@ def reset_staff_password_view(request, user):
 
         return toast_json_ok("Password reset link sent successfully.")
 
-    return toast_json_error("Can't send reset link.")
+    return toast_json_error("Can't send reset link. Try again later.")
 
 
 
@@ -310,20 +307,21 @@ def use_reset_staff_password_link_view(request, idb64, token):
 @permission_required(("staffs.manage_staffs", "staffs.change_email",), raise_exception=True)
 def change_email_view(request):
     change_email_form = ChangeEmailForm(request.POST or None)
-
+    
     if request.POST and change_email_form.is_valid():
         current_email = change_email_form.cleaned_data["current_email"]
         new_email = change_email_form.cleaned_data["new_email"]
+
+        if check_staff_email(email=new_email):
+            return toast_json_error("Can't initiate change, new email is being used by another staff.")
 
         staff = CustomUserModel.objects.filter(email=current_email).first()
 
         if not staff:
             return toast_json_error("Can't initiate change, staff does not exist")
-
+        
         # void all existing change email tracks
-        existing_change_email_tracks = ChangeEmailTrackModel.objects.filter(staff=staff, is_valid=True)
-        for track in existing_change_email_tracks:
-            track.invalidate()
+        ChangeEmailTrackModel.objects.filter(staff=staff, is_valid=True).update(is_valid=False)
 
         change_email_track = ChangeEmailTrackModel.objects.create(initiated_by=request.user, staff=staff, new_email=new_email, current_email=current_email)
         change_token = change_email_token_generator.make_token(change_email_track)
@@ -343,10 +341,17 @@ def change_email_view(request):
         change_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{change_token}"
         revert_url = f"{base_url}/users/staffs/accounts/change-email/{get_random_string(length=13).lower()}/{track_idb64}/{staff_idb64}/{revert_token}/revert-change"
 
-        send_email_change_mails(user_name=staff.profile.username, current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
-        log_staff_action(staff=request.user, code="profile.email_change.initiate", label=f"Initiated email change for staff from {current_email} to {new_email}.", is_success=True)
+        try:
+            send_email_change_mails(user_name=staff.profile.username, current_email=current_email, new_email=new_email, change_url=change_url, revert_url=revert_url)
+            log_staff_action(staff=request.user, code="profile.email_change.initiate", label=f"Initiated email change for staff from {current_email} to {new_email}.", is_success=True)
+            
+            return toast_json_ok("Email change process initiated successfully.")
+        except:
+            return toast_json_error("Email change process could not be initiated. Please try again later.")
 
-    return toast_json_ok("Email change process initiated successfully.")
+    print(change_email_form.errors.as_json())
+    return toast_json_error("Email change process could not be initiated.", form_errors=change_email_form.errors.as_json())
+    
 
 
 

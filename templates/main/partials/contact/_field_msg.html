@@ -1,0 +1,6 @@
+{# Helper and error slots under a field. Params: fid (the input id), help (optional helper text), error (optional server-rendered error). JS in contact.js swaps them; the error replaces the helper. #}
+{% if help %}<p id="{{ fid }}-help" class="text-small text-muted"{% if error %} hidden{% endif %}>{{ help }}</p>{% endif %}
+<p id="{{ fid }}-error" class="flex items-start gap-2 text-small text-danger-fg" role="alert"{% if not error %} hidden{% endif %}>
+  {% include "components/_icon.html" with name="exclamation-triangle" size=16 cls="mt-0.5" %}
+  <span data-msg>{{ error }}</span>
+</p>

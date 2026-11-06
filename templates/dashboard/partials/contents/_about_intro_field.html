@@ -1,0 +1,194 @@
+{% load widget_tweaks %}
+{# About "intro" field. The real field (a "|" separated string) stays in the form but hidden. In edit mode the script below shows up to 5 one-line inputs, keeps the hidden field in sync as "A|B|C", and rebuilds the inputs from it on load. Included from dashboard/partials/contents/_about.html with `field` set by its loop. It follows the form's Edit and Cancel buttons and the helper's show or hide of the read view, so it needs no change to the shared helper. The extra inputs have no name, so only the hidden field is posted. #}
+<div data-intro-field data-maxlength="{{ field.field.max_length|default:'' }}">
+
+  {# Read view: one headline per line. The script formats it; without JS the raw string is shown. #}
+  <p class="site-view-value whitespace-pre-line text-small font-semibold leading-6" data-intro-view>{{ field.value|default:"Not set" }}</p>
+
+  {# The real field. Hidden for good: it has no site-edit-field class, so the inline-edit helper never shows it. #}
+  {% render_field field class+="hidden" data-intro-source="1" %}
+
+  <div class="hidden" data-intro-editor>
+    <div class="flex max-w-xl flex-col gap-2">
+      <div class="flex flex-col gap-2" data-intro-rows></div>
+
+      <p id="aboutIntroHelp" class="text-caption text-muted" aria-live="polite" data-intro-help>Add up to 5 headlines. With two or more, the about page switches between them.</p>
+      <p id="aboutIntroError" class="hidden items-center gap-1 text-caption text-danger-fg" role="alert" data-intro-error></p>
+
+      {# Kept out of the rows until the script puts it beside the first input #}
+      <button type="button" class="icon-btn" data-intro-add aria-label="Add headline" aria-describedby="aboutIntroHelp">
+        {% include "components/_icon.html" with name="plus" size=20 %}
+      </button>
+    </div>
+  </div>
+
+  <template data-intro-row-template>
+    <div class="flex items-center gap-2" data-intro-row>
+      <input type="text" class="dash-input-inline min-w-0 flex-1" autocomplete="off" data-intro-input aria-describedby="aboutIntroHelp">
+      <button type="button" class="icon-btn" data-intro-remove>
+        {% include "components/_icon.html" with name="x-mark" size=20 %}
+      </button>
+    </div>
+  </template>
+</div>
+
+<script>
+  // Page-specific, so it stays here (same as the hero image script). Follows the Edit, Cancel and Save controls of the shared inline-edit form.
+  (function () {
+    var wrap = document.querySelector('[data-intro-field]');
+    if (!wrap) return;
+    var form = wrap.closest('form');
+    var source = wrap.querySelector('[data-intro-source]');
+    var view = wrap.querySelector('[data-intro-view]');
+    var editor = wrap.querySelector('[data-intro-editor]');
+    var list = wrap.querySelector('[data-intro-rows]');
+    var addBtn = wrap.querySelector('[data-intro-add]');
+    var help = wrap.querySelector('[data-intro-help]');
+    var errorEl = wrap.querySelector('[data-intro-error]');
+    var tpl = wrap.querySelector('[data-intro-row-template]');
+    if (!form || !source || !view || !editor || !list || !addBtn || !tpl) return;
+
+    var MAX = 5;
+    var maxLen = parseInt(wrap.getAttribute('data-maxlength'), 10) || 0;
+    var HELP = 'Add up to 5 headlines. With two or more, the about page switches between them.';
+    var HELP_FULL = 'You have reached the limit of 5 headlines.';
+    var original = source.value;
+
+    // "A | B||C " becomes ["A", "B", "C"]: split on "|", trim, drop empty
+    function parse(str) {
+      return String(str || '').split('|').map(function (t) { return t.trim(); }).filter(Boolean);
+    }
+    function inputs() { return Array.prototype.slice.call(list.querySelectorAll('[data-intro-input]')); }
+    function values() { return inputs().map(function (i) { return i.value.trim(); }).filter(Boolean); }
+
+    function renderView() {
+      var items = parse(source.value);
+      view.textContent = items.length ? items.join('\n') : 'Not set';
+      view.classList.toggle('text-muted', !items.length);
+      view.classList.toggle('font-semibold', !!items.length);
+    }
+
+    function clearError() {
+      errorEl.classList.add('hidden');
+      errorEl.classList.remove('flex');
+      errorEl.textContent = '';
+      inputs().forEach(function (i) { i.removeAttribute('aria-invalid'); i.setAttribute('aria-describedby', 'aboutIntroHelp'); });
+    }
+    function showError(message) {
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+      errorEl.classList.add('flex');
+      inputs().forEach(function (i) { i.setAttribute('aria-invalid', 'true'); i.setAttribute('aria-describedby', 'aboutIntroHelp aboutIntroError'); });
+    }
+
+    // Numbers, ids and labels, the plus beside the first input, and the limit
+    function refresh() {
+      var rows = list.children;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var input = row.querySelector('[data-intro-input]');
+        var rm = row.querySelector('[data-intro-remove]');
+        input.id = 'aboutIntroInput' + (i + 1);
+        if (i === 0) {
+          input.removeAttribute('aria-label'); // the visible "Intro" label points here
+          if (rm) row.replaceChild(addBtn, rm);
+        } else {
+          input.setAttribute('aria-label', 'Intro headline ' + (i + 1));
+          if (rm) rm.setAttribute('aria-label', 'Remove headline ' + (i + 1));
+        }
+      }
+      var full = rows.length >= MAX;
+      addBtn.disabled = full;
+      help.textContent = full ? HELP_FULL : HELP;
+    }
+
+    function makeRow(value) {
+      var node = tpl.content.firstElementChild.cloneNode(true);
+      node.querySelector('[data-intro-input]').value = value;
+      return node;
+    }
+
+    // Existing headlines are all kept, even if there are more than 5; the limit only stops adding
+    function setRows(items) {
+      editor.firstElementChild.appendChild(addBtn); // park the plus so clearing the list does not destroy it
+      list.textContent = '';
+      (items.length ? items : ['']).forEach(function (v) { list.appendChild(makeRow(v)); });
+      refresh();
+    }
+
+    function sync() { source.value = values().join('|'); clearError(); }
+
+    addBtn.addEventListener('click', function () {
+      if (list.children.length >= MAX) return;
+      var row = makeRow('');
+      list.appendChild(row);
+      refresh();
+      row.querySelector('[data-intro-input]').focus();
+      sync();
+    });
+
+    list.addEventListener('click', function (event) {
+      var rm = event.target.closest('[data-intro-remove]');
+      if (!rm) return;
+      var row = rm.closest('[data-intro-row]');
+      var prev = row.previousElementSibling;
+      row.remove();
+      refresh();
+      if (prev) prev.querySelector('[data-intro-input]').focus();
+      sync();
+    });
+
+    list.addEventListener('input', sync);
+
+    // Edit mode is followed from the DOM, so this needs no change to the shared helper (or to dashboard.js):
+    // the Edit and Cancel buttons are watched here, and the helper hiding or showing the read view tells us a save finished.
+    var editing = false;
+
+    function enterEdit() {
+      if (editing) return;
+      editing = true;
+      original = source.value;
+      clearError();
+      setRows(parse(original));
+      editor.classList.remove('hidden');
+    }
+    // discard = true is Cancel (put the old value back); false is a finished save (keep the new value)
+    function exitEdit(discard) {
+      if (!editing) return;
+      editing = false;
+      if (discard) source.value = original;
+      else original = source.value;
+      clearError();
+      editor.classList.add('hidden');
+      renderView();
+    }
+
+    form.addEventListener('click', function (event) {
+      if (event.target.closest('[data-action="edit"]')) enterEdit();
+      else if (event.target.closest('[data-action="cancel"]')) exitEdit(true);
+    });
+    form.addEventListener('keydown', function (event) {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target.closest('[data-action="edit"]')) enterEdit();
+    });
+    // The helper hides the read view while editing and shows it again after Cancel or a saved change
+    new MutationObserver(function () {
+      var viewHidden = view.classList.contains('hidden');
+      if (viewHidden && !editing) enterEdit();
+      else if (!viewHidden && editing) exitEdit(false);
+    }).observe(view, { attributes: true, attributeFilter: ['class'] });
+
+    // Runs on the form before the shared save handler, so a too-long value never reaches the server
+    form.addEventListener('submit', function (event) {
+      source.value = values().join('|');
+      if (maxLen && source.value.length > maxLen) {
+        event.preventDefault();
+        event.stopPropagation();
+        showError('The headlines are ' + (source.value.length - maxLen) + ' characters over the limit of ' + maxLen + '. Shorten one or remove one.');
+        var first = inputs()[0];
+        if (first) first.focus();
+      }
+    });
+
+    renderView();
+  })();
+</script>

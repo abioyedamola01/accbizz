@@ -26,7 +26,7 @@ class SiteInfoForm(forms.ModelForm):
 class SiteVisualIdentityForm(forms.ModelForm):
     class Meta:
         model = SiteModel
-        fields = ("logo", "favicon",)
+        fields = ("logo", "logo_dark", "favicon",)
 
 
 class SiteHomeSectionUpdateForm(forms.ModelForm):
@@ -52,7 +52,7 @@ class HeroImgForm(forms.ModelForm):
 class AboutForm(forms.ModelForm):
     class Meta:
         model = AboutSectionModel
-        fields = ("description", "story", "mission", "vision",)
+        fields = ("intro", "description", "story", "mission", "vision",)
 
 
 class TeamForm(forms.ModelForm):
@@ -70,7 +70,7 @@ class FAQForm(forms.ModelForm):
 class ServiceForm(forms.ModelForm):
     class Meta:
         model = ServiceModel
-        fields = ("title", "blurb", "description", "is_active", "related_services","is_featured",)
+        fields = ("img", "title", "blurb", "description", "is_active", "related_services","is_featured",)
 
 
 class TestimonialForm(forms.ModelForm):

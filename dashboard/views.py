@@ -15,7 +15,7 @@ from .forms import (EditProfileForm, UpdateAvatarForm, SiteInfoForm, SiteVisualI
 from .models import (SiteModel, HeroSectionModel, AboutSectionModel, TeamModel, FAQsModel, ServiceModel, TestimonialModel, ContactMessageModel, AddStaffModel)
 from staffs.models import (CustomUserModel, UserProfileModel, StaffActionsLogModel,)
 from staffs.forms import ChangeEmailForm
-from .utils import (toast_json_ok, toast_json_error, add_staff_token_generator, add_new_staff, log_staff_action, get_staff_actions_logs, get_recent_staff_actions, get_logs_series, invalidate_add_staff_tracks, send_account_creation_email, 
+from .utils import (toast_json_ok, toast_json_error, check_staff_email, add_staff_token_generator, add_new_staff, log_staff_action, get_staff_actions_logs, get_recent_staff_actions, get_logs_series, invalidate_add_staff_tracks, send_account_creation_email, 
                     get_reports_range, get_change_percent, get_average_response_time, get_enquiries_series, get_enquiries_by_services, get_response_performance, get_busiest_days, get_umami_analytics_data, get_content_health, 
                     get_enquiries_counts, get_items_batch,)
 
@@ -71,7 +71,8 @@ def update_profile_avatar_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="profile.avatar.update", label="Failed to update profile picture.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update profile picture.")
+    
+    return toast_json_error("Can't update profile picture.", form_errors=avatar_form.errors.as_json())
 
 
 @login_required
@@ -88,7 +89,8 @@ def update_profile_info_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="profile.update", label="Failed to update profile information.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update profile.")
+    
+    return toast_json_error("Can't update profile.", form_errors=profile_edit_form.errors.as_json())
 
 
 
@@ -126,7 +128,7 @@ def update_site_info_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="site.info.update", label="Failed to update general site information.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update site info.")
+    return toast_json_error("Can't update site info.", form_errors=site_info_form.errors.as_json())
 
 
 @login_required
@@ -143,7 +145,7 @@ def update_site_visual_identity_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="site.visuals.update", label="Failed to update site visual identity.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update visual identity.")
+    return toast_json_error("Can't update visual identity.", form_errors=visual_identity_form.errors.as_json())
 
 
 @login_required
@@ -158,7 +160,7 @@ def update_site_home_sections_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="site.sections.update", label="Failed to update homepage sections.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update home sections.")
+    return toast_json_error("Can't update home sections.", form_errors=section_formset.errors)
 
 
 
@@ -301,7 +303,7 @@ def update_hero_view(request, type):
     
     if request.POST:
         log_staff_action(staff=request.user, code="content.hero.update", label=f"Failed to update hero section {type}.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update hero.")
+    return toast_json_error("Can't update hero.", form_errors=hero_form.errors.as_json())
 
 
 
@@ -319,7 +321,7 @@ def update_about_view(request):
             
     if request.POST:
         log_staff_action(staff=request.user, code="content.about.update", label="Failed to update about section.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error(f"Can't update about info.")
+    return toast_json_error(f"Can't update about info.", form_errors=about_form.errors.as_json())
 
 
 @login_required
@@ -335,7 +337,7 @@ def update_team_member_view(request, member):
     
     if request.POST:
         log_staff_action(staff=request.user, code="team.member.update", label="Failed to update team member.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error(f"Can't update team member.")
+    return toast_json_error(f"Can't update team member.", form_errors=team_form.errors.as_json())
     
 
 @login_required
@@ -349,7 +351,7 @@ def remove_team_member_view(request, member):
         return toast_json_ok(f"{team_member.name} has been removed successfully.")
     
     log_staff_action(staff=request.user, code="team.member.remove", label="Failed to remove team member.", is_success=False, failure_reason=f"Team member does not exist ({member}).")            
-    return toast_json_error(f"Can't remove {member}")
+    return toast_json_error(f"Can't remove {member}. Please try again later.")
 
 
 
@@ -365,7 +367,7 @@ def add_team_member_view(request):
             
     if request.POST:
         log_staff_action(staff=request.user, code="team.member.add", label="Failed to add team member.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error(f"Can't add team member.")
+    return toast_json_error(f"Can't add team member.", form_errors=team_form.errors.as_json())
 
 
 
@@ -374,17 +376,19 @@ def add_team_member_view(request):
 @permission_required(("staffs.manage_contents", "staffs.manage_services", "staffs.update_service"), raise_exception=True)
 def update_service_view(request, service):
     service_inst = ServiceModel.objects.filter(slug=service).first()
-    service_form = ServiceForm(request.POST or None, instance=service_inst)
+    service_form = ServiceForm(request.POST or None, request.FILES or None, instance=service_inst)
 
     if request.POST and service_form.is_valid():
         service_form.save()
+
+        print(service_form.cleaned_data)
 
         log_staff_action(staff=request.user, code="service.update", label=f"Updated the service: {service_inst.title}.", is_success=True)
         return toast_json_ok(f"{service_inst.title} was updated successfully.")
     
     if request.POST:
         log_staff_action(staff=request.user, code="service.update", label="Failed to update service.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error(f"can't update service")
+    return toast_json_error(f"can't update service", form_errors=service_form.errors.as_json())
 
 
 
@@ -401,24 +405,25 @@ def delete_service_view(request, service):
         return toast_json_ok(f"{service_inst.title} has been deleted successfully.")
     
     log_staff_action(staff=request.user, code="service.delete", label="Failed to delete service.", is_success=False, failure_reason=f"Service does not exist ({service}).")
-    return toast_json_error("Can't delete service.")
+    return toast_json_error("Can't delete service. Try again later.")
 
 
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_services", "staffs.add_service"), raise_exception=True)
 def add_service_view(request):
-    service_form = ServiceForm(request.POST or None)
+    service_form = ServiceForm(request.POST or None, request.FILES or None)
 
     if request.POST and service_form.is_valid():
         service_form.save()
 
+        print(service_form.cleaned_data)
         log_staff_action(staff=request.user, code="service.add", label=f"Added a new service: {service_form.instance.title}.", is_success=True)
         return toast_json_ok("Service added successfully.")
     
     if request.POST:
         log_staff_action(staff=request.user, code="service.add", label="Failed to add service.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't add service")
+    return toast_json_error("Can't add service", form_errors=service_form.errors.as_json())
 
 
 
@@ -437,7 +442,7 @@ def update_faq_view(request, faq):
     
     if request.POST:
         log_staff_action(staff=request.user, code="faq.update", label="Failed to update FAQ.", is_success=False, failure_reason="Invalid form data or FAQ does not exist.")
-    return toast_json_error(f"Can't update FAQ")
+    return toast_json_error(f"Can't update FAQ", faqs_form.errors.as_json())
     
 
 
@@ -452,22 +457,22 @@ def delete_faq_view(request, faq):
         return toast_json_ok(f"{faq_inst.question} has been deleted successfully.")
             
     log_staff_action(staff=request.user, code="faq.delete", label="Failed to delete FAQ.", is_success=False, failure_reason=f"FAQ does not exist ({faq}).")
-    return toast_json_error(f"Can't delete FAQ")
+    return toast_json_error(f"Can't delete FAQ. Try again later.")
 
 
 @login_required
 @permission_required(("staffs.manage_contents", "staffs.manage_faqs", "staffs.add_faq"), raise_exception=True)
 def add_faq_view(request):
-    faq = FAQForm(request.POST or None)
+    faq_form = FAQForm(request.POST or None)
 
-    if request.POST and faq.is_valid():
-        faq.save()
-        log_staff_action(staff=request.user, code="faq.add", label=f"Added a new FAQ: {faq.instance.question}.", is_success=True)
+    if request.POST and faq_form.is_valid():
+        faq_form.save()
+        log_staff_action(staff=request.user, code="faq.add", label=f"Added a new FAQ: {faq_form.instance.question}.", is_success=True)
         return toast_json_ok("FAQ added successfully.")
 
     if request.POST:
         log_staff_action(staff=request.user, code="faq.add", label="Failed to add FAQ.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't add FAQ.")
+    return toast_json_error("Can't add FAQ.", form_errors=faq_form.errors.as_json())
 
 
 
@@ -494,7 +499,7 @@ def update_testimonial_view(request, testimonial):
     
     if request.POST:
         log_staff_action(staff=request.user, code="testimonial.update", label="Failed to update testimonial.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't update testimonial.")
+    return toast_json_error("Can't update testimonial.", form_errors=testimonial_form.errors.as_json())
 
 
 @login_required
@@ -510,7 +515,7 @@ def add_testimonial_view(request):
     
     if request.POST:
         log_staff_action(staff=request.user, code="testimonial.add", label="Failed to add testimonial.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error("Can't add testimonial.")
+    return toast_json_error("Can't add testimonial.", form_errors=testimonial_form.errors.as_json())
 
 
 
@@ -526,7 +531,7 @@ def delete_testimonial_view(request, testimonial):
         return toast_json_ok("Testimonial deleted successfully.")
     
     log_staff_action(staff=request.user, code="testimonial.delete", label="Failed to delete testimonial.", is_success=False, failure_reason=f"Testimonial does not exist ({testimonial}).")
-    return toast_json_error("Can't delete testimonial.")
+    return toast_json_error("Can't delete testimonial. Try again later.")
 
 
 
@@ -582,7 +587,7 @@ def attend_message_view(request, message):
             return toast_json_ok(f"Message from {message_inst.name} has been set to be attended by you.")
 
     log_staff_action(staff=request.user, code="message.attend", label="Failed to attend contact message.", is_success=False, failure_reason=f"Message does not exist (ID: {message}).")
-    return toast_json_error("Can't update message status.")
+    return toast_json_error("Can't update message status. Try again later.")
 
 
 
@@ -624,7 +629,7 @@ def delete_message_view(request, message):
         return toast_json_ok(f"Message from {message_inst.name} has been deleted successfullt.")
     
     log_staff_action(staff=request.user, code="message.delete", label="Failed to delete message.", is_success=False, failure_reason=f"Message does not exist (ID: {message}).")
-    return toast_json_error("Can't delete message.")
+    return toast_json_error("Can't delete message. Try agan later.")
 
 
 
@@ -646,6 +651,9 @@ def staffs_view(request):
 
 
 
+
+
+
 @login_required
 @permission_required(("staffs.manage_staffs", "staffs.add_user"), raise_exception=True)
 def add_staff_view(request):
@@ -656,7 +664,7 @@ def add_staff_view(request):
         name = f"{data['first_name']} {data['last_name']}"
         email = data["email"]   
 
-        if CustomUserModel.objects.filter(email=email).count():
+        if check_staff_email(email=email):
             log_staff_action(staff=request.user, code="staff.invite", label="Failed to invite staff member.", is_success=False, failure_reason=f"Email already exists ({email}).")
             return toast_json_error("Can't add staff.", error="Staff already exists")
 
@@ -668,7 +676,7 @@ def add_staff_view(request):
             add_new_staff(email=email, name=name, action_source="dashboard", initiator=request.user)
         except Exception as e:
             log_staff_action(staff=request.user, code="staff.invite", label=f"Can't initiate account creation for new staff: {email}.", is_success=False, failure_reason=e)
-            return toast_json_error("Account creation not initiated", error=e)
+            return toast_json_error("Account creation not initiated. Try again later.")
 
         log_staff_action(staff=request.user, code="staff.invite", label=f"Initiated account creation for new staff: {email}.", is_success=True)
         
@@ -676,7 +684,9 @@ def add_staff_view(request):
 
     if request.POST:
         log_staff_action(staff=request.user, code="staff.invite", label="Failed to send staff invitation.", is_success=False, failure_reason="Invalid form data.")
-    return toast_json_error()
+
+    
+    return toast_json_error("Account creation not initiated", form_errors=staff_form.errors.as_json())
 
 
 

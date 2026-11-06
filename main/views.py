@@ -17,7 +17,7 @@ def home_view(request):
     context = {
         "enabled_sections": enabled_home_sections,
         "hero_section": site_info_instance.hero,
-        "about_description": site_info_instance.about.description,
+        "about": site_info_instance.about,
         "services": site_info_instance.services.filter(is_active=True, is_featured=True).order_by("?")[:3],
         "testimonials": testimonials,
         "current": "home"
@@ -49,12 +49,21 @@ def about_view(request):
     site_info_instance = SiteModel.objects.select_related("about").first()
     team_members = site_info_instance.about.team.filter(is_member=True)
 
+    intro_texts = [
+        "We turn struggling grades into lasting confidence",
+        "Academic support that meets you where you are",
+        "Stuck on your project? We help you move forward",
+        "Support that makes hard topics click"
+    ]
 
     context = {
         "about": model_to_dict(site_info_instance.about),
         "team": team_members,
+        # "intro": intro_texts,
         "current": "about"
     }
+
+    print(model_to_dict(site_info_instance.about)["intro"])
     return render(request, "main/about.html", context)
 
 
@@ -72,20 +81,21 @@ def services_view(request):
 
 def service_detail_view(request, service_slug):
     service = ServiceModel.objects.prefetch_related("related_services", "faqs", "testimonials",).filter(slug=service_slug).first()
-    
+    faqs = list(service.faqs.filter().order_by("-id")[:6])
+    more_faqs = len(faqs) == 6
+
     if not service:
         raise Http404()
 
     testimonials = service.testimonials.filter(is_approved=True)
-    service_faqs = list(service.faqs.filter().order_by("-id")[:5]) # latest 5 faqs
-    more_faqs = len(service_faqs) == 5
+    
 
     context = {
         "service": service,
         "related_services": service.related_services.filter(is_active=True),
-        "faqs": service_faqs[:4],
+        "faqs": faqs[:5],
         "more_faqs": more_faqs,
-        "faqs_batch_point": service_faqs[-1].id if more_faqs else None,
+        "faqs_batch_point": faqs[-1].id if more_faqs else None,
         "testimonials": testimonials,
         "current": "services"
     }
@@ -131,7 +141,7 @@ def testimonials_view(request):
 def get_testimonials_batch_view(request, batch_point):
     context = get_items_batch(
         query=TestimonialModel.objects.filter(is_approved=True, id__lt=batch_point).order_by("-id"),
-        size=7,
+        size=6,
         tmp="main/partials/testimonials/_cards.html",
         name="testimonials",
         point_field="id"
@@ -148,7 +158,7 @@ def submit_testimonial_view(request):
         testimonials_form.save()
 
         return toast_json_ok("Testimonial submitted successfully.")
-    return toast_json_error("Can't submit testimonial.")
+    return toast_json_error("Can't submit testimonial.", form_errors=testimonials_form.errors.as_json())
 
 
 
@@ -186,7 +196,7 @@ def submit_contact_view(request):
         contact_form.save()
 
         return toast_json_ok("Message sent successfully.", send_status=send_status)
-    return toast_json_error("Can't send message")
+    return toast_json_error("Can't send message", form_errors=contact_form.errors.as_json())
 
 
 

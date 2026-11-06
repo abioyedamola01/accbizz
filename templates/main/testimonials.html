@@ -2,11 +2,19 @@
 
 {% block title %}Testimonials · {{ site_info.display_name|title|default:"Accbizz" }}{% endblock title %}
 
+{# Hard-coded for now (see notes). #}
+{% block meta_description %}<meta name="description" content="Real experiences from the people we have helped. Read their testimonials and share your own." />{% endblock meta_description %}
+
 {% block content %}
 
 {# Expects: testimonials (first batch of approved ones), batch_point (int, or None when there is no more), testimonial_form (name, title, quote, service) #}
-{% include "main/partials/testimonials/_intro.html" %}
-{% include "main/partials/testimonials/_grid.html" %}
-{% include "main/partials/testimonials/_share.html" %}
+  {% include "main/partials/testimonials/_intro.html" %}
+  {% include "main/partials/testimonials/_grid.html" %}
+  {% include "main/partials/testimonials/_share.html" %}
+
+  {# Closing call to action. Text is hard-coded for now (see notes). #}
+  {% url "main_services" as services_url %}
+  {% url "main_contact" as contact_url %}
+  {% include "main/partials/_cta.html" with headings="Need help with your own project?" text="Browse our services, or tell us what you need and we will point you in the right direction." label1="Explore services" url1=services_url label2="Contact us" url2=contact_url|add:"#contact-us" %}
 
 {% endblock content %}

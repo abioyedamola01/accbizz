@@ -2,60 +2,826 @@
 @import "flowbite/src/themes/default";
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
-
 @source "../../templates";
-
 
 @import "../css/base.css";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui;
+/* Tailwind and Flowbite dark: classes follow the data-theme attribute on <html> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-  --color-brand-50: var(--brand-50);
-  --color-brand-100: var(--brand-100);
-  --color-brand-200: var(--brand-200);
-  --color-brand-300: var(--brand-300);
-  --color-brand-400: var(--brand-400);
-  --color-brand-500: var(--brand-500);
-  --color-brand-600: var(--brand-600);
-  --color-brand-700: var(--brand-700);
-  --color-brand-800: var(--brand-800);
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+
+  --color-brand-50: var(--brand-50);   --color-brand-100: var(--brand-100); --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300); --color-brand-400: var(--brand-400); --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600); --color-brand-700: var(--brand-700); --color-brand-800: var(--brand-800);
   --color-brand-900: var(--brand-900);
 
-  --color-gray-50: var(--gray-50);
-  --color-gray-100: var(--gray-100);
-  --color-gray-200: var(--gray-200);
-  --color-gray-300: var(--gray-300);
-  --color-gray-400: var(--gray-400);
-  --color-gray-500: var(--gray-500);
-  --color-gray-600: var(--gray-600);
-  --color-gray-700: var(--gray-700);
-  --color-gray-800: var(--gray-800);
+  --color-gray-50: var(--gray-50);   --color-gray-100: var(--gray-100); --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300); --color-gray-400: var(--gray-400); --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600); --color-gray-700: var(--gray-700); --color-gray-800: var(--gray-800);
   --color-gray-900: var(--gray-900);
 
-  --color-green-50: var(--green-50);
-  --color-green-100: var(--green-100);
-  --color-green-200: var(--green-200);
-  --color-green-300: var(--green-300);
-  --color-green-400: var(--green-400);
-  --color-green-500: var(--green-500);
-  --color-green-600: var(--green-600);
-  --color-green-700: var(--green-700);
-  --color-green-800: var(--green-800);
+  --color-green-50: var(--green-50);   --color-green-100: var(--green-100); --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300); --color-green-400: var(--green-400); --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600); --color-green-700: var(--green-700); --color-green-800: var(--green-800);
   --color-green-900: var(--green-900);
 
-  --color-dark-50: var(--dark-50);
-  --color-dark-100: var(--dark-100);
-  --color-dark-200: var(--dark-200);
-  --color-dark-300: var(--dark-300);
-  --color-dark-400: var(--dark-400);
-  --color-dark-500: var(--dark-500);
-  --color-dark-600: var(--dark-600);
-  --color-dark-700: var(--dark-700);
-  --color-dark-800: var(--dark-800);
+  --color-danger-50: var(--danger-50);   --color-danger-100: var(--danger-100); --color-danger-200: var(--danger-200);
+  --color-danger-300: var(--danger-300); --color-danger-400: var(--danger-400); --color-danger-500: var(--danger-500);
+  --color-danger-600: var(--danger-600); --color-danger-700: var(--danger-700); --color-danger-800: var(--danger-800);
+  --color-danger-900: var(--danger-900);
+
+  --color-dark-50: var(--dark-50);   --color-dark-100: var(--dark-100); --color-dark-200: var(--dark-200);
+  --color-dark-300: var(--dark-300); --color-dark-400: var(--dark-400); --color-dark-500: var(--dark-500);
+  --color-dark-600: var(--dark-600); --color-dark-700: var(--dark-700); --color-dark-800: var(--dark-800);
   --color-dark-900: var(--dark-900);
 
   --color-cream: var(--cream);
 
+  /* Semantic roles: use these in new templates, never raw ramps for surfaces or text */
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-link: var(--link);
+  --color-focus: var(--focus);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bg: var(--danger-bg);
+  --color-success-fg: var(--success-fg);
+  --color-success-bg: var(--success-bg);
+
+  /* Named type scale (12/14/16/20/24/32/48). New names so dashboard text-lg etc. are untouched. */
+  --text-caption: var(--fs-12);  --text-caption--line-height: 1.5;
+  --text-small: var(--fs-14);    --text-small--line-height: 1.5;
+  --text-body: var(--fs-16);     --text-body--line-height: 1.55;
+  --text-lead: var(--fs-20);     --text-lead--line-height: 1.5;
+  --text-h3: var(--fs-24);       --text-h3--line-height: 1.25;
+  --text-h2: var(--fs-32);       --text-h2--line-height: 1.15;
+  --text-h1: var(--fs-48);       --text-h1--line-height: 1.1;
+
   --shadow-card: 0 2px 10px 0 rgba(31, 27, 46, 0.04);
+}
+
+/* =====================================================================
+   BASE
+   ===================================================================== */
+@layer base {
+  html { color-scheme: light; scroll-padding-top: calc(var(--header-h) + 16px); }
+  html[data-theme="dark"] { color-scheme: dark; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  body { line-height: var(--leading-body); }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection { background: var(--hl); }
+}
+
+/* =====================================================================
+   COMPONENTS
+   ===================================================================== */
+@layer components {
+  /* ---- Layout ---- */
+  .wrap { width: 100%; max-width: var(--container-max); margin-inline: auto; padding-inline: clamp(16px, 4vw, 32px); }
+  .section { padding-block: clamp(48px, 8vw, 96px); }
+  .measure { max-width: var(--measure); }
+
+  /* ---- Type ---- */
+  .h-display { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; line-height: var(--leading-heading); color: var(--ink); text-wrap: balance; }
+  .lead { font-size: var(--fs-16); line-height: 1.6; color: var(--muted); max-width: 60ch; }
+  @media (min-width: 640px) { .lead { font-size: var(--fs-20); } }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-14); font-weight: 600; color: var(--link); }
+  .eyebrow::before { content: ""; width: 16px; height: 2px; border-radius: 2px; background: var(--brand-500); }
+  .hl { background: linear-gradient(transparent 62%, var(--hl) 62%); color: inherit; padding-inline: 2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+
+  /* ---- Buttons ---- */
+  .btn {
+    position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid transparent; border-radius: 0.75rem; font-weight: 600; line-height: 1; white-space: nowrap;
+    text-decoration: none; cursor: pointer; user-select: none;
+    transition: transform var(--dur-fast) var(--ease-enter), background-color var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), opacity var(--dur-fast);
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .btn-sm { height: 32px; padding-inline: 12px; font-size: var(--fs-14); }
+  .btn-md { height: 40px; padding-inline: 16px; font-size: var(--fs-14); }
+  .btn-lg { height: 48px; padding-inline: 24px; font-size: var(--fs-16); }
+  @media (max-width: 767px) { .btn-sm, .btn-md { min-height: 44px; } }
+  .btn-primary { background: var(--btn-bg); color: var(--btn-ink); }
+  .btn-primary:hover { background: var(--btn-bg-hover); }
+  .btn-secondary { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  .btn-secondary:hover { background: var(--raised); }
+  .btn-ghost { background: transparent; color: var(--ink); }
+  .btn-ghost:hover { background: var(--raised); }
+  .btn-link { height: auto; padding: 0; border-radius: 0.25rem; background: none; color: var(--link); }
+  .btn-link:hover { color: var(--link-hover); transform: none; }
+  .btn[aria-busy="true"] { color: transparent; pointer-events: none; }
+  .btn[aria-busy="true"] > * { visibility: hidden; }
+  .btn[aria-busy="true"]::after {
+    content: ""; position: absolute; width: 16px; height: 16px; border-radius: 9999px;
+    border: 2px solid var(--btn-ink); border-top-color: transparent; animation: spin 0.8s linear infinite;
+  }
+  .nudge-icon { transition: transform var(--dur-fast) var(--ease-enter); }
+  .btn:hover .nudge-icon, .link-slide:hover .nudge-icon, .card-link:hover .nudge-icon { transform: translateX(4px); }
+
+  .icon-btn {
+    display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 0.75rem; color: var(--ink);
+    background: transparent; cursor: pointer; transition: background-color var(--dur-fast), transform var(--dur-fast);
+  }
+  .icon-btn:hover { background: var(--raised); }
+  .icon-btn:active { transform: scale(0.96); }
+
+  /* ---- Text links with a sliding underline ---- */
+  .link-slide { position: relative; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--link); text-decoration: none; }
+  .link-slide::after {
+    content: ""; position: absolute; inset-inline: 0; bottom: -2px; height: 1px; background: currentColor;
+    transform: scaleX(0); transform-origin: left; transition: transform var(--dur-base) var(--ease-enter);
+  }
+  .link-slide:hover { color: var(--link-hover); }
+  .link-slide:hover::after, .link-slide:focus-visible::after { transform: scaleX(1); }
+  .footer-link { display: inline-flex; align-items: center; gap: 12px; padding-block: 6px; font-size: var(--fs-14); color: var(--muted); font-weight: 400; }
+  .footer-link:hover { color: var(--ink); }
+
+  /* ---- Cards ---- */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; box-shadow: var(--shadow-card); padding: 20px; }
+  @media (min-width: 640px) { .card { padding: 24px; } }
+  .card-link {
+    position: relative; display: flex; flex-direction: column; height: 100%; color: inherit; text-decoration: none;
+    transition: transform var(--dur-base) var(--ease-enter), border-color var(--dur-fast), background-color var(--dur-fast);
+  }
+  .card-link::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: var(--shadow-lift);
+    opacity: 0; pointer-events: none; transition: opacity var(--dur-base);
+  }
+  .card-link:hover { transform: translateY(-4px); border-color: var(--brand-300); }
+  .card-link:hover::after { opacity: 1; }
+  [data-theme="dark"] .card-link:hover { background: var(--raised); border-color: var(--line-strong); }
+  .icon-chip { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 0.75rem; background: var(--raised); color: var(--link); flex-shrink: 0; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 32px 24px; border: 1px dashed var(--line-strong); border-radius: 1rem; background: var(--surface); }
+
+  /* ---- Badge, avatar ---- */
+  .badge { display: inline-flex; align-items: center; height: 24px; padding-inline: 8px; border-radius: 9999px; font-size: var(--fs-12); font-weight: 500; background: var(--raised); color: var(--ink); border: 1px solid var(--line); }
+  .avatar { display: inline-grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 9999px; font-weight: 600; font-size: var(--fs-16); background: var(--brand-100); color: var(--brand-800); }
+  [data-theme="dark"] .avatar { background: var(--raised); color: var(--brand-300); }
+
+  /* ---- Skip link ---- */
+  .skip-link { position: fixed; top: 8px; left: 8px; z-index: var(--z-tooltip); padding: 12px 16px; border-radius: 0.75rem; background: var(--ink); color: var(--page); font-weight: 600; transform: translateY(-200%); }
+  .skip-link:focus { transform: none; }
+
+  /* ---- Header ---- */
+  .site-header {
+    position: sticky; top: 0; z-index: var(--z-sticky);
+    background: color-mix(in srgb, var(--page) 88%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid transparent; transition: border-color var(--dur-base);
+  }
+  .site-header::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: var(--shadow-header); opacity: 0; transition: opacity var(--dur-base); }
+  .site-header.is-scrolled { border-bottom-color: var(--line); }
+  .site-header.is-scrolled::after { opacity: 1; }
+
+  .nav-link { position: relative; display: inline-flex; align-items: center; padding-block: 8px; font-size: var(--fs-14); font-weight: 500; color: var(--muted); text-decoration: none; transition: color var(--dur-fast); }
+  .nav-link::after { content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--brand-500); transform: scaleX(0); transform-origin: left; opacity: 0.4; transition: transform var(--dur-base) var(--ease-enter), opacity var(--dur-base); }
+  .nav-link:hover { color: var(--ink); }
+  .nav-link:hover::after { transform: scaleX(1); }
+  .nav-link[aria-current="page"] { color: var(--link); }
+  .nav-link[aria-current="page"]::after { transform: scaleX(1); opacity: 1; }
+
+  .mobile-link { display: block; padding: 12px 16px; border-radius: 0.75rem; font-size: var(--fs-16); font-weight: 500; color: var(--ink); text-decoration: none; }
+  .mobile-link:hover { background: var(--raised); }
+  .mobile-link[aria-current="page"] { background: var(--raised); color: var(--link); }
+
+  .mobile-panel { display: grid; grid-template-rows: 1fr; }
+  .mobile-panel__inner { min-height: 0; overflow: hidden; }
+  .js .mobile-panel { transition: grid-template-rows var(--dur-base) var(--ease-enter), visibility 0s linear var(--dur-base); }
+  .js .mobile-panel:not(.is-open) { grid-template-rows: 0fr; visibility: hidden; }
+  .js .mobile-panel.is-open { visibility: visible; transition-delay: 0s; }
+
+  /* Crossfading, rotating icon pairs */
+  .icon-stack { position: relative; display: block; width: 20px; height: 20px; }
+  .icon-stack > * { position: absolute; inset: 0; transition: transform var(--dur-base) var(--ease-enter), opacity var(--dur-base); }
+  .theme-moon, .menu-close { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+  [data-theme="dark"] .theme-sun { opacity: 0; transform: rotate(90deg) scale(0.6); }
+  [data-theme="dark"] .theme-moon { opacity: 1; transform: none; }
+  [aria-expanded="true"] > .icon-stack > .menu-open { opacity: 0; transform: rotate(90deg) scale(0.6); }
+  [aria-expanded="true"] > .icon-stack > .menu-close { opacity: 1; transform: none; }
+
+  /* Dropdown menu */
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: var(--z-dropdown); min-width: 192px; padding: 8px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; box-shadow: var(--shadow-pop);
+    opacity: 0; visibility: hidden; transform: translateY(-4px) scale(0.98); transform-origin: top right;
+    transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-enter), visibility 0s linear var(--dur-fast);
+  }
+  .menu.is-open { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .menu-item { display: flex; width: 100%; align-items: center; gap: 12px; height: 44px; padding-inline: 12px; border-radius: 0.75rem; font-size: var(--fs-14); font-weight: 500; color: var(--ink); cursor: pointer; }
+  .menu-item:hover { background: var(--raised); }
+  .menu-item .menu-check { margin-inline-start: auto; opacity: 0; color: var(--link); }
+  .menu-item[aria-pressed="true"] .menu-check { opacity: 1; }
+
+  /* ---- Page chrome ---- */
+  .nav-progress, .read-progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: var(--z-toast); background: var(--brand-500); transform: scaleX(0); transform-origin: left; pointer-events: none; }
+  .nav-progress { opacity: 0; transition: opacity var(--dur-fast); }
+  .nav-progress.is-active { opacity: 1; transform: scaleX(0.85); transition: transform 8s var(--ease-enter), opacity var(--dur-fast); }
+  .read-progress { display: none; height: 3px; }
+  @supports (animation-timeline: scroll()) {
+    .read-progress { display: block; animation: grow linear both; animation-timeline: scroll(root); }
+  }
+  .to-top { position: fixed; right: 16px; bottom: 16px; z-index: var(--z-sticky); display: grid; place-items: center; width: 44px; height: 44px; border-radius: 0.75rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-pop); opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity var(--dur-base), transform var(--dur-base) var(--ease-enter), visibility 0s linear var(--dur-base); }
+  .to-top.is-visible { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+  .js .page-in { animation: page-in var(--dur-fast) ease-out both; }
+
+  /* ---- Scroll in. Put data-reveal on a wrapper, never on an element that lifts on hover. ---- */
+  .js [data-reveal] { opacity: 0; transform: translateY(20px); transition: opacity var(--dur-slow) ease-out var(--reveal-delay, 0ms), transform var(--dur-slow) ease-out var(--reveal-delay, 0ms); }
+  .js [data-reveal].is-visible { opacity: 1; transform: none; }
+
+  /* ---- Scroll out: hero drifts and fades as it leaves (static where unsupported) ---- */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .hero-leave { animation: hero-leave linear forwards; animation-timeline: view(); animation-range: exit 0% exit 70%; }
+    }
+  }
+
+  /* ---- Navy call-to-action band (dark theme: bordered, slightly lighter surface) ---- */
+  .band { position: relative; overflow: hidden; background: var(--band-bg); color: var(--band-ink); border-block: 1px solid var(--band-line); }
+  .band .band-muted { color: var(--band-muted); }
+  .band .h-display { color: var(--band-ink); }
+  .band-glow { background: radial-gradient(closest-side, color-mix(in srgb, var(--brand-500) 22%, transparent), transparent); }
+  .glow { background: radial-gradient(closest-side, var(--glow), transparent); }
+  .band .btn-secondary { color: var(--band-ink); border-color: var(--dark-400); }
+  .band .btn-secondary:hover { background: color-mix(in srgb, var(--dark-50) 10%, transparent); }
+  .band .btn-primary { background: var(--brand-400); color: var(--dark-900); }
+  .band .btn-primary:hover { background: var(--brand-300); }
+
+  /* ---- Skeleton shimmer ---- */
+  .skeleton { position: relative; overflow: hidden; border-radius: 0.75rem; background: var(--raised); }
+  .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 8%, transparent), transparent); animation: shimmer 1.4s infinite; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border-radius: 9999px; border: 2px solid currentColor; border-top-color: transparent; animation: spin 0.8s linear infinite; }
+
+  /* ---- First-visit splash ---- */
+  .splash { display: none; position: fixed; inset: 0; z-index: var(--z-overlay); place-items: center; background: var(--page); }
+  .show-splash .splash { display: grid; animation: splash-out 1.1s var(--ease-exit) forwards; }
+  .splash__logo { animation: splash-logo 0.6s var(--ease-enter) both; }
+
+  /* ---- Testimonial slider ---- */
+  .tst-viewport { overflow: hidden; padding: 16px 12px; margin: -16px -12px; touch-action: pan-y; transition: opacity var(--dur-base) ease; }
+  .tst-viewport.is-swapping { opacity: 0; }
+  .tst-stage { display: grid; }
+  .tst-slide { grid-area: 1 / 1; margin: 0; opacity: 0; visibility: hidden; transform: translateX(100%); transition: transform var(--dur-slide) var(--ease-enter), opacity var(--dur-slide) ease; }
+  .tst-slide.is-prev { transform: translateX(-100%); }
+  .tst-slide.is-active { opacity: 1; visibility: visible; transform: none; }
+  .tst-slide.tst-instant { transition: none !important; }
+  .tst-nav { display: flex; align-items: center; gap: 4px; }
+  .tst-nav[hidden] { display: none; }
+  .tst-dot { display: inline-grid; place-items: center; min-width: 24px; height: 44px; padding-inline: 4px; background: none; border: 0; cursor: pointer; }
+  .tst-dot-bar { display: block; width: 8px; height: 8px; border-radius: 9999px; background: var(--dot); transition: transform var(--dur-base) var(--ease-enter), background-color var(--dur-base); }
+  .tst-dot[aria-current="true"] .tst-dot-bar { background: var(--link); transform: scaleX(3); }
+  .tst-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 9999px; color: var(--ink); border: 1px solid var(--line-strong); background: transparent; cursor: pointer; transition: background-color var(--dur-fast), transform var(--dur-fast); }
+  .tst-btn:hover { background: var(--raised); }
+  .tst-btn:active { transform: scale(0.96); }
+  .tst-btn--quiet { border-color: transparent; color: var(--muted); }
+  .tst-btn:disabled { cursor: wait; opacity: 0.6; }
+}
+
+/* =====================================================================
+   KEYFRAMES (transform and opacity only)
+   ===================================================================== */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-soft { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes grow { to { transform: scaleX(1); } }
+@keyframes page-in { from { opacity: 0; } }
+@keyframes hero-leave { to { opacity: 0.25; transform: translateY(-24px); } }
+@keyframes splash-out { 0%, 65% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes splash-logo { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+
+/* =====================================================================
+   REDUCED MOTION: transitions become instant, spinners become a soft pulse
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+  .spinner, .btn[aria-busy="true"]::after { animation: pulse-soft 1.6s ease-in-out infinite !important; border-top-color: currentColor; }
+  .skeleton::after { animation: none !important; }
+  .js [data-reveal] { opacity: 1; transform: none; }
+}
+
+/* =====================================================================
+   TEMPORARY LEGACY BRIDGE
+   Un-migrated public pages (about, services, contact, testimonials, service detail) still use
+   bg-white, text-dark-900 and gray text classes. This keeps them readable in dark mode until
+   each page gets its own step. Delete this block when the last public page is migrated.
+   Only applies when <html data-theme="dark"> is set, which only the public base does.
+   ===================================================================== */
+[data-theme="dark"] .bg-white { background-color: var(--surface); }
+[data-theme="dark"] .bg-cream, [data-theme="dark"] .bg-gray-50 { background-color: var(--raised); }
+[data-theme="dark"] .bg-brand-50 { background-color: var(--raised); }
+[data-theme="dark"] .text-dark-900 { color: var(--ink); }
+[data-theme="dark"] .text-gray-400, [data-theme="dark"] .text-gray-500, [data-theme="dark"] .text-gray-600, [data-theme="dark"] .text-gray-700 { color: var(--muted); }
+[data-theme="dark"] .text-brand-500, [data-theme="dark"] .text-brand-600 { color: var(--link); }
+[data-theme="dark"] .border-gray-100, [data-theme="dark"] .border-gray-200 { border-color: var(--line); }
+[data-theme="dark"] .shadow-card, [data-theme="dark"] .shadow-2xl { box-shadow: none; }
+
+
+/* ---------------------------------------------------------------
+   Testimonials: shared components. Tokens only, no hex.
+   The form controls are shared: the Contact step reuses them.
+---------------------------------------------------------------- */
+@layer components {
+
+  /* ---- Form fields ---- */
+  .field-label { @apply block text-small font-semibold text-ink; }
+  .field-hint  { @apply text-small text-muted; }
+  .field-error { @apply flex items-start gap-2 text-small text-danger-fg; }
+
+  /* Inputs, selects and textareas: 44px touch height, rounded-xl, 2px focus ring */
+  .field-input {
+    @apply block w-full min-h-[44px] rounded-xl border border-line-strong bg-surface px-4 text-body text-ink placeholder:text-muted;
+  }
+  textarea.field-input { @apply py-3 min-h-[8rem] resize-y; }
+  /* Focus is ONE ring: the 1px border turns brand and a 1px outline of the same color hugs it
+     (no offset), so it reads as a single 2px border. */
+  .field-input:focus-visible { @apply outline-1 outline-offset-0 outline-brand-500 border-brand-500; }
+  .field-input[aria-invalid="true"] { @apply border-danger-500; }
+  .field-input[aria-invalid="true"]:focus-visible { @apply outline-danger-500 border-danger-500; }
+  .field-input:disabled { @apply cursor-not-allowed opacity-60; }
+
+  /* ---- Switch (checkbox with a track and knob). Markup:
+     <label class="switch"><input type="checkbox" class="switch-input"><span class="switch-track" aria-hidden="true"></span><span>Label</span></label> ---- */
+  .switch { @apply relative inline-flex min-h-[44px] cursor-pointer select-none items-center gap-3; }
+  .switch-input { @apply absolute m-0 h-px w-px opacity-0; }
+  .switch-track {
+    @apply relative h-6 w-11 shrink-0 rounded-full border border-line-strong bg-raised;
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+  .switch-track::after {
+    content: "";
+    @apply absolute rounded-full bg-muted;
+    top: 2px; left: 2px; width: 18px; height: 18px;
+    transition: transform 150ms ease;
+  }
+  .switch-input:checked + .switch-track { @apply border-brand-500 bg-brand-500; }
+  .switch-input:checked + .switch-track::after { @apply bg-dark-900; transform: translateX(20px); }
+  .switch-input:focus-visible + .switch-track { @apply outline-2 outline-offset-2 outline-brand-500; }
+
+  /* ---- Cards added by "load more" ease in (fade plus 8px up). Replaces the old inline .tst-card-new. ---- */
+  .tst-card-new { animation: tst-in 350ms var(--ease-enter, ease-out) both; }
+}
+
+@keyframes tst-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tst-card-new { animation: none; }
+  .switch-track, .switch-track::after { transition: none; }
+}
+
+/* Dark mode: brighter focus ring and checked track */
+@layer components {
+  .field-input:focus-visible { @apply dark:outline-brand-400 dark:border-brand-400; }
+  .field-input[aria-invalid="true"]:focus-visible { @apply dark:outline-danger-400 dark:border-danger-400; }
+  .switch-input:focus-visible + .switch-track { @apply dark:outline-brand-400; }
+  .switch-input:checked + .switch-track { @apply dark:border-brand-400 dark:bg-brand-400; }
+}
+
+
+/* Form fields, reusable for the staffs and dashboard forms. Tokens only. */
+.field-input {
+  @apply block w-full min-h-11 rounded-xl border border-line-strong bg-surface px-4 text-body text-ink placeholder:text-muted;
+  @apply transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:focus:ring-brand-400 dark:focus:border-brand-400;
+  @apply aria-[invalid=true]:border-danger-fg aria-[invalid=true]:focus:ring-danger-fg;
+}
+textarea.field-input { @apply min-h-32 py-3 resize-y; }
+select.field-input { @apply py-2 pr-10; }
+.field-msg-in { animation: field-msg-in 200ms var(--ease-enter, ease-out); }
+
+@keyframes field-msg-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .field-msg-in { animation: none; }
+}
+
+
+/* Busy and disabled buttons (spinner markup comes from components/_button.html) */
+.btn[aria-busy="true"] { cursor: progress; }
+.btn[aria-busy="true"]:disabled { opacity: 1; }
+.btn:disabled:not([aria-busy="true"]),
+.btn[aria-disabled="true"]:not([aria-busy="true"]) { cursor: not-allowed; opacity: 0.6; }
+
+/* Change password accordion (staffs/change_password.html). Without this block every field simply shows open. */
+.pw-acc-item + .pw-acc-item { @apply border-t border-line; }
+.pw-acc-head { @apply flex w-full items-center justify-between gap-3 rounded-xl py-3 text-left; }
+.pw-acc-head:focus-visible { @apply outline-2 outline-offset-2 outline-brand-500; }
+.pw-acc-chevron { @apply text-muted; }
+.pw-acc-head[aria-expanded="true"] .pw-acc-chevron { transform: rotate(180deg); }
+.pw-acc-status--ok { @apply text-success-fg; }
+.pw-acc-status--err { @apply text-danger-fg; }
+
+.pw-acc-panel { display: grid; grid-template-rows: 0fr; }
+.pw-acc-panel.is-open { grid-template-rows: 1fr; }
+.pw-acc-inner { min-height: 0; overflow: hidden; visibility: hidden; }
+.pw-acc-panel.is-open .pw-acc-inner { visibility: visible; }
+.pw-acc-body { padding: 4px 4px 16px; } /* room so the focus ring is not clipped */
+
+/* Animation switches on after first paint, so the page does not animate while loading */
+.pw-acc-ready .pw-acc-panel { transition: grid-template-rows var(--dur-base, 250ms) ease; }
+.pw-acc-ready .pw-acc-inner { transition: visibility 0s linear var(--dur-base, 250ms); }
+.pw-acc-ready .pw-acc-panel.is-open .pw-acc-inner { transition-delay: 0s; }
+.pw-acc-ready .pw-acc-chevron { transition: transform var(--dur-base, 250ms) ease; }
+@media (prefers-reduced-motion: reduce) {
+  .pw-acc-ready .pw-acc-panel, .pw-acc-ready .pw-acc-inner, .pw-acc-ready .pw-acc-chevron { transition: none; }
+}
+
+
+/* ==========================================================================
+   Dashboard base: sidebar, popover menus, toasts and form fields. Tokens only, no hex.
+   ========================================================================== */
+
+@layer components {
+
+  /* ---------- Sidebar ---------- */
+  .dash-sidebar { width: 14rem; }
+
+  .sb-brand-full { display: flex; }
+  .sb-brand-mark { display: none; }
+
+  .sb-item {
+    @apply relative flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-small font-medium text-muted transition-colors;
+  }
+  .sb-item:hover { @apply bg-raised text-ink; }
+  .sb-item[aria-current="page"] { @apply bg-raised font-semibold text-ink; }
+  /* Active marker. Decorative: the state is also carried by background, weight and aria-current. */
+  .sb-item[aria-current="page"]::before {
+    content: "";
+    @apply absolute inset-y-2 left-0 w-1 rounded-full bg-brand-500 dark:bg-brand-400;
+  }
+  .sb-item[aria-current="page"] .sb-icon { @apply text-link; }
+
+  .sb-toggle { @apply cursor-pointer; }
+  .sb-toggle-icon { transition: transform 150ms var(--ease-enter, ease-out); }
+
+  .sb-badge {
+    @apply ml-auto flex shrink-0 items-center justify-center rounded-full bg-brand-500 px-1 text-caption font-semibold leading-none text-dark-900;
+    height: 1.25rem;
+    min-width: 1.25rem;
+  }
+
+  /* Tooltip for the retracted rail. Positioned by dashboard.js (fixed, next to the hovered icon). */
+  .sb-tip {
+    @apply pointer-events-none fixed whitespace-nowrap rounded-xl bg-ink px-3 py-2 text-small font-medium text-page shadow-lg dark:shadow-none;
+    z-index: var(--z-tooltip);
+    transform: translateY(-50%);
+  }
+
+  /* ---------- Retracted rail (desktop only). The attribute is set on <html> by the head script. ---------- */
+  @media (width >= 64rem) {
+    html[data-sidebar="collapsed"] .dash-sidebar { width: 4.5rem; }
+    html[data-sidebar="collapsed"] .sb-brand-full { display: none; }
+    html[data-sidebar="collapsed"] .sb-brand-mark { display: grid; width: 100%; }
+    html[data-sidebar="collapsed"] .sb-item { justify-content: center; padding-inline: 0; }
+    /* Labels stay in the page for screen readers, they are only visually hidden */
+    html[data-sidebar="collapsed"] .sb-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    html[data-sidebar="collapsed"] .sb-badge { position: absolute; top: 0.25rem; right: 0.25rem; margin: 0; }
+    html[data-sidebar="collapsed"] .sb-toggle-icon { transform: rotate(180deg); }
+    html[data-sidebar="collapsed"] .sb-item[aria-current="page"]::before { inset-block: 0.5rem; }
+  }
+
+  /* ---------- Popover menus (theme, account) ---------- */
+  .dash-pop {
+    @apply absolute right-0 top-full mt-2 rounded-xl border border-line bg-surface p-1 text-small shadow-lg dark:bg-raised dark:shadow-none;
+    z-index: var(--z-dropdown);
+    min-width: 12rem;
+  }
+  .dash-pop-item {
+    @apply flex min-h-10 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-left text-small text-ink;
+  }
+  .dash-pop-item:hover { @apply bg-raised dark:bg-surface; }
+  .dash-pop-item--danger { @apply text-danger-fg; }
+  .dash-pop-sep { @apply my-1 border-t border-line; }
+  .pop-check { @apply ml-auto opacity-0; }
+  .dash-pop-item[aria-pressed="true"] .pop-check { @apply opacity-100; }
+
+  /* ---------- Toasts ---------- */
+  .app-toast {
+    @apply pointer-events-auto flex items-start gap-3 rounded-xl border border-l-4 border-line bg-surface p-3 text-small text-ink shadow-lg dark:bg-raised dark:shadow-none;
+    animation: dash-toast-in 200ms var(--ease-enter, ease-out) both;
+  }
+  .app-toast[data-leaving] { animation: dash-toast-out 150ms var(--ease-exit, ease-in) both; }
+  .app-toast__icon { @apply shrink-0; }
+  .app-toast__msg { @apply min-w-0 flex-1; margin: 0; overflow-wrap: anywhere; }
+  .app-toast__close {
+    @apply grid shrink-0 cursor-pointer place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink;
+    width: 2rem;
+    height: 2rem;
+    margin: -0.25rem;
+  }
+  .app-toast--success { @apply border-l-success-fg; }
+  .app-toast--success .app-toast__icon { @apply text-success-fg; }
+  .app-toast--error { @apply border-l-danger-fg; }
+  .app-toast--error .app-toast__icon { @apply text-danger-fg; }
+  .app-toast--info { @apply border-l-line-strong; }
+  .app-toast--info .app-toast__icon { @apply text-muted; }
+
+  /* ---------- Form fields (reusable by Staffs and later dashboard pages) ---------- */
+  /* No display set here, so the "hidden" utility can still hide a field. */
+  .field-input {
+    @apply w-full rounded-xl border border-line-strong bg-surface px-3 text-small text-ink placeholder:text-muted;
+    min-height: 2.5rem;
+  }
+  .field-input:hover { @apply border-link; }
+  .field-input:focus-visible { @apply border-link outline-2 outline-offset-0 outline-link; }
+  .field-input[aria-invalid="true"] { @apply border-danger-fg; }
+
+  .field-error { @apply flex items-start gap-1 text-small text-danger-fg; }
+  .field-error svg { margin-top: 0.125rem; }
+
+  /* Inline-edit forms: a saved value that is empty reads as "Not set" */
+  .site-view-value[data-empty] { @apply font-normal text-muted; }
+}
+
+@keyframes dash-toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dash-toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-toast, .app-toast[data-leaving] { animation: none; }
+  .sb-toggle-icon { transition: none; }
+}
+
+
+/* ------------------------------------------------------------------
+   On-accent text: text on an orange fill is white in light, dark navy in dark.
+   Placed after the original component rules so it wins.
+   ------------------------------------------------------------------ */
+
+/* Fill pair for filled accent controls */
+.btn-primary,
+.sb-badge {
+  @apply bg-brand-500 dark:bg-brand-400;
+}
+
+/* Text colour, in every state so a hover or focus rule cannot bring the dark text back */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus-visible,
+.btn-primary:active,
+.sb-badge {
+  @apply text-white dark:text-dark-900;
+}
+
+
+/* ==========================================================================
+   Dashboard > Contents. Tokens only.
+   Needs a danger ramp with 400, 600 and 700 steps.
+   ========================================================================== */
+
+/* ---- Buttons: danger variant (delete confirmations) ---- */
+.btn-danger { @apply bg-danger-600 text-white hover:enabled:bg-danger-700 dark:bg-danger-400 dark:text-dark-900 dark:hover:enabled:bg-danger-300; }
+
+/* ---- Form controls used by the Contents modals and edit panels ---- */
+.dash-label { @apply mb-1 block text-small font-medium text-ink; }
+.dash-input {
+  @apply block min-h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-body text-ink placeholder:text-muted;
+}
+.dash-input:focus-visible { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+.dash-input:disabled { @apply cursor-not-allowed opacity-60; }
+.dash-textarea { @apply resize-y py-2; }
+
+/* Inline-edit field (About and Hero cards): underline style, shown when the card is in edit mode */
+.dash-input-inline {
+  @apply w-full rounded-none border-0 border-b border-line-strong bg-transparent px-1 pb-2 text-small text-ink placeholder:text-muted;
+}
+.dash-input-inline:hover { @apply border-ink; }
+.dash-input-inline:focus-visible { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+
+/* Home sections switch: the checkbox is .peer.sr-only, this is its visible track */
+.dash-switch-track {
+  @apply relative block h-5 w-9 flex-none rounded-full bg-muted transition-colors;
+}
+.dash-switch-track::after {
+  content: ""; @apply absolute left-0.5 top-0.5 size-4 rounded-full bg-surface transition-transform;
+}
+.peer:checked ~ .dash-switch-track { @apply bg-brand-500; }
+.peer:checked ~ .dash-switch-track::after { transform: translateX(1rem); }
+.peer:focus-visible ~ .dash-switch-track { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+
+/* ---- Service filter dropdown (FAQs and Testimonials) ---- */
+.faq-filter-btn, .tst-filter-btn {
+  @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 text-small font-semibold text-ink transition-colors hover:bg-raised;
+}
+.faq-filter-panel, .tst-filter-panel {
+  @apply absolute right-0 top-full z-[var(--z-dropdown)] mt-2 w-68 max-w-[90vw] rounded-xl border border-line bg-surface p-2 shadow-lg dark:shadow-none;
+}
+.faq-filter-row, .tst-filter-row {
+  @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-small text-ink hover:bg-raised;
+}
+.faq-filter-row--all, .tst-filter-row--all { @apply font-semibold; }
+.faq-filter-row input, .tst-filter-row input { @apply m-0 size-4 flex-none cursor-pointer accent-brand-500; }
+.faq-filter-divider, .tst-filter-divider { @apply mx-1 my-2 border-t border-line; }
+.faq-filter-options, .tst-filter-options { @apply max-h-60 overflow-y-auto; }
+.faq-filter-name, .tst-filter-name { @apply min-w-0 flex-1 truncate; }
+.faq-filter-count, .tst-filter-count { @apply flex-none text-caption text-muted; }
+
+/* ---- Segmented control (Services featured filter, Testimonials status filter) ---- */
+.seg, .tst-seg { @apply inline-flex rounded-xl border border-line-strong bg-surface p-0.5; }
+.seg-btn, .tst-seg-btn {
+  @apply inline-flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-small font-semibold text-muted transition-colors hover:text-ink;
+}
+.seg-btn.is-active, .tst-seg-btn.is-active { @apply bg-raised text-ink; }
+.tst-seg-count { @apply ml-2 rounded-full bg-brand-500/15 px-2 text-caption leading-5 text-link; }
+.tst-seg-count.is-empty { @apply hidden; }
+
+/* ---- Search box (Services) ---- */
+.svc-search { @apply relative w-64 max-w-full; }
+.svc-search-icon { @apply pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted; }
+.svc-search-input {
+  @apply h-10 w-full appearance-none rounded-xl border border-line-strong bg-surface pl-9 pr-9 text-body text-ink placeholder:text-muted;
+}
+.svc-search-input::-webkit-search-cancel-button { display: none; }
+.svc-search-input:focus-visible { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+.svc-search-clear { @apply absolute right-1 top-1/2 inline-flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted hover:text-ink; }
+
+/* ---- Switches (Services: Active, Featured. Testimonials: Stay anonymous) ----
+   The real checkbox stays in the DOM and posts; the script paints the track
+   (bg-brand-500 when on, bg-muted when off) and toggles .is-on on the label. */
+.svc-switch, .tst-switch { @apply relative inline-flex min-h-11 cursor-pointer select-none items-center gap-3; }
+.svc-switch-input, .tst-switch-input { @apply absolute m-0 size-px opacity-0; }
+.svc-switch-track, .tst-switch-track { @apply relative h-5 w-9 flex-none rounded-full transition-colors; }
+.svc-switch-knob, .tst-switch-knob { @apply absolute left-0.5 top-0.5 size-4 rounded-full bg-surface transition-transform; }
+.svc-switch.is-on .svc-switch-knob, .tst-switch.is-on .tst-switch-knob { transform: translateX(1rem); }
+.svc-switch-input:focus-visible + .svc-switch-track,
+.tst-switch-input:focus-visible + .tst-switch-track { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+.svc-switch-text, .tst-switch-text { @apply text-small text-ink; }
+
+/* ---- Related services checklist (Services) ---- */
+.svc-related-box { @apply max-h-44 overflow-y-auto rounded-xl border border-line-strong bg-surface p-1; }
+.svc-related-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+.svc-related-row { @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-small text-ink hover:bg-raised; }
+.svc-related-row input { @apply m-0 size-4 flex-none cursor-pointer accent-brand-500; }
+.svc-related-name { @apply min-w-0 truncate; }
+.svc-related-empty { @apply px-3 py-2 text-small text-muted; }
+
+/* ---- Testimonials table ---- */
+.tst-preview { @apply max-w-lg overflow-hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tst-pending-badge { @apply rounded-full bg-brand-500/15 px-2 py-1 text-caption font-semibold text-link; }
+.tst-notice {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-500/30 bg-brand-500/10 px-4 py-3;
+}
+
+/* ---- Round "change photo" button on avatar and hero previews ----
+   Works inside a label that wraps the sr-only file input (focus-within), or after a .peer.sr-only input (hero). */
+.photo-edit-btn {
+  @apply absolute -bottom-1 -right-1 flex size-8 cursor-pointer items-center justify-center rounded-full border-2 border-surface bg-brand-500 text-dark-900 transition-colors hover:bg-brand-400;
+}
+.photo-edit-btn:focus-within,
+.peer:focus-visible ~ .photo-edit-btn { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+
+/* ---- Count bubble on the Testimonials tab ---- */
+.badge-count {
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-caption font-semibold leading-none text-dark-900;
+}
+
+
+/* ==========================================================================
+   Dashboard > Contents (revised). Tokens only.
+   Needs a danger ramp with 400, 600 and 700 steps.
+   ========================================================================== */
+
+/* ---- Buttons: danger variant (delete confirmations) ---- */
+.btn-danger { @apply bg-danger-600 text-white hover:enabled:bg-danger-700 dark:bg-danger-400 dark:text-dark-900 dark:hover:enabled:bg-danger-300; }
+
+/* ---- Form controls used by the Contents modals and edit panels ---- */
+.dash-label { @apply mb-1 block text-small font-medium text-ink; }
+.dash-input {
+  @apply block min-h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-body text-ink placeholder:text-muted;
+}
+/* One ring only: the border takes the focus colour, the forms plugin shadow is switched off */
+.dash-input, .dash-input-inline, .svc-search-input { box-shadow: none; --tw-ring-shadow: 0 0 #0000; }
+.dash-input:focus, .dash-input:focus-visible, .svc-search-input:focus, .svc-search-input:focus-visible {
+  @apply border-brand-700 outline-2 outline-offset-0 outline-brand-700 dark:border-brand-300 dark:outline-brand-300; box-shadow: none;
+}
+.dash-input:disabled { @apply cursor-not-allowed opacity-60; }
+.dash-textarea { @apply resize-y py-2; }
+
+/* Inline-edit field (About and Hero cards): underline style, shown when the card is in edit mode */
+.dash-input-inline {
+  @apply w-full rounded-none border-0 border-b border-line-strong bg-transparent px-1 pb-2 text-small text-ink placeholder:text-muted;
+}
+.dash-input-inline:hover { @apply border-ink; }
+.dash-input-inline:focus, .dash-input-inline:focus-visible { @apply border-brand-700 outline-none dark:border-brand-300; box-shadow: 0 1px 0 0 var(--color-brand-700); }
+:root[data-theme="dark"] .dash-input-inline:focus { box-shadow: 0 1px 0 0 var(--color-brand-300); }
+
+/* Home sections switch: the checkbox is .peer.sr-only, this is its visible track */
+.dash-switch-track {
+  @apply relative block h-5 w-9 flex-none rounded-full bg-muted transition-colors;
+}
+.dash-switch-track::after {
+  content: ""; @apply absolute left-0.5 top-0.5 size-4 rounded-full bg-surface transition-transform;
+}
+.peer:checked ~ .dash-switch-track { @apply bg-brand-500; }
+.peer:checked ~ .dash-switch-track::after { transform: translateX(1rem); }
+.peer:focus-visible ~ .dash-switch-track { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+
+/* ---- Service filter dropdown (FAQs and Testimonials) ---- */
+.faq-filter-btn, .tst-filter-btn {
+  @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-surface px-4 text-small font-semibold text-ink transition-colors hover:bg-raised;
+}
+.faq-filter-panel, .tst-filter-panel {
+  @apply absolute right-0 top-full z-[var(--z-dropdown)] mt-2 w-68 max-w-[90vw] rounded-xl border border-line bg-surface p-2 shadow-lg dark:shadow-none;
+}
+.faq-filter-row, .tst-filter-row {
+  @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-small text-ink hover:bg-raised;
+}
+.faq-filter-row--all, .tst-filter-row--all { @apply font-semibold; }
+.faq-filter-row input, .tst-filter-row input { @apply m-0 size-4 flex-none cursor-pointer accent-brand-500; }
+.faq-filter-divider, .tst-filter-divider { @apply mx-1 my-2 border-t border-line; }
+.faq-filter-options, .tst-filter-options { @apply max-h-60 overflow-y-auto; }
+.faq-filter-name, .tst-filter-name { @apply min-w-0 flex-1 truncate; }
+.faq-filter-count, .tst-filter-count { @apply flex-none text-caption text-muted; }
+
+/* ---- Segmented control (Services featured filter, Testimonials status filter) ---- */
+.seg, .tst-seg { @apply inline-flex rounded-xl border border-line-strong bg-raised p-0.5; }
+.seg-btn, .tst-seg-btn {
+  @apply inline-flex min-h-9 cursor-pointer items-center rounded-lg px-3 text-small font-semibold text-muted transition-colors hover:text-ink;
+}
+.seg-btn.is-active, .tst-seg-btn.is-active { @apply bg-line-strong text-ink; }
+.tst-seg-count { @apply ml-2 rounded-full bg-brand-500 px-2 text-caption leading-5 text-white dark:text-dark-900; }
+.tst-seg-count.is-empty { @apply hidden; }
+
+/* ---- Search box (Services) ---- */
+.svc-search { @apply relative w-64 max-w-full; }
+.svc-search-icon { @apply pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted; }
+.svc-search-input {
+  @apply h-10 w-full appearance-none rounded-xl border border-line-strong bg-surface pl-9 pr-9 text-body text-ink placeholder:text-muted;
+}
+.svc-search-input::-webkit-search-cancel-button { display: none; }
+.svc-search-clear { @apply absolute right-1 top-1/2 inline-flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted hover:text-ink; }
+
+/* ---- Switches (Services: Active, Featured. Testimonials: Stay anonymous) ----
+   The real checkbox stays in the DOM and posts; the script paints the track
+   (bg-brand-500 when on, bg-muted when off) and toggles .is-on on the label. */
+.svc-switch, .tst-switch { @apply relative inline-flex min-h-11 cursor-pointer select-none items-center gap-3; }
+.svc-switch-input, .tst-switch-input { @apply absolute m-0 size-px opacity-0; }
+.svc-switch-track, .tst-switch-track { @apply relative h-5 w-9 flex-none rounded-full transition-colors; }
+.svc-switch-knob, .tst-switch-knob { @apply absolute left-0.5 top-0.5 size-4 rounded-full bg-surface transition-transform; }
+.svc-switch.is-on .svc-switch-knob, .tst-switch.is-on .tst-switch-knob { transform: translateX(1rem); }
+.svc-switch-input:focus-visible + .svc-switch-track,
+.tst-switch-input:focus-visible + .tst-switch-track { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+.svc-switch-text, .tst-switch-text { @apply text-small text-ink; }
+
+/* ---- Related services checklist (Services) ---- */
+.svc-related-box { @apply max-h-44 overflow-y-auto rounded-xl border border-line-strong bg-surface p-1; }
+.svc-related-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+.svc-related-row { @apply flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-small text-ink hover:bg-raised; }
+.svc-related-row input { @apply m-0 size-4 flex-none cursor-pointer accent-brand-500; }
+.svc-related-name { @apply min-w-0 truncate; }
+.svc-related-empty { @apply px-3 py-2 text-small text-muted; }
+
+/* ---- Testimonials table ---- */
+.tst-preview { @apply max-w-lg overflow-hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tst-pending-badge { @apply rounded-full bg-brand-500 px-2 py-1 text-caption font-semibold text-white dark:text-dark-900; }
+.tst-notice {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-500/30 bg-brand-500/10 px-4 py-3;
+}
+
+/* ---- Round "change photo" button on avatar and hero previews ----
+   Works inside a label that wraps the sr-only file input (focus-within), or after a .peer.sr-only input (hero). */
+.photo-edit-btn {
+  @apply absolute -bottom-1 -right-1 flex size-8 cursor-pointer items-center justify-center rounded-full border-2 border-surface bg-brand-500 text-dark-900 transition-colors hover:bg-brand-400;
+}
+.photo-edit-btn:focus-within,
+.peer:focus-visible ~ .photo-edit-btn { @apply outline-2 outline-offset-2 outline-brand-700 dark:outline-brand-300; }
+
+/* ---- Count bubble on the Testimonials tab ---- */
+.badge-count {
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-caption font-semibold leading-none text-white dark:text-dark-900;
+}
+
+
+/* Red border on invalid fields (add-staff form). Needs --color-danger-fg. */
+.dash-input[aria-invalid="true"] {
+  border-color: var(--color-danger-fg);
 }
