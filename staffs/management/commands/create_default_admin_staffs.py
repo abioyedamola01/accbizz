@@ -24,7 +24,7 @@ class Command(BaseCommand):
                 is_admin = CustomUserModel.objects.filter(email=email, is_admin=True).exists()
 
                 if is_admin or exists:
-                    self.stdout.write(self.style.ERROR(f"Can't add {email} as admin. \nStaff exists: {exists}, Is admin: {is_admin}"))
+                    self.stdout.write(self.style.SUCCESS(f"{email} has been an admin. \nStaff exists: {exists}, Is admin: {is_admin}"))
                 else:
                     add_new_staff(email=email, name="", action_source="management")
 
