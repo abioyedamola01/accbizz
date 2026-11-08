@@ -29,6 +29,9 @@
   {# Compiled Tailwind. base.css is imported inside it, so it is not linked separately. #}
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
 
+  {# Busy state for buttons and links (faded, spinner, no double clicks) #}
+  {% include "components/_busy.html" %}
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -69,7 +72,7 @@
     </div>
   </main>
 
-  {# The only script on the page. Both controls are hidden until this runs, so without JS the page shows just the home link. #}
+  {# The only page script (besides the shared busy-state one in the head). Both controls are hidden until this runs, so without JS the page shows just the home link. #}
   <script>
     (function () {
       var back = document.querySelectorAll('[data-go-back]');
