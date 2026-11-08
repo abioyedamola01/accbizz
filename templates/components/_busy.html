@@ -1,0 +1,330 @@
+<style>
+  @keyframes busy-spin { to { transform: rotate(360deg); } }
+
+  /* Busy: faded, not-allowed cursor, whole element (children included) */
+  .busy-on,
+  .busy-on * {
+    cursor: not-allowed !important;
+  }
+  .busy-on {
+    opacity: 0.55 !important;
+  }
+
+  /* Any disabled control reads the same way as a busy one */
+  button:disabled,
+  input[type="submit"]:disabled,
+  input[type="button"]:disabled,
+  .btn:disabled,
+  .btn[aria-disabled="true"],
+  a[aria-disabled="true"] {
+    opacity: 0.55 !important;
+    cursor: not-allowed !important;
+  }
+
+  /* The spinning disk: sized from the text, coloured from the text */
+  .busy-spinner {
+    display: inline-block;
+    flex: none;
+    width: 1em;
+    height: 1em;
+    min-width: 14px;
+    min-height: 14px;
+    margin-inline-end: 0.5em;
+    vertical-align: -0.15em;
+    animation: busy-spin 0.75s linear infinite;
+  }
+  /* Buttons with only an icon, and links that wrap cards or images: spinner sits in the middle */
+  .busy-spinner--overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1.25em;
+    height: 1.25em;
+    min-width: 16px;
+    min-height: 16px;
+    margin: -0.625em 0 0 -0.625em;
+    z-index: 1;
+  }
+  [data-busy-icon] > :not(.busy-spinner) { visibility: hidden; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .busy-spinner { animation-duration: 1.6s; }
+  }
+</style>
+
+<script>
+  (function () {
+    'use strict';
+    if (window.Busy) return;
+
+    var ATTR = 'data-busy-on';          // marks a busy element (also what blocks repeat clicks)
+    var CLS = 'busy-on';
+    var FAILSAFE_MS = 15000;            // navigations that never leave the page (downloads, etc.)
+    var SETTLE_DELAY_MS = 350;          // keep busy a moment after a request ends, so a reload / DOM update lands first
+    var TRIGGERS = 'button, a[href], input[type="submit"], input[type="button"], [role="button"], [data-busy-click]';
+
+    var SPINNER = '<svg class="busy-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' +
+      '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"></circle>' +
+      '<path fill="currentColor" opacity="0.9" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+
+    var state = new WeakMap();          // element -> { count, nav, undo[] }
+    var live = [];                      // elements currently busy (for releasing on pageshow / failsafe)
+    var ctx = null;                     // elements behind the event being dispatched right now
+    var ctxTimer = null;
+    var failsafeTimer = null;
+
+    // ---------- start / stop ----------
+
+    function start(el, opts) {
+      if (!el || el.nodeType !== 1) return null;
+      var s = state.get(el);
+      if (s) { s.count++; if (opts && opts.nav) s.nav = true; return s; }
+
+      s = { count: 1, nav: !!(opts && opts.nav), undo: [] };
+      state.set(el, s);
+      live.push(el);
+      el.setAttribute(ATTR, '');
+      s.undo.push(function () { el.removeAttribute(ATTR); });
+
+      if (el.tagName === 'FORM') return s;   // a form only blocks re-submits; it has no look of its own
+
+      el.classList.add(CLS);
+      s.undo.push(function () { el.classList.remove(CLS); });
+
+      if (!el.hasAttribute('aria-disabled')) {
+        el.setAttribute('aria-disabled', 'true');
+        s.undo.push(function () { el.removeAttribute('aria-disabled'); });
+      }
+
+      if (el.tagName !== 'INPUT') addSpinner(el, s);
+
+      var busyLabel = el.getAttribute('data-busy-label');
+      var label = busyLabel && el.querySelector('[data-btn-label]');
+      if (label) {
+        var before = label.textContent;
+        label.textContent = busyLabel;
+        s.undo.push(function () { if (label.textContent === busyLabel) label.textContent = before; });
+      }
+      return s;
+    }
+
+    function addSpinner(el, s) {
+      // Reuse a spinner the page already ships (hidden by default) instead of adding a second one
+      var own = el.querySelector('[data-btn-spinner], .animate-spin');
+      if (own) {
+        if (own.classList.contains('hidden')) {
+          own.classList.remove('hidden');
+          s.undo.push(function () { own.classList.add('hidden'); });
+        }
+        return;
+      }
+
+      var text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      var simple = text && text.length <= 40 &&
+        !el.querySelector('img, picture, video, figure, h1, h2, h3, h4, h5, h6, p, ul, ol, div, section');
+
+      el.insertAdjacentHTML('afterbegin', SPINNER);
+      var spinner = el.firstElementChild;
+      s.undo.push(function () {
+        if (spinner.parentNode) spinner.parentNode.removeChild(spinner);
+        el.removeAttribute('data-busy-icon');
+      });
+
+      if (!simple) {
+        spinner.classList.add('busy-spinner--overlay');
+        if (!text) el.setAttribute('data-busy-icon', '');     // icon-only button: the disk replaces the icon
+        if (window.getComputedStyle(el).position === 'static') {
+          el.style.position = 'relative';
+          s.undo.push(function () { el.style.position = ''; });
+        }
+      }
+    }
+
+    function stop(el, force) {
+      var s = state.get(el);
+      if (!s) return;
+      if (!force && --s.count > 0) return;
+      state.delete(el);
+      var i = live.indexOf(el);
+      if (i > -1) live.splice(i, 1);
+      s.undo.forEach(function (fn) { try { fn(); } catch (e) { /* element may be gone */ } });
+    }
+
+    function releaseNavigations() {
+      live.slice().forEach(function (el) {
+        var s = state.get(el);
+        if (s && s.nav) stop(el, true);
+      });
+    }
+
+    function armFailsafe() {
+      clearTimeout(failsafeTimer);
+      failsafeTimer = setTimeout(releaseNavigations, FAILSAFE_MS);
+    }
+
+    // ---------- what the current event belongs to ----------
+
+    function setCtx(els) {
+      ctx = els.filter(Boolean);
+      clearTimeout(ctxTimer);
+      ctxTimer = setTimeout(function () { ctx = null; }, 0);
+    }
+
+    function submitterOf(e, form) {
+      if (e.submitter) return e.submitter;
+      return form.querySelector('button[type="submit"], input[type="submit"], button:not([type])') ||
+        (form.id ? document.querySelector('[form="' + form.id + '"]') : null);
+    }
+
+    function isNavigation(a) {
+      if (a.hasAttribute('download')) return false;
+      var target = a.getAttribute('target');
+      if (target && target !== '_self') return false;
+      var raw = a.getAttribute('href') || '';
+      if (raw.charAt(0) === '#' || /^(javascript|mailto|tel|sms|whatsapp|blob|data):/i.test(raw)) return false;
+      var url;
+      try { url = new URL(a.href, location.href); } catch (err) { return false; }
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+      if (url.pathname === location.pathname && url.search === location.search && url.hash) return false; // same-page anchor
+      return true;
+    }
+
+    function optedOut(el) {
+      return !!(el.closest && el.closest('[data-no-busy]'));
+    }
+
+    // ---------- requests started by the event (fetch / XHR) ----------
+
+    function sameOrigin(url) {
+      try { return new URL(url, location.href).origin === location.origin; } catch (e) { return false; }
+    }
+
+    function claim(url) {
+      if (!ctx || !ctx.length || !sameOrigin(url)) return [];
+      var claimed = [];
+      ctx.forEach(function (el) {
+        // Already disabled by the page's own code: it manages that button itself
+        if (!el || el.disabled || optedOut(el)) return;
+        start(el);
+        claimed.push(el);
+      });
+      return claimed;
+    }
+
+    function settle(els) {
+      setTimeout(function () { els.forEach(function (el) { stop(el); }); }, SETTLE_DELAY_MS);
+    }
+
+    if (window.fetch) {
+      var nativeFetch = window.fetch;
+      window.fetch = function (input) {
+        var promise = nativeFetch.apply(this, arguments);
+        try {
+          var url = typeof input === 'string' ? input : (input && (input.url || input.href)) || '';
+          var els = claim(url);
+          if (els.length) { var done = function () { settle(els); }; promise.then(done, done); }
+        } catch (e) { /* never break the page's own request */ }
+        return promise;
+      };
+    }
+
+    if (window.XMLHttpRequest) {
+      var xhrOpen = XMLHttpRequest.prototype.open;
+      var xhrSend = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function (method, url) {
+        this.__busyUrl = url;
+        return xhrOpen.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function () {
+        try {
+          var els = claim(this.__busyUrl || '');
+          if (els.length) this.addEventListener('loadend', function () { settle(els); });
+        } catch (e) { /* ignore */ }
+        return xhrSend.apply(this, arguments);
+      };
+    }
+
+    // form.submit() does not fire a submit event, so catch it here (for example a hidden action form)
+    var nativeSubmit = HTMLFormElement.prototype.submit;
+    HTMLFormElement.prototype.submit = function () {
+      if (this.hasAttribute(ATTR)) return;
+      if (!this.hasAttribute('data-no-busy') && (!this.target || this.target === '_self')) {
+        start(this, { nav: true });
+        (ctx || []).forEach(function (el) { if (el && !el.disabled && !optedOut(el)) start(el, { nav: true }); });
+        armFailsafe();
+      }
+      return nativeSubmit.apply(this, arguments);
+    };
+
+    // ---------- events ----------
+
+    // 1) Capture phase, first in line: a busy control or form ignores everything, then remember who was clicked
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var hit = t.closest('a, button, input, [role="button"]');
+      if (hit && hit.hasAttribute(ATTR)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+      var el = t.closest(TRIGGERS);
+      if (el && !optedOut(el)) setCtx([el]);
+    }, true);
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || !form.hasAttribute) return;
+      if (form.hasAttribute(ATTR)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+      setCtx([form, submitterOf(e, form)]);
+    }, true);
+
+    // 2) Bubble phase: after the page's own handlers. Anything they cancelled is theirs to manage.
+    document.addEventListener('click', function (e) {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var t = e.target;
+      if (!t || !t.closest) return;
+
+      var link = t.closest('a[href]');
+      var action = t.closest('[data-busy-click], [data-reload], [data-go-back], [data-history-back]');
+      var el = action || link;
+      if (!el || optedOut(el)) return;
+      if (!action && !isNavigation(link)) return;
+      var alwaysLeaves = !!action && el.matches('[data-reload], [data-go-back], [data-history-back]');
+
+      // One tick later, so handlers registered after this one have had their say too
+      setTimeout(function () {
+        if (e.defaultPrevented && !alwaysLeaves) return;
+        if (state.has(el)) return;               // a request started by this click already tracks it
+        start(el, { nav: true });
+        armFailsafe();
+      }, 0);
+    });
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || !form.hasAttribute || form.hasAttribute('data-no-busy')) return;
+      if (form.target && form.target !== '_self') return;
+      setTimeout(function () {
+        if (e.defaultPrevented) return;          // sent with fetch (tracked there) or cancelled by validation
+        start(form, { nav: true });
+        var submitter = submitterOf(e, form);
+        if (submitter && !submitter.disabled && !optedOut(submitter)) start(submitter, { nav: true });
+        armFailsafe();
+      }, 0);
+    });
+
+    // Back/forward cache restores the page as it was: nothing should still look busy
+    window.addEventListener('pageshow', function (e) { if (e.persisted) releaseNavigations(); });
+
+    window.Busy = {
+      start: function (el) { return start(el); },
+      stop: function (el) { stop(el, true); },
+      isBusy: function (el) { return state.has(el); }
+    };
+  })();
+</script>

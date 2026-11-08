@@ -36,6 +36,9 @@
   {# Compiled Tailwind. base.css is imported inside it, so it is not linked separately. #}
   <link rel="stylesheet" href="{% static 'css/output.css' %}" />
 
+  {# Busy state for buttons and links: faded, spinner, not-allowed cursor, no double clicks (see the notes inside) #}
+  {% include "components/_busy.html" %}
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
