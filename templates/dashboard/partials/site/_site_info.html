@@ -56,17 +56,20 @@
         </div>
       {% endif %}{% endfor %}
 
+      {# Domain URL is read from the current request: host only, nothing after the first "/" #}
+      {% with domain=request.get_host %}
       <div class="flex flex-col gap-2 py-3 last:pb-0 sm:flex-row sm:gap-6">
         <p class="text-small text-muted sm:w-40 sm:shrink-0">Domain URL</p>
         <div class="min-w-0 flex-1">
-          {% if site_info.domain_url %}
-            <a href="https://{{ site_info.domain_url }}" target="_blank" rel="noopener noreferrer"
-              class="link-slide inline-block break-all text-small font-semibold text-link">{{ site_info.domain_url }}<span class="sr-only"> (opens in a new tab)</span></a>
+          {% if domain %}
+            <a href="{{ request.scheme }}://{{ domain }}" target="_blank" rel="noopener noreferrer"
+              class="link-slide inline-block break-all text-small font-semibold text-link">{{ domain }}<span class="sr-only"> (opens in a new tab)</span></a>
           {% else %}
             <p class="text-small text-muted">Not set</p>
           {% endif %}
         </div>
       </div>
+      {% endwith %}
 
     </div>
   </form>

@@ -214,7 +214,8 @@ def invalidate_add_staff_tracks(email):
 
 
 def send_account_creation_email(name, email, url, role):
-    logo = SiteModel.objects.first().logo
+    site = SiteModel.objects.first()
+    logo = site.logo if site else None
     logo_url = logo.url if logo else None
     
     context = {
