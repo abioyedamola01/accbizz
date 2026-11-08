@@ -11,9 +11,8 @@ class Command(BaseCommand):
             if SiteModel.objects.first():
                 self.stdout.write(self.style.SUCCESS('Site instance is already existing.'))
             else:
-                base_url = os.getenv("BASE_URL")
                 host_email = os.getenv("EMAIL_HOST_USER")
-                SiteModel.objects.create(company_name="Company name", display_name="Display", domain_url=base_url, email=host_email)
+                SiteModel.objects.create(company_name="Company name", display_name="Display", email=host_email)
                 self.stdout.write(self.style.SUCCESS("Site instances created successfully. Fields are prepopuated with dummy values, ensure adding appropriate values."))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Operation not completed. Error: {e}"))
