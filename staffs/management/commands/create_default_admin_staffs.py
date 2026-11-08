@@ -18,6 +18,8 @@ class Command(BaseCommand):
             default_admins = os.getenv("DEFAULT_ADMINS").split(",")
 
             for email in default_admins:
+                email = email.strip()
+
                 self.stdout.write(f"Adding {email} as admin staff...")
 
                 exists = CustomUserModel.objects.filter(email=email).exists()
