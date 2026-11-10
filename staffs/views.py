@@ -31,8 +31,6 @@ def staff_login_view(request):
 
     request.session.flush()
 
-    request.session["next_url"] = next_url
-
     form = StaffLoginForm(request.POST or None)
 
     if request.POST and form.is_valid():
@@ -54,8 +52,16 @@ def staff_login_view(request):
             purpose = "staff_login"
             username = user.profile.username
             otp, otp_id = create_otp(user, purpose)
-            send_otp_mail(username, email, otp, verify_purpose="Staff Login")
+            
+            try:
+                send_otp_mail(username, email, otp, verify_purpose="Staff Login")
+            except Exception as e:
+                log_staff_action(staff=user, code="auth.login", label="Failed login attempt", is_success=False, failure_reason=f"{e}")
+                form.add_error(None, "An unexpected error occurred on the server. Please try your request again later")
 
+                return render(request, "staffs/login.html", {"site_info": site_info, "login_form": form,})
+
+            
             request.session["otp_verify_info"] = {
                 "user_id": user.id,
                 "user_email": email,    
@@ -63,6 +69,9 @@ def staff_login_view(request):
                 "otp_uuid": str(uuid.uuid4()),
                 "purpose": purpose
             }
+
+            request.session["next_url"] = next_url
+
 
             log_staff_action(staff=user, code="auth.login", label="Initiated login process and received OTP.", is_success=True)
             return redirect("verify_otp_staff")
@@ -161,16 +170,23 @@ def resend_staff_otp_view(request):
     form = VerifyOTPForm()
     purpose = otp_verify_info["purpose"]
     user = otp_instance.user
+
     
     otp_instance.invalidate_otp()
     new_otp, new_otp_id = create_otp(user, purpose)
-    send_otp_mail(user.profile.username, user.email, new_otp, verify_purpose=otp_instance.purpose)
+
     otp_verify_info["otp_id"] = new_otp_id
     otp_verify_info["otp_uuid"] = str(uuid.uuid4())
     request.session["otp_verify_info"] = otp_verify_info
-    
-    log_staff_action(staff=user, code="auth.otp.resend", label=f"Requested a new OTP for {otp_instance.purpose}.", is_success=True)
-    
+
+    try:
+        send_otp_mail(user.profile.username, user.email, new_otp, verify_purpose=otp_instance.purpose)
+        log_staff_action(staff=user, code="auth.otp.resend", label=f"Requested a new OTP for {otp_instance.purpose}.", is_success=True)
+    except Exception as e:
+        log_staff_action(staff=user, code="auth.otp.resend", label="Failed otp resend attempt", is_success=False, failure_reason=f"{e}")
+        form.add_error(None, "An unexpected error occurred on the server. Please try your request again later")
+
+
     return render(request, "staffs/otp.html", {
         "site_info": site_info,
         "user_email": otp_verify_info["user_email"],
@@ -199,8 +215,14 @@ def verify_for_staff_change_password_view(request):
     email = user.email
 
     otp, otp_id = create_otp(user, purpose)
-    send_otp_mail(username, email, otp, verify_purpose=purpose)
 
+    try:
+        send_otp_mail(username, email, otp, verify_purpose=purpose)
+    except Exception as e:
+        log_staff_action(staff=user, code="auth.password_change.initiate_otp", label="Failed password change attempt", is_success=False, failure_reason=f"{e}")
+        return render(request, "errors/500.html", status=500)
+
+        
     request.session["otp_verify_info"] = {
         "user_id": user.id,
         "user_email": email,    
@@ -272,8 +294,12 @@ def reset_staff_password_view(request, user):
         base_url = os.getenv("BASE_URL")
         reset_link = f"{base_url}/users/staffs/accounts/auth/reset-password/use/{idb64}/{token}"
 
-        send_password_reset_mail(email=staff.email, name=staff.profile.username, url=reset_link)
-        log_staff_action(staff=request.user, code="auth.password_reset.initiate", label=f"Initiated a password reset for staff: {staff.email}.", is_success=True)
+        try:
+            send_password_reset_mail(email=staff.email, name=staff.profile.username, url=reset_link)
+            log_staff_action(staff=request.user, code="auth.password_reset.initiate", label=f"Initiated a password reset for staff: {staff.email}.", is_success=True)
+        except Exception as e:
+            log_staff_action(staff=user, code="auth.password_reset.initiate", label=f"Failed to initiate a password reset for staff: {staff.email}", is_success=False, failure_reason=f"{e}")
+            return toast_json_error("An unexpected error occurred on the server. Please try your request again later")
 
         return toast_json_ok("Password reset link sent successfully.")
 
